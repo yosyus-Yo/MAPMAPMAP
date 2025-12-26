@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>맵맵맵 Admin - 제보 관리</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: #f5f5f5; min-height: 100vh; }
+
+    .header { background: #1a1a2e; color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 20px; }
+    .header .logo { color: #ff6b6b; font-weight: 700; }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .stat-card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: #333; }
+    .stat-card .value.pending { color: #ff9800; }
+    .stat-card .value.approved { color: #4CAF50; }
+    .stat-card .value.rejected { color: #f44336; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab { padding: 10px 20px; background: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; color: #666; transition: all 0.2s; }
+    .tab.active { background: #c5171e; color: white; }
+    .tab:hover:not(.active) { background: #f0f0f0; }
+    .tab .count { background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 10px; margin-left: 6px; font-size: 12px; }
+    .tab.active .count { background: rgba(255,255,255,0.2); }
+
+    .review-list { display: flex; flex-direction: column; gap: 16px; }
+    .review-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+    .review-card-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .review-card-header .info { display: flex; align-items: center; gap: 12px; }
+    .review-card-header .nickname { font-weight: 600; color: #333; }
+    .review-card-header .level-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background: #ffebee; color: #c62828; }
+    .review-card-header .date { font-size: 13px; color: #888; }
+    .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-badge.pending { background: #fff3e0; color: #ef6c00; }
+    .status-badge.approved { background: #e8f5e9; color: #2e7d32; }
+    .status-badge.rejected { background: #ffebee; color: #c62828; }
+
+    .review-card-body { padding: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .review-card-body { grid-template-columns: 1fr; } }
+
+    .image-section { display: flex; flex-direction: column; gap: 12px; }
+    .image-box { border: 1px solid #eee; border-radius: 8px; overflow: hidden; }
+    .image-box .label { padding: 8px 12px; background: #f8f9fa; font-size: 12px; font-weight: 600; color: #666; }
+    .image-box img { width: 100%; height: 200px; object-fit: cover; cursor: pointer; }
+    .image-box img:hover { opacity: 0.9; }
+
+    .info-section h3 { font-size: 14px; color: #888; margin-bottom: 12px; }
+    .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .label { color: #666; font-size: 13px; }
+    .info-row .value { font-weight: 600; color: #333; font-size: 14px; }
+    .info-row .value.level { color: #c5171e; }
+    .comment-box { margin-top: 12px; padding: 12px; background: #f8f9fa; border-radius: 8px; font-size: 14px; color: #555; }
+
+    .action-section { display: flex; flex-direction: column; gap: 12px; }
+    .action-section h3 { font-size: 14px; color: #888; margin-bottom: 4px; }
+    .memo-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 80px; }
+    .memo-input:focus { outline: none; border-color: #c5171e; }
+    .reject-select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; }
+    .action-buttons { display: flex; gap: 12px; margin-top: auto; }
+    .btn { flex: 1; padding: 14px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-reject { background: #ffebee; color: #c62828; }
+    .btn-reject:hover { background: #ffcdd2; }
+    .btn-approve { background: #c5171e; color: white; }
+    .btn-approve:hover { background: #a01118; }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal-overlay img { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; }
+    .modal-close { position: absolute; top: 20px; right: 20px; background: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 24px; cursor: pointer; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #888; }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1><span class="logo">🌶️ 맵맵맵</span> Admin</h1>
+    <span>관리자님 환영합니다</span>
+  </header>
+
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="label">총 회원 수</div>
+        <div class="value">1,234</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">승인 대기</div>
+        <div class="value pending" id="pending-count">5</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">오늘 승인</div>
+        <div class="value approved">12</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">오늘 반려</div>
+        <div class="value rejected">2</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-status="pending">대기 중 <span class="count" id="tab-pending-count">5</span></button>
+      <button class="tab" data-status="approved">승인됨 <span class="count">48</span></button>
+      <button class="tab" data-status="rejected">반려됨 <span class="count">7</span></button>
+    </div>
+
+    <div class="review-list" id="review-list"></div>
+  </div>
+
+  <div class="modal-overlay" id="image-modal" onclick="closeImageModal()">
+    <button class="modal-close" onclick="closeImageModal()">×</button>
+    <img id="modal-image" src="" alt="">
+  </div>
+
+  <script>
+    // 더미 데이터
+    const pendingReviews = [
+      {
+        id: 1,
+        nickname: '맵부심',
+        userLevel: 4,
+        restaurant: '엽기떡볶이 강남점',
+        menu: '엽기떡볶이',
+        spicyLevel: 4,
+        comment: '진짜 맵지만 맛있어요! 맵찔이는 조심하세요.',
+        foodImage: 'https://images.unsplash.com/photo-1635963995867-a14dc5dce7e2?w=400',
+        receiptImage: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400',
+        createdAt: '2024-01-15 14:30',
+        status: 'pending'
+      },
+      {
+        id: 2,
+        nickname: '불닭러버',
+        userLevel: 5,
+        restaurant: '마라탕후루 건대점',
+        menu: '마라탕 (매운맛)',
+        spicyLevel: 3,
+        comment: '생각보다 안 매웠어요',
+        foodImage: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400',
+        receiptImage: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400',
+        createdAt: '2024-01-15 13:20',
+        status: 'pending'
+      },
+      {
+        id: 3,
+        nickname: '맵알못탈출',
+        userLevel: 2,
+        restaurant: '신전떡볶이 홍대점',
+        menu: '신전떡볶이',
+        spicyLevel: 2,
+        comment: '저한테는 딱 적당했어요!',
+        foodImage: 'https://images.unsplash.com/photo-1635963995867-a14dc5dce7e2?w=400',
+        receiptImage: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400',
+        createdAt: '2024-01-15 12:45',
+        status: 'pending'
+      },
+      {
+        id: 4,
+        nickname: '매운맛헌터',
+        userLevel: 5,
+        restaurant: '디진다 돈까스',
+        menu: '디진다 돈까스',
+        spicyLevel: 5,
+        comment: '역대급... 진짜 디진다 ㅋㅋㅋ',
+        foodImage: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=400',
+        receiptImage: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400',
+        createdAt: '2024-01-15 11:10',
+        status: 'pending'
+      },
+      {
+        id: 5,
+        nickname: '청양고추조아',
+        userLevel: 3,
+        restaurant: '불닭발 신촌점',
+        menu: '불닭발',
+        spicyLevel: 4,
+        comment: '불닭발 진짜 맛있음 근데 매움',
+        foodImage: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=400',
+        receiptImage: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400',
+        createdAt: '2024-01-15 10:30',
+        status: 'pending'
+      }
+    ];
+
+    const rejectReasons = [
+      '영수증 식별 불가',
+      '음식 사진 불량',
+      '가게/메뉴 불일치',
+      '중복 제보',
+      '부적절한 내용',
+      '기타'
+    ];
+
+    let currentTab = 'pending';
+
+    function renderReviews() {
+      const listEl = document.getElementById('review-list');
+      const reviews = pendingReviews.filter(r => r.status === currentTab);
+
+      if (reviews.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">${currentTab === 'pending' ? '✅' : currentTab === 'approved' ? '📋' : '📝'}</div>
+            <p>${currentTab === 'pending' ? '처리할 제보가 없습니다' : '내역이 없습니다'}</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = reviews.map(r => `
+        <div class="review-card" id="review-${r.id}">
+          <div class="review-card-header">
+            <div class="info">
+              <span class="nickname">${r.nickname}</span>
+              <span class="level-badge">Lv.${r.userLevel}</span>
+              <span class="date">${r.createdAt}</span>
+            </div>
+            <span class="status-badge ${r.status}">${r.status === 'pending' ? '검수 대기' : r.status === 'approved' ? '승인됨' : '반려됨'}</span>
+          </div>
+          <div class="review-card-body">
+            <div class="image-section">
+              <div class="image-box">
+                <div class="label">📷 음식 사진</div>
+                <img src="${r.foodImage}" alt="음식" onclick="openImageModal('${r.foodImage}')">
+              </div>
+              <div class="image-box">
+                <div class="label">🧾 영수증</div>
+                <img src="${r.receiptImage}" alt="영수증" onclick="openImageModal('${r.receiptImage}')">
+              </div>
+            </div>
+            <div class="info-section">
+              <h3>📋 제보 정보</h3>
+              <div class="info-row">
+                <span class="label">가게</span>
+                <span class="value">${r.restaurant}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">메뉴</span>
+                <span class="value">${r.menu}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">맵기 평가</span>
+                <span class="value level">Lv.${r.spicyLevel}</span>
+              </div>
+              ${r.comment ? `<div class="comment-box">"${r.comment}"</div>` : ''}
+            </div>
+            <div class="action-section">
+              ${r.status === 'pending' ? `
+                <div>
+                  <h3>💬 관리자 메모</h3>
+                  <textarea class="memo-input" id="memo-${r.id}" placeholder="선택사항"></textarea>
+                </div>
+                <div>
+                  <h3>❌ 반려 사유 (반려 시)</h3>
+                  <select class="reject-select" id="reject-${r.id}">
+                    <option value="">사유 선택</option>
+                    ${rejectReasons.map(reason => `<option value="${reason}">${reason}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="action-buttons">
+                  <button class="btn btn-reject" onclick="rejectReview(${r.id})">반려</button>
+                  <button class="btn btn-approve" onclick="approveReview(${r.id})">승인 (+500P)</button>
+                </div>
+              ` : r.status === 'approved' ? `
+                <div style="text-align: center; color: #4CAF50; padding: 20px;">
+                  <div style="font-size: 32px; margin-bottom: 8px;">✅</div>
+                  <div style="font-weight: 600;">승인 완료</div>
+                  <div style="font-size: 13px; color: #888; margin-top: 4px;">+500P 지급됨</div>
+                </div>
+              ` : `
+                <div style="text-align: center; color: #f44336; padding: 20px;">
+                  <div style="font-size: 32px; margin-bottom: 8px;">❌</div>
+                  <div style="font-weight: 600;">반려됨</div>
+                  <div style="font-size: 13px; color: #888; margin-top: 4px;">${r.rejectReason || '사유 없음'}</div>
+                </div>
+              `}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function approveReview(id) {
+      if (!confirm('이 제보를 승인하시겠습니까?\n\n• 지도에 데이터가 노출됩니다\n• 유저에게 500P가 지급됩니다')) return;
+
+      const review = pendingReviews.find(r => r.id === id);
+      review.status = 'approved';
+      
+      updateCounts();
+      renderReviews();
+      alert('✅ 승인되었습니다!\n\n• 가게 평균 맵기가 업데이트됩니다\n• 유저에게 500P가 지급되었습니다');
+    }
+
+    function rejectReview(id) {
+      const reason = document.getElementById(`reject-${id}`).value;
+      if (!reason) {
+        alert('반려 사유를 선택해주세요.');
+        return;
+      }
+      if (!confirm(`이 제보를 반려하시겠습니까?\n\n사유: ${reason}`)) return;
+
+      const review = pendingReviews.find(r => r.id === id);
+      review.status = 'rejected';
+      review.rejectReason = reason;
+      
+      updateCounts();
+      renderReviews();
+      alert('❌ 반려되었습니다.\n유저에게 알림이 전송됩니다.');
+    }
+
+    function updateCounts() {
+      const pendingCount = pendingReviews.filter(r => r.status === 'pending').length;
+      document.getElementById('pending-count').textContent = pendingCount;
+      document.getElementById('tab-pending-count').textContent = pendingCount;
+    }
+
+    function openImageModal(src) {
+      document.getElementById('modal-image').src = src;
+      document.getElementById('image-modal').classList.add('active');
+    }
+
+    function closeImageModal() {
+      document.getElementById('image-modal').classList.remove('active');
+    }
+
+    // 탭 클릭
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentTab = tab.dataset.status;
+        renderReviews();
+      });
+    });
+
+    // ESC로 모달 닫기
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeImageModal();
+    });
+
+    // 초기 렌더링
+    renderReviews();
+  </script>
+</body>
+</html>

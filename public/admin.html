@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>맵맵맵 Admin - 제보 관리</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: #f5f5f5; min-height: 100vh; }
+
+    .header { background: #1a1a2e; color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 20px; }
+    .header .logo { color: #ff6b6b; font-weight: 700; }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .stat-card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: #333; }
+    .stat-card .value.pending { color: #ff9800; }
+    .stat-card .value.approved { color: #4CAF50; }
+    .stat-card .value.rejected { color: #f44336; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab { padding: 10px 20px; background: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; color: #666; transition: all 0.2s; }
+    .tab.active { background: #c5171e; color: white; }
+    .tab:hover:not(.active) { background: #f0f0f0; }
+    .tab .count { background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 10px; margin-left: 6px; font-size: 12px; }
+    .tab.active .count { background: rgba(255,255,255,0.2); }
+
+    .review-list { display: flex; flex-direction: column; gap: 16px; }
+    .review-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+    .review-card-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .review-card-header .info { display: flex; align-items: center; gap: 12px; }
+    .review-card-header .nickname { font-weight: 600; color: #333; }
+    .review-card-header .level-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background: #ffebee; color: #c62828; }
+    .review-card-header .date { font-size: 13px; color: #888; }
+    .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-badge.pending { background: #fff3e0; color: #ef6c00; }
+    .status-badge.approved { background: #e8f5e9; color: #2e7d32; }
+    .status-badge.rejected { background: #ffebee; color: #c62828; }
+
+    .review-card-body { padding: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .review-card-body { grid-template-columns: 1fr; } }
+
+    .image-section { display: flex; flex-direction: column; gap: 12px; }
+    .image-box { border: 1px solid #eee; border-radius: 8px; overflow: hidden; }
+    .image-box .label { padding: 8px 12px; background: #f8f9fa; font-size: 12px; font-weight: 600; color: #666; }
+    .image-box img { width: 100%; height: 200px; object-fit: cover; cursor: pointer; }
+    .image-box img:hover { opacity: 0.9; }
+
+    .info-section h3 { font-size: 14px; color: #888; margin-bottom: 12px; }
+    .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .label { color: #666; font-size: 13px; }
+    .info-row .value { font-weight: 600; color: #333; font-size: 14px; }
+    .info-row .value.level { color: #c5171e; }
+    .comment-box { margin-top: 12px; padding: 12px; background: #f8f9fa; border-radius: 8px; font-size: 14px; color: #555; }
+
+    .action-section { display: flex; flex-direction: column; gap: 12px; }
+    .action-section h3 { font-size: 14px; color: #888; margin-bottom: 4px; }
+    .memo-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 80px; }
+    .memo-input:focus { outline: none; border-color: #c5171e; }
+    .reject-select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; }
+    .action-buttons { display: flex; gap: 12px; margin-top: auto; }
+    .btn { flex: 1; padding: 14px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-reject { background: #ffebee; color: #c62828; }
+    .btn-reject:hover { background: #ffcdd2; }
+    .btn-approve { background: #c5171e; color: white; }
+    .btn-approve:hover { background: #a01118; }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal-overlay img { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; }
+    .modal-close { position: absolute; top: 20px; right: 20px; background: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 24px; cursor: pointer; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #888; }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1><span class="logo">🌶️ 맵맵맵</span> Admin</h1>
+    <span id="admin-info">로딩 중...</span>
+  </header>
+
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="label">총 회원 수</div>
+        <div class="value">1,234</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">승인 대기</div>
+        <div class="value pending" id="pending-count">5</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">오늘 승인</div>
+        <div class="value approved">12</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">오늘 반려</div>
+        <div class="value rejected">2</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-status="pending">대기 중 <span class="count" id="tab-pending-count">5</span></button>
+      <button class="tab" data-status="approved">승인됨 <span class="count">48</span></button>
+      <button class="tab" data-status="rejected">반려됨 <span class="count">7</span></button>
+    </div>
+
+    <div class="review-list" id="review-list"></div>
+  </div>
+
+  <div class="modal-overlay" id="image-modal" onclick="closeImageModal()">
+    <button class="modal-close" onclick="closeImageModal()">×</button>
+    <img id="modal-image" src="" alt="">
+  </div>
+
+  <!-- API Client -->
+  <script src="/js/api.js"></script>
+
+  <script>
+    // 상태
+    let allReviews = [];
+    let stats = { users: 0, reviews: { pending: 0, approved: 0, rejected: 0 } };
+    let currentTab = 'pending';
+
+    const rejectReasons = [
+      '영수증 식별 불가',
+      '음식 사진 불량',
+      '가게/메뉴 불일치',
+      '중복 제보',
+      '부적절한 내용',
+      '기타'
+    ];
+
+    // 초기화
+    async function init() {
+      // 관리자 권한 확인
+      try {
+        const result = await API.auth.me();
+        if (!result.user || !result.user.is_admin) {
+          alert('관리자 권한이 필요합니다.');
+          location.href = '/';
+          return;
+        }
+        document.getElementById('admin-info').textContent = `${result.user.nickname}님 환영합니다`;
+      } catch (error) {
+        alert('로그인이 필요합니다.');
+        location.href = '/';
+        return;
+      }
+
+      // 데이터 로드
+      await loadData();
+    }
+
+    async function loadData() {
+      try {
+        const statusFilter = currentTab === 'all' ? '' : currentTab;
+        const result = await API.admin.getReviews(statusFilter);
+        allReviews = result.reviews || [];
+        stats.reviews = result.stats || { pending: 0, approved: 0, rejected: 0 };
+
+        // 통계 로드
+        const statsResult = await API.admin.getStats();
+        stats = statsResult.stats || stats;
+
+        updateUI();
+      } catch (error) {
+        console.error('데이터 로드 실패:', error);
+        showToast('데이터 로드 실패', 'error');
+      }
+    }
+
+    function updateUI() {
+      // 통계 업데이트
+      document.getElementById('pending-count').textContent = stats.reviews?.pending || 0;
+      document.getElementById('tab-pending-count').textContent = stats.reviews?.pending || 0;
+      document.querySelector('.stat-card:nth-child(1) .value').textContent = stats.users || 0;
+      document.querySelector('.stat-card:nth-child(3) .value').textContent = stats.reviews?.approved || 0;
+      document.querySelector('.stat-card:nth-child(4) .value').textContent = stats.reviews?.rejected || 0;
+
+      // 탭 카운트 업데이트
+      document.querySelectorAll('.tab')[1].querySelector('.count').textContent = stats.reviews?.approved || 0;
+      document.querySelectorAll('.tab')[2].querySelector('.count').textContent = stats.reviews?.rejected || 0;
+
+      renderReviews();
+    }
+
+    function renderReviews() {
+      const listEl = document.getElementById('review-list');
+      const reviews = allReviews.filter(r => r.status === currentTab);
+
+      if (reviews.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">${currentTab === 'pending' ? '✅' : currentTab === 'approved' ? '📋' : '📝'}</div>
+            <p>${currentTab === 'pending' ? '처리할 제보가 없습니다' : '내역이 없습니다'}</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = reviews.map(r => {
+        const createdAt = new Date(r.created_at).toLocaleString('ko-KR');
+        const foodImage = r.food_image_url ? `/uploads/${r.food_image_url}` : 'https://via.placeholder.com/400x200?text=No+Image';
+        const receiptImage = r.receipt_image_url ? `/uploads/${r.receipt_image_url}` : 'https://via.placeholder.com/400x200?text=No+Image';
+
+        return `
+          <div class="review-card" id="review-${r.id}">
+            <div class="review-card-header">
+              <div class="info">
+                <span class="nickname">${r.user_nickname || '익명'}</span>
+                <span class="level-badge">Lv.${r.user_spicy_level ?? '?'}</span>
+                <span class="date">${createdAt}</span>
+              </div>
+              <span class="status-badge ${r.status}">${r.status === 'pending' ? '검수 대기' : r.status === 'approved' ? '승인됨' : '반려됨'}</span>
+            </div>
+            <div class="review-card-body">
+              <div class="image-section">
+                <div class="image-box">
+                  <div class="label">📷 음식 사진</div>
+                  <img src="${foodImage}" alt="음식" onclick="openImageModal('${foodImage}')" onerror="this.src='https://via.placeholder.com/400x200?text=No+Image'">
+                </div>
+                <div class="image-box">
+                  <div class="label">🧾 영수증</div>
+                  <img src="${receiptImage}" alt="영수증" onclick="openImageModal('${receiptImage}')" onerror="this.src='https://via.placeholder.com/400x200?text=No+Image'">
+                </div>
+              </div>
+              <div class="info-section">
+                <h3>📋 제보 정보</h3>
+                <div class="info-row">
+                  <span class="label">가게</span>
+                  <span class="value">${r.restaurant_name || '알 수 없음'}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">주소</span>
+                  <span class="value" style="font-size: 12px;">${r.restaurant_address || ''}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">메뉴</span>
+                  <span class="value">${r.menu_name || ''}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">맵기 평가</span>
+                  <span class="value level">Lv.${r.spicy_level}</span>
+                </div>
+                ${r.content ? `<div class="comment-box">"${r.content}"</div>` : ''}
+              </div>
+              <div class="action-section">
+                ${r.status === 'pending' ? `
+                  <div>
+                    <h3>❌ 반려 사유 (반려 시)</h3>
+                    <select class="reject-select" id="reject-${r.id}">
+                      <option value="">사유 선택</option>
+                      ${rejectReasons.map(reason => `<option value="${reason}">${reason}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div class="action-buttons">
+                    <button class="btn btn-reject" onclick="rejectReview('${r.id}')">반려</button>
+                    <button class="btn btn-approve" onclick="approveReview('${r.id}')">승인 (+500P)</button>
+                  </div>
+                ` : r.status === 'approved' ? `
+                  <div style="text-align: center; color: #4CAF50; padding: 20px;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">✅</div>
+                    <div style="font-weight: 600;">승인 완료</div>
+                    <div style="font-size: 13px; color: #888; margin-top: 4px;">+${r.points_given || 500}P 지급됨</div>
+                  </div>
+                ` : `
+                  <div style="text-align: center; color: #f44336; padding: 20px;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">❌</div>
+                    <div style="font-weight: 600;">반려됨</div>
+                    <div style="font-size: 13px; color: #888; margin-top: 4px;">${r.reject_reason || '사유 없음'}</div>
+                  </div>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function approveReview(id) {
+      if (!confirm('이 제보를 승인하시겠습니까?\n\n• 지도에 데이터가 노출됩니다\n• 유저에게 500P가 지급됩니다')) return;
+
+      try {
+        const result = await API.admin.approve(id);
+        showToast(result.message || '승인되었습니다!', 'success');
+        await loadData();
+      } catch (error) {
+        showToast(error.message || '승인 실패', 'error');
+      }
+    }
+
+    async function rejectReview(id) {
+      const reason = document.getElementById(`reject-${id}`).value;
+      if (!reason) {
+        showToast('반려 사유를 선택해주세요.', 'error');
+        return;
+      }
+      if (!confirm(`이 제보를 반려하시겠습니까?\n\n사유: ${reason}`)) return;
+
+      try {
+        const result = await API.admin.reject(id, reason);
+        showToast(result.message || '반려되었습니다.', 'success');
+        await loadData();
+      } catch (error) {
+        showToast(error.message || '반려 실패', 'error');
+      }
+    }
+
+    function openImageModal(src) {
+      document.getElementById('modal-image').src = src;
+      document.getElementById('image-modal').classList.add('active');
+    }
+
+    function closeImageModal() {
+      document.getElementById('image-modal').classList.remove('active');
+    }
+
+    // 탭 클릭
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', async () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentTab = tab.dataset.status;
+        await loadData();
+      });
+    });
+
+    // ESC로 모달 닫기
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeImageModal();
+    });
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
