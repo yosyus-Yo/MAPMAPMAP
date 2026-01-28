@@ -4,6 +4,13 @@ const cors = require('cors');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const path = require('path');
+const fs = require('fs');
+
+// sessions 디렉토리 자동 생성
+const sessionsPath = path.join(__dirname, '../sessions');
+if (!fs.existsSync(sessionsPath)) {
+  fs.mkdirSync(sessionsPath, { recursive: true });
+}
 
 const app = express();
 
