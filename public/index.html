@@ -241,12 +241,601 @@
     /* ========== 메인 컨테이너 ========== */
     #main-container {
       display: none;
+      padding-bottom: 70px; /* 하단 네비게이션 공간 */
     }
 
     .main-content {
       max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
+    }
+
+    /* ========== 하단 탭 네비게이션 ========== */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 9999;
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: #999;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .nav-item:hover {
+      color: #c5171e;
+    }
+
+    .nav-item.active {
+      color: #c5171e;
+    }
+
+    .nav-item .nav-icon {
+      font-size: 24px;
+    }
+
+    .nav-item .nav-label {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ========== 탭 컨텐츠 ========== */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* ========== 홈 탭 (큐레이션) ========== */
+    .home-content {
+      padding: 0;
+    }
+
+    /* 배너 캐러셀 */
+    .banner-section {
+      margin-bottom: 24px;
+    }
+
+    .banner-carousel {
+      position: relative;
+      overflow: hidden;
+      border-radius: 16px;
+      margin: 0 20px;
+    }
+
+    .banner-track {
+      display: flex;
+      transition: transform 0.4s ease;
+    }
+
+    .banner-slide {
+      min-width: 100%;
+      height: 180px;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24px 30px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .banner-slide.map-banner {
+      background: linear-gradient(135deg, #c5171e 0%, #ff6b35 100%);
+      color: white;
+    }
+
+    .banner-slide.test-banner {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .banner-slide h3 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .banner-slide p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .banner-slide .banner-icon {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      font-size: 60px;
+      opacity: 0.3;
+    }
+
+    .banner-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .banner-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ddd;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .banner-dot.active {
+      background: #c5171e;
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    /* 테마 추천 */
+    .theme-section {
+      padding: 0 20px;
+      margin-bottom: 24px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .section-more {
+      font-size: 14px;
+      color: #999;
+      text-decoration: none;
+    }
+
+    .theme-chips {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .theme-chips::-webkit-scrollbar {
+      display: none;
+    }
+
+    .theme-chip {
+      flex-shrink: 0;
+      padding: 12px 20px;
+      border-radius: 25px;
+      border: 2px solid #eee;
+      background: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .theme-chip:hover {
+      border-color: #c5171e;
+      color: #c5171e;
+    }
+
+    .theme-chip.active {
+      background: #c5171e;
+      border-color: #c5171e;
+      color: white;
+    }
+
+    /* 추천 맛집 카드 */
+    .recommend-section {
+      padding: 0 20px;
+      margin-bottom: 24px;
+    }
+
+    .recommend-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .recommend-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .recommend-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .recommend-card-image {
+      height: 120px;
+      background: linear-gradient(135deg, #ff6b6b 0%, #c5171e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+
+    .recommend-card-body {
+      padding: 12px;
+    }
+
+    .recommend-card-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .recommend-card-info {
+      font-size: 12px;
+      color: #999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .recommend-card-level {
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* 퀵 액션 */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 0 20px;
+      margin-bottom: 24px;
+    }
+
+    .quick-action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 8px;
+      background: white;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      font-family: inherit;
+    }
+
+    .quick-action:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .quick-action-icon {
+      font-size: 28px;
+    }
+
+    .quick-action-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    /* ========== 마이페이지 탭 ========== */
+    .mypage-content {
+      padding: 20px;
+    }
+
+    .mypage-profile-card {
+      background: white;
+      border-radius: 20px;
+      padding: 30px 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      margin-bottom: 20px;
+    }
+
+    .mypage-avatar-large {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #c5171e 0%, #ff6b35 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 16px;
+    }
+
+    .mypage-profile-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .mypage-profile-stats {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+
+    .mypage-profile-stat {
+      text-align: center;
+    }
+
+    .mypage-profile-stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: #c5171e;
+    }
+
+    .mypage-profile-stat-label {
+      font-size: 13px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .mypage-menu-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .mypage-menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px;
+      border-bottom: 1px solid #f5f5f5;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .mypage-menu-item:last-child {
+      border-bottom: none;
+    }
+
+    .mypage-menu-item:hover {
+      background: #fafafa;
+    }
+
+    .mypage-menu-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .mypage-menu-icon {
+      font-size: 20px;
+    }
+
+    .mypage-menu-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .mypage-menu-arrow {
+      color: #ccc;
+      font-size: 14px;
+    }
+
+    /* 마이페이지 로그인 프롬프트 */
+    .mypage-login-prompt {
+      background: white;
+      border-radius: 20px;
+      padding: 50px 30px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      margin: 50px 0;
+    }
+
+    .login-prompt-icon {
+      font-size: 60px;
+      margin-bottom: 20px;
+    }
+
+    .mypage-login-prompt h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .mypage-login-prompt p {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    .mypage-login-prompt .btn-primary {
+      width: 100%;
+      max-width: 200px;
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .mypage-login-prompt .btn-secondary {
+      width: 100%;
+      max-width: 200px;
+      padding: 12px 24px;
+      font-size: 14px;
+      background: #f5f5f5;
+      color: #666;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+    }
+
+    /* 레벨 변경 모달 */
+    .level-change-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10002;
+    }
+
+    .level-change-modal {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      width: 90%;
+      max-width: 320px;
+      text-align: center;
+    }
+
+    .level-change-modal h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .level-change-modal p {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    .level-select-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .level-select-grid .level-btn {
+      padding: 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      background: white;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .level-select-grid .level-btn:hover {
+      border-color: #c5171e;
+    }
+
+    .level-select-grid .level-btn.selected {
+      background: #c5171e;
+      border-color: #c5171e;
+      color: white;
+    }
+
+    .level-change-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .level-change-actions button {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .level-change-actions .btn-secondary {
+      background: #f5f5f5;
+      color: #666;
+      border: none;
+    }
+
+    .level-change-actions .btn-primary {
+      background: #c5171e;
+      color: white;
+      border: none;
+    }
+
+    /* GNB 아이콘 버튼 */
+    .header-icons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-icon-btn {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: transparent;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      position: relative;
+    }
+
+    .header-icon-btn:hover {
+      background: #f5f5f5;
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 8px;
+      height: 8px;
+      background: #c5171e;
+      border-radius: 50%;
+      display: none;
+    }
+
+    .notification-badge.show {
+      display: block;
     }
 
     /* 상단 컨트롤 */
@@ -503,6 +1092,17 @@
       transition: all 0.2s;
     }
 
+    .guest-level-badge {
+      background: #f5f5f5;
+      color: #666;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid #ddd;
+      white-space: nowrap;
+    }
+
     .auth-btn.login {
       background: white;
       color: #c5171e;
@@ -599,6 +1199,52 @@
     .auth-form-group input:focus {
       outline: none;
       border-color: #c5171e;
+    }
+
+    .signup-level-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .signup-level-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 6px;
+      border: 2px solid #eee;
+      border-radius: 10px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .signup-level-btn:hover {
+      border-color: #ffcccc;
+      background: #fff5f5;
+    }
+
+    .signup-level-btn.selected {
+      border-color: #c5171e;
+      background: #fff5f5;
+    }
+
+    .signup-level-btn .level-emoji {
+      font-size: 18px;
+      font-weight: 700;
+      color: #c5171e;
+    }
+
+    .signup-level-btn .level-name {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .signup-level-btn.selected .level-name {
+      color: #c5171e;
+      font-weight: 600;
     }
 
     .auth-submit {
@@ -1910,17 +2556,36 @@
   <!-- 헤더 -->
   <header class="header">
     <div class="header-inner">
-      <div class="logo"><img src="/img/logo.svg" alt="logo" width="40px"></div>
+      <div class="logo" style="cursor: pointer;" onclick="switchTab('home')"><img src="/img/logo.svg" alt="logo" width="40px"></div>
+
+      <!-- 로그인 상태: 아이콘 + 사용자 정보 -->
       <div class="user-info" id="header-user-info" style="display: none;">
-        <span class="nickname" id="header-nickname" style="cursor: pointer;" onclick="openMyPage()"></span>
+        <div class="header-icons">
+          <button class="header-icon-btn" onclick="openSearchModal()" title="검색">
+            🔍
+          </button>
+          <button class="header-icon-btn" onclick="openNotifications()" title="알림">
+            🔔
+            <span class="notification-badge" id="notification-badge"></span>
+          </button>
+        </div>
+        <span class="nickname" id="header-nickname" style="cursor: pointer;" onclick="switchTab('mypage')"></span>
         <span class="user-level-badge" id="header-level"></span>
-        <button class="auth-btn admin" id="admin-btn" style="display: none;" onclick="openAdminDashboard()">🛡️ 관리자</button>
-        <button class="auth-btn mypage" onclick="openMyPage()">마이페이지</button>
+        <button class="auth-btn admin" id="admin-btn" style="display: none;" onclick="openAdminDashboard()">🛡️</button>
         <button class="auth-btn logout" onclick="handleLogout()">로그아웃</button>
       </div>
+
+      <!-- 비로그인 상태: 아이콘 + 게스트 레벨 + 로그인 버튼 -->
       <div class="auth-buttons" id="auth-buttons">
+        <div class="header-icons">
+          <button class="header-icon-btn" onclick="openSearchModal()" title="검색">
+            🔍
+          </button>
+        </div>
+        <span class="guest-level-badge" id="guest-level-badge" title="비회원 기본 맵기 레벨">
+          게스트 Lv.3
+        </span>
         <button class="auth-btn login" onclick="openAuthModal('login')">로그인</button>
-        <button class="auth-btn signup" onclick="openAuthModal('signup')">회원가입</button>
       </div>
     </div>
   </header>
@@ -1998,76 +2663,231 @@
 
   <!-- 메인 컨테이너 -->
   <div id="main-container">
-    <div class="main-content">
-      <!-- 상단 컨트롤 -->
-      <div class="top-controls">
-        <!-- <div class="filter-card">
-          <h3>🛡️ 안전 필터</h3>
-          <div class="toggle-row">
-            <span class="toggle-label">내 레벨 이하만 보기</span>
-            <label class="switch">
-              <input type="checkbox" id="safety-filter">
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div> -->
 
-        <div class="filter-card">
-          <h3>📍 내 기준으로 다시 쓰는 맵레벨</h3>
-          <div class="legend">
-            <div class="legend-item">
-              <span class="legend-dot safe"></span>
-              <span>Safe - 맛있게 먹을 수 있어요</span>
+    <!-- ========== 홈 탭 (큐레이션) ========== -->
+    <div id="tab-home" class="tab-content active">
+      <div class="home-content">
+        <!-- 배너 섹션 -->
+        <div class="banner-section" style="padding-top: 20px;">
+          <div class="banner-carousel" id="banner-carousel">
+            <div class="banner-track" id="banner-track">
+              <div class="banner-slide map-banner" onclick="switchTab('map')">
+                <h3>🗺️ 맵고수들의 맛집 지도</h3>
+                <p>나만의 맵레벨에 맞는 맛집을 찾아보세요</p>
+                <span class="banner-icon">🌶️</span>
+              </div>
+              <div class="banner-slide test-banner" onclick="alert('맵BTI 테스트는 준비 중입니다!')">
+                <h3>🧪 맵BTI 테스트</h3>
+                <p>나의 매운맛 성향을 알아보세요</p>
+                <span class="banner-icon">🔥</span>
+              </div>
             </div>
-            <div class="legend-item">
-              <span class="legend-dot warning"></span>
-              <span>Warning - 조금 매울 수 있어요</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot danger"></span>
-              <span>Danger - 도전이 필요해요</span>
-            </div>
+          </div>
+          <div class="banner-dots">
+            <button class="banner-dot active" onclick="moveBanner(0)"></button>
+            <button class="banner-dot" onclick="moveBanner(1)"></button>
           </div>
         </div>
-      </div>
 
-      <!-- 지도 -->
-      <div class="map-section">
-        <div class="map-section-header">
-          <h2>🗺️ 매운맛집 지도</h2>
-          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-            <button class="my-location-btn" onclick="moveToMyLocation()">
-              📍 내 위치로
-            </button>
-            <button class="report-btn" onclick="openReportModal()">
-              🔥 맛집 제보하기
-            </button>
-            <div class="toggle-row">
-              <span class="toggle-label">내 레벨 이하만 보기</span>
-              <label class="switch">
-                <input type="checkbox" id="safety-filter">
-                <span class="slider"></span>
-              </label>
-            </div>
+        <!-- 퀵 액션 -->
+        <div class="quick-actions">
+          <button class="quick-action" onclick="switchTab('map')">
+            <span class="quick-action-icon">🗺️</span>
+            <span class="quick-action-label">지도</span>
+          </button>
+          <button class="quick-action" onclick="openReportModal()">
+            <span class="quick-action-icon">🔥</span>
+            <span class="quick-action-label">제보하기</span>
+          </button>
+          <button class="quick-action" onclick="showFavorites()">
+            <span class="quick-action-icon">❤️</span>
+            <span class="quick-action-label">찜목록</span>
+          </button>
+          <button class="quick-action" onclick="switchTab('mypage')">
+            <span class="quick-action-icon">👤</span>
+            <span class="quick-action-label">마이</span>
+          </button>
+        </div>
+
+        <!-- 테마별 추천 -->
+        <div class="theme-section">
+          <div class="section-header">
+            <h2 class="section-title">🔥 테마별 맛집</h2>
+          </div>
+          <div class="theme-chips" id="theme-chips">
+            <button class="theme-chip active" data-theme="all" onclick="filterByTheme('all')">전체</button>
+            <button class="theme-chip" data-theme="solo" onclick="filterByTheme('solo')">🍜 혼밥</button>
+            <button class="theme-chip" data-theme="date" onclick="filterByTheme('date')">💑 데이트</button>
+            <button class="theme-chip" data-theme="group" onclick="filterByTheme('group')">👨‍👩‍👧‍👦 단체</button>
+            <button class="theme-chip" data-theme="stress" onclick="filterByTheme('stress')">😤 스트레스 해소</button>
+            <button class="theme-chip" data-theme="challenge" onclick="filterByTheme('challenge')">🏆 도전</button>
           </div>
         </div>
-        <div id="map"></div>
-      </div>
 
-      <!-- 맛집 리스트 -->
-      <div class="restaurant-section">
-        <h2>🍜 맛집 리스트</h2>
-        <div class="restaurant-list" id="restaurant-list"></div>
+        <!-- 추천 맛집 -->
+        <div class="recommend-section">
+          <div class="section-header">
+            <h2 class="section-title">📍 인기 맛집</h2>
+            <a href="#" class="section-more" onclick="switchTab('map'); return false;">더보기 →</a>
+          </div>
+          <div class="recommend-grid" id="recommend-grid">
+            <!-- JS로 동적 생성 -->
+          </div>
+        </div>
+
+        <!-- 푸터 -->
+        <div class="footer">
+          <p>🔥 맵맵맵 - 매운맛 실패 없는 맛집 지도</p>
+          <p style="margin-top: 8px;">
+            <span class="reset-link" onclick="resetData()">처음부터 다시하기</span>
+          </p>
+        </div>
       </div>
     </div>
 
-    <!-- 푸터 -->
-    <div class="footer">
-      <p>🔥 맵맵맵 - 매운맛 실패 없는 맛집 지도</p>
-      <p style="margin-top: 8px;">
-        <span class="reset-link" onclick="resetData()">처음부터 다시하기</span>
-      </p>
+    <!-- ========== 지도 탭 ========== -->
+    <div id="tab-map" class="tab-content">
+      <div class="main-content">
+        <!-- 상단 컨트롤 -->
+        <div class="top-controls">
+          <div class="filter-card">
+            <h3>📍 내 기준으로 다시 쓰는 맵레벨</h3>
+            <div class="legend">
+              <div class="legend-item">
+                <span class="legend-dot safe"></span>
+                <span>Safe - 맛있게 먹을 수 있어요</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot warning"></span>
+                <span>Warning - 조금 매울 수 있어요</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot danger"></span>
+                <span>Danger - 도전이 필요해요</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 지도 -->
+        <div class="map-section">
+          <div class="map-section-header">
+            <h2>🗺️ 매운맛집 지도</h2>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <button class="my-location-btn" onclick="moveToMyLocation()">
+                📍 내 위치로
+              </button>
+              <button class="report-btn" onclick="openReportModal()">
+                🔥 맛집 제보하기
+              </button>
+              <div class="toggle-row">
+                <span class="toggle-label">내 레벨 이하만 보기</span>
+                <label class="switch">
+                  <input type="checkbox" id="safety-filter">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div id="map"></div>
+        </div>
+
+        <!-- 맛집 리스트 -->
+        <div class="restaurant-section">
+          <h2>🍜 맛집 리스트</h2>
+          <div class="restaurant-list" id="restaurant-list"></div>
+        </div>
+      </div>
     </div>
+
+    <!-- ========== 마이페이지 탭 ========== -->
+    <div id="tab-mypage" class="tab-content">
+      <div class="mypage-content">
+        <!-- 비로그인 시 로그인 유도 -->
+        <div id="mypage-login-prompt" class="mypage-login-prompt" style="display: none;">
+          <div class="login-prompt-icon">🌶️</div>
+          <h3>로그인이 필요합니다</h3>
+          <p>로그인하고 나만의 매운맛 여정을 시작하세요!</p>
+          <button class="btn-primary" onclick="openAuthModal('login')">로그인</button>
+          <button class="btn-secondary" onclick="openAuthModal('signup')" style="margin-top: 10px;">회원가입</button>
+        </div>
+
+        <!-- 프로필 카드 -->
+        <div class="mypage-profile-card">
+          <div class="mypage-avatar-large">🔥</div>
+          <div class="mypage-profile-name" id="mypage-tab-nickname">닉네임</div>
+          <span class="user-level-badge" id="mypage-tab-level">Lv.0</span>
+          <div class="mypage-profile-stats">
+            <div class="mypage-profile-stat">
+              <div class="mypage-profile-stat-value" id="mypage-tab-points">0</div>
+              <div class="mypage-profile-stat-label">포인트</div>
+            </div>
+            <div class="mypage-profile-stat">
+              <div class="mypage-profile-stat-value" id="mypage-tab-reviews">0</div>
+              <div class="mypage-profile-stat-label">리뷰</div>
+            </div>
+            <div class="mypage-profile-stat">
+              <div class="mypage-profile-stat-value" id="mypage-tab-favorites">0</div>
+              <div class="mypage-profile-stat-label">찜</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 메뉴 카드 -->
+        <div class="mypage-menu-card">
+          <div class="mypage-menu-item" onclick="showMyReviews()">
+            <div class="mypage-menu-left">
+              <span class="mypage-menu-icon">📝</span>
+              <span class="mypage-menu-text">내 리뷰</span>
+            </div>
+            <span class="mypage-menu-arrow">›</span>
+          </div>
+          <div class="mypage-menu-item" onclick="showFavorites()">
+            <div class="mypage-menu-left">
+              <span class="mypage-menu-icon">❤️</span>
+              <span class="mypage-menu-text">찜한 맛집</span>
+            </div>
+            <span class="mypage-menu-arrow">›</span>
+          </div>
+          <div class="mypage-menu-item" onclick="openLevelChangeModal()">
+            <div class="mypage-menu-left">
+              <span class="mypage-menu-icon">🌶️</span>
+              <span class="mypage-menu-text">맵레벨 변경</span>
+            </div>
+            <span class="mypage-menu-arrow">›</span>
+          </div>
+          <div class="mypage-menu-item" onclick="handleLogout()">
+            <div class="mypage-menu-left">
+              <span class="mypage-menu-icon">🚪</span>
+              <span class="mypage-menu-text">로그아웃</span>
+            </div>
+            <span class="mypage-menu-arrow">›</span>
+          </div>
+        </div>
+
+        <!-- 푸터 -->
+        <div class="footer" style="margin-top: 40px;">
+          <p>🔥 맵맵맵 - 매운맛 실패 없는 맛집 지도</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 하단 탭 네비게이션 ========== -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="home" onclick="switchTab('home')">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">홈</span>
+      </button>
+      <button class="nav-item" data-tab="map" onclick="switchTab('map')">
+        <span class="nav-icon">🗺️</span>
+        <span class="nav-label">지도</span>
+      </button>
+      <button class="nav-item" data-tab="mypage" onclick="switchTab('mypage')">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">마이</span>
+      </button>
+    </nav>
+
   </div>
 
   <!-- 모달 -->
@@ -2124,6 +2944,36 @@
           <div class="auth-form-group">
             <label>닉네임</label>
             <input type="text" id="signup-nickname" placeholder="닉네임을 입력하세요" maxlength="20" required>
+          </div>
+          <div class="auth-form-group">
+            <label>나의 맵기 레벨</label>
+            <div class="signup-level-selector">
+              <button type="button" class="signup-level-btn" data-level="0" onclick="selectSignupLevel(0)">
+                <span class="level-emoji">0</span>
+                <span class="level-name">안 매움</span>
+              </button>
+              <button type="button" class="signup-level-btn" data-level="1" onclick="selectSignupLevel(1)">
+                <span class="level-emoji">1</span>
+                <span class="level-name">순한맛</span>
+              </button>
+              <button type="button" class="signup-level-btn" data-level="2" onclick="selectSignupLevel(2)">
+                <span class="level-emoji">2</span>
+                <span class="level-name">약간 매움</span>
+              </button>
+              <button type="button" class="signup-level-btn selected" data-level="3" onclick="selectSignupLevel(3)">
+                <span class="level-emoji">3</span>
+                <span class="level-name">보통</span>
+              </button>
+              <button type="button" class="signup-level-btn" data-level="4" onclick="selectSignupLevel(4)">
+                <span class="level-emoji">4</span>
+                <span class="level-name">매움</span>
+              </button>
+              <button type="button" class="signup-level-btn" data-level="5" onclick="selectSignupLevel(5)">
+                <span class="level-emoji">5</span>
+                <span class="level-name">극한</span>
+              </button>
+            </div>
+            <input type="hidden" id="signup-spicy-level" value="3">
           </div>
           <button type="submit" class="auth-submit">회원가입</button>
           <div class="auth-error" id="signup-error"></div>
@@ -2363,6 +3213,8 @@
 
   <script>
     // ========== 상태 ==========
+    const GUEST_DEFAULT_LEVEL = 3;  // 비회원 기본 맵기 레벨 (중간)
+
     let restaurants = [];
     let currentUser = null;
     let map = null;
@@ -2375,6 +3227,391 @@
     let reportMap = null;  // 제보하기 모달 지도
     let reportMarker = null;  // 제보하기 위치 마커
     let modalMiniMap = null;  // 맛집 상세 모달 미니맵
+    let currentTab = 'home';  // 현재 활성 탭
+    let currentBannerIndex = 0;  // 현재 배너 인덱스
+    let bannerAutoSlide = null;  // 배너 자동 슬라이드 타이머
+
+    // ========== 비회원/회원 헬퍼 ==========
+    function isLoggedIn() {
+      return currentUser !== null;
+    }
+
+    function getEffectiveLevel() {
+      // 로그인 사용자는 설정된 레벨, 비회원은 기본값 반환
+      if (currentUser && currentUser.spicy_level !== null && currentUser.spicy_level !== undefined) {
+        return currentUser.spicy_level;
+      }
+      return GUEST_DEFAULT_LEVEL;
+    }
+
+    function requireLogin(action = '이 기능을') {
+      if (!isLoggedIn()) {
+        showToast(`${action} 사용하려면 로그인이 필요합니다`, 'info');
+        openAuthModal('login');
+        return false;
+      }
+      return true;
+    }
+
+    // ========== 탭 네비게이션 ==========
+    function switchTab(tabName) {
+      // 모든 탭 콘텐츠 숨기기
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      // 모든 네비게이션 아이템 비활성화
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+
+      // 선택된 탭 활성화
+      const selectedTab = document.getElementById(`tab-${tabName}`);
+      if (selectedTab) {
+        selectedTab.classList.add('active');
+      }
+
+      // 선택된 네비게이션 아이템 활성화
+      const selectedNavItem = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
+      if (selectedNavItem) {
+        selectedNavItem.classList.add('active');
+      }
+
+      currentTab = tabName;
+
+      // 탭별 초기화 작업
+      if (tabName === 'map') {
+        // 지도 탭 진입 시 지도 리사이즈
+        if (map) {
+          setTimeout(() => {
+            map.relayout();
+          }, 100);
+        }
+      } else if (tabName === 'home') {
+        // 홈 탭 진입 시 배너 자동 슬라이드 시작
+        startBannerAutoSlide();
+        renderRecommendGrid();
+      } else if (tabName === 'mypage') {
+        // 마이페이지 탭 진입 시 사용자 정보 업데이트
+        updateMypageTab();
+      }
+    }
+
+    // ========== 배너 캐러셀 ==========
+    function moveBanner(index) {
+      const track = document.querySelector('.banner-track');
+      const dots = document.querySelectorAll('.banner-dot');
+
+      if (!track || dots.length === 0) return;
+
+      const bannerCount = track.children.length;
+      if (index < 0) index = bannerCount - 1;
+      if (index >= bannerCount) index = 0;
+
+      currentBannerIndex = index;
+      track.style.transform = `translateX(-${index * 100}%)`;
+
+      // 도트 업데이트
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+      });
+    }
+
+    function startBannerAutoSlide() {
+      stopBannerAutoSlide();
+      bannerAutoSlide = setInterval(() => {
+        moveBanner(currentBannerIndex + 1);
+      }, 4000);
+    }
+
+    function stopBannerAutoSlide() {
+      if (bannerAutoSlide) {
+        clearInterval(bannerAutoSlide);
+        bannerAutoSlide = null;
+      }
+    }
+
+    // ========== 테마 필터링 ==========
+    function filterByTheme(theme) {
+      // 테마 칩 활성화 상태 토글
+      document.querySelectorAll('.theme-chip').forEach(chip => {
+        chip.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      // 테마별 필터링 후 추천 그리드 업데이트
+      renderRecommendGrid(theme);
+
+      // 지도 탭으로 전환하면서 필터 적용
+      if (theme !== 'all') {
+        showToast(`'${getThemeLabel(theme)}' 테마로 필터링합니다`, 'info');
+      }
+    }
+
+    function getThemeLabel(theme) {
+      const labels = {
+        'korean': '한식 매운맛',
+        'chinese': '중식 마라',
+        'snack': '분식',
+        'chicken': '치킨',
+        'soup': '찌개/탕'
+      };
+      return labels[theme] || theme;
+    }
+
+    // ========== 추천 그리드 ==========
+    function renderRecommendGrid(themeFilter = 'all') {
+      const grid = document.getElementById('recommend-grid');
+      if (!grid) return;
+
+      // 맛집 데이터 필터링
+      let filtered = [...restaurants];
+
+      // 테마 필터 적용 (카테고리 기반)
+      if (themeFilter && themeFilter !== 'all') {
+        const categoryMap = {
+          'korean': '한식',
+          'chinese': '중식',
+          'snack': '분식',
+          'chicken': '치킨',
+          'soup': '찌개'
+        };
+        const category = categoryMap[themeFilter];
+        if (category) {
+          filtered = filtered.filter(r => r.category && r.category.includes(category));
+        }
+      }
+
+      // 인기순 정렬 (리뷰 수 기준)
+      filtered.sort((a, b) => (b.review_count || 0) - (a.review_count || 0));
+
+      // 최대 6개만 표시
+      filtered = filtered.slice(0, 6);
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #666;">등록된 맛집이 없습니다</p>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(restaurant => {
+        const level = restaurant.avg_spicy_level || 0;
+        const status = getStatus(level);
+        const statusEmoji = status === 'safe' ? '🟢' : status === 'warning' ? '🟡' : '🔴';
+
+        return `
+          <div class="recommend-card" onclick="openRestaurantModal(${restaurant.id})">
+            <div class="recommend-image">
+              <img src="${getCategoryImage(restaurant.category)}" alt="${restaurant.name}">
+              <span class="recommend-level">${statusEmoji} Lv.${level.toFixed(1)}</span>
+            </div>
+            <div class="recommend-info">
+              <h4>${restaurant.name}</h4>
+              <p>${restaurant.category || '기타'}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ========== 마이페이지 탭 업데이트 ==========
+    function updateMypageTab() {
+      const profileName = document.getElementById('mypage-tab-nickname');
+      const profileLevel = document.getElementById('mypage-tab-level');
+      const loginPrompt = document.getElementById('mypage-login-prompt');
+      const profileCard = document.querySelector('.mypage-profile-card');
+      const menuCard = document.querySelector('.mypage-menu-card');
+
+      if (currentUser) {
+        // 로그인 상태
+        if (loginPrompt) loginPrompt.style.display = 'none';
+        if (profileCard) profileCard.style.display = 'block';
+        if (menuCard) menuCard.style.display = 'block';
+        if (profileName) profileName.textContent = currentUser.nickname;
+        if (profileLevel) {
+          profileLevel.textContent = `Lv.${currentUser.spicy_level}`;
+          profileLevel.className = `user-level-badge level-${currentUser.spicy_level}`;
+        }
+
+        // 통계 로드
+        loadMypageStats();
+      } else {
+        // 비로그인 상태
+        if (profileCard) profileCard.style.display = 'none';
+        if (menuCard) menuCard.style.display = 'none';
+        if (loginPrompt) loginPrompt.style.display = 'block';
+      }
+    }
+
+    async function loadMypageStats() {
+      try {
+        // 내 리뷰 수
+        const reviewsRes = await API.reviews.myList();
+        const reviewCount = reviewsRes.reviews ? reviewsRes.reviews.length : 0;
+        const statReviews = document.getElementById('mypage-tab-reviews');
+        if (statReviews) statReviews.textContent = reviewCount;
+
+        // 찜 수
+        const favRes = await API.favorites.list();
+        const favCount = favRes.favorites ? favRes.favorites.length : 0;
+        const statFavorites = document.getElementById('mypage-tab-favorites');
+        if (statFavorites) statFavorites.textContent = favCount;
+      } catch (e) {
+        console.error('Failed to load mypage stats:', e);
+      }
+    }
+
+    // 마이페이지 메뉴 액션
+    function showMyReviews() {
+      openMyPage(); // 기존 마이페이지 모달 열기 (내 리뷰 표시)
+    }
+
+    function showFavorites() {
+      openMyPage(); // 기존 마이페이지 모달 열기 (찜 목록은 탭 전환 필요)
+    }
+
+    function openLevelChangeModal() {
+      if (!currentUser) {
+        showToast('로그인이 필요합니다', 'error');
+        return;
+      }
+      // 온보딩 레벨 선택 UI 재사용
+      const levels = [0, 1, 2, 3, 4, 5];
+      const currentLevel = currentUser.spicy_level;
+
+      const modal = document.createElement('div');
+      modal.className = 'level-change-modal-overlay';
+      modal.innerHTML = `
+        <div class="level-change-modal">
+          <h3>맵핵 레벨 변경</h3>
+          <p>현재 레벨: Lv.${currentLevel}</p>
+          <div class="level-select-grid">
+            ${levels.map(level => `
+              <button class="level-btn ${level === currentLevel ? 'selected' : ''}" data-level="${level}">
+                Lv.${level}
+              </button>
+            `).join('')}
+          </div>
+          <div class="level-change-actions">
+            <button class="btn-secondary" onclick="closeLevelChangeModal()">취소</button>
+            <button class="btn-primary" onclick="confirmLevelChange()">변경</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      // 레벨 버튼 클릭 이벤트
+      modal.querySelectorAll('.level-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          modal.querySelectorAll('.level-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+        });
+      });
+    }
+
+    function closeLevelChangeModal() {
+      const modal = document.querySelector('.level-change-modal-overlay');
+      if (modal) modal.remove();
+    }
+
+    async function confirmLevelChange() {
+      const selectedBtn = document.querySelector('.level-change-modal .level-btn.selected');
+      if (!selectedBtn) return;
+
+      const newLevel = parseInt(selectedBtn.dataset.level);
+
+      try {
+        await API.auth.setSpicyLevel(newLevel);
+        currentUser.spicy_level = newLevel;
+        AppState.setUser(currentUser);
+        showToast(`맵핵 레벨이 Lv.${newLevel}로 변경되었습니다!`, 'success');
+        closeLevelChangeModal();
+        updateMypageTab();
+        updateMarkers();
+        renderRestaurantList();
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    // ========== 검색 모달 ==========
+    function openSearchModal() {
+      // 간단한 검색 프롬프트 (추후 모달로 개선 가능)
+      const query = prompt('맛집 이름 또는 주소 검색:');
+      if (query && query.trim()) {
+        searchRestaurants(query.trim());
+      }
+    }
+
+    function searchRestaurants(query) {
+      const filtered = restaurants.filter(r =>
+        r.name.toLowerCase().includes(query.toLowerCase()) ||
+        (r.address && r.address.toLowerCase().includes(query.toLowerCase()))
+      );
+
+      if (filtered.length > 0) {
+        // 지도 탭으로 전환하고 첫 번째 결과로 이동
+        switchTab('map');
+        const first = filtered[0];
+        if (map) {
+          map.setCenter(new kakao.maps.LatLng(first.latitude, first.longitude));
+          map.setLevel(3);
+        }
+        showToast(`'${query}' 검색 결과: ${filtered.length}개`, 'success');
+        openRestaurantModal(first.id);
+      } else {
+        showToast(`'${query}'에 대한 검색 결과가 없습니다`, 'info');
+      }
+    }
+
+    // ========== 알림 ==========
+    function openNotifications() {
+      // 간단한 알림 표시 (추후 드롭다운으로 개선 가능)
+      if (!currentUser) {
+        showToast('로그인 후 알림을 확인할 수 있습니다', 'info');
+        return;
+      }
+      showToast('새로운 알림이 없습니다', 'info');
+    }
+
+    // ========== 퀵 액션 ==========
+    function goToNearby() {
+      switchTab('map');
+      moveToMyLocation();
+    }
+
+    function goToPopular() {
+      switchTab('map');
+      // 인기순 정렬 후 첫 번째 맛집으로 이동
+      const sorted = [...restaurants].sort((a, b) => (b.review_count || 0) - (a.review_count || 0));
+      if (sorted.length > 0) {
+        const popular = sorted[0];
+        if (map) {
+          map.setCenter(new kakao.maps.LatLng(popular.latitude, popular.longitude));
+          map.setLevel(3);
+        }
+        openRestaurantModal(popular.id);
+      }
+    }
+
+    function goToFavorites() {
+      if (!currentUser) {
+        showToast('로그인 후 찜 목록을 확인할 수 있습니다', 'info');
+        openAuthModal('login');
+        return;
+      }
+      // 마이페이지의 찜 목록으로 이동
+      switchTab('mypage');
+      openMyPage();
+    }
+
+    function goToReport() {
+      if (!currentUser) {
+        showToast('로그인 후 맛집을 제보할 수 있습니다', 'info');
+        openAuthModal('login');
+        return;
+      }
+      openReportModal();
+    }
 
     // ========== 인증 모달 ==========
     function openAuthModal(tab = 'login') {
@@ -2709,20 +3946,36 @@
       }
     }
 
+    // 회원가입 맵기 레벨 선택
+    function selectSignupLevel(level) {
+      document.querySelectorAll('.signup-level-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      document.querySelector(`.signup-level-btn[data-level="${level}"]`).classList.add('selected');
+      document.getElementById('signup-spicy-level').value = level;
+    }
+
     async function handleSignup(e) {
       e.preventDefault();
       const email = document.getElementById('signup-email').value;
       const password = document.getElementById('signup-password').value;
       const nickname = document.getElementById('signup-nickname').value;
+      const spicyLevel = parseInt(document.getElementById('signup-spicy-level').value);
       const errorEl = document.getElementById('signup-error');
 
       try {
+        // 회원가입
         const result = await API.auth.signup(email, password, nickname);
         currentUser = result.user;
+
+        // 맵기 레벨 바로 설정
+        await API.auth.setSpicyLevel(spicyLevel);
+        currentUser.spicy_level = spicyLevel;
+
         AppState.setUser(currentUser);
         closeAuthModal();
-        showOnboarding(); // 신규 가입자는 맵레벨 설정 필요
-        showToast('회원가입 완료! 맵레벨을 설정해주세요.', 'success');
+        showMain(); // 온보딩 스킵, 바로 메인으로
+        showToast(`환영합니다! 맵기 레벨 ${spicyLevel}로 설정되었습니다.`, 'success');
       } catch (error) {
         errorEl.textContent = error.message;
       }
@@ -3069,8 +4322,16 @@
         restaurants = [];
       }
 
+      // 지도 초기화 (백그라운드에서)
       initMap();
       renderRestaurantList();
+
+      // 홈 탭 초기화 (추천 그리드, 배너)
+      renderRecommendGrid();
+      startBannerAutoSlide();
+
+      // 홈 탭을 기본으로 표시
+      switchTab('home');
 
       document.getElementById('safety-filter').addEventListener('change', () => {
         updateMarkers();
@@ -3210,7 +4471,7 @@
     }
 
     function getStatus(avgLevel) {
-      const userLevel = currentUser?.spicy_level ?? 3;
+      const userLevel = getEffectiveLevel();
       if (avgLevel <= userLevel) return 'safe';
       if (avgLevel === userLevel + 1) return 'warning';
       return 'danger';
@@ -3425,10 +4686,8 @@
 
     // 찜하기 토글
     async function toggleFavorite() {
-      if (!currentUser) {
-        showToast('로그인이 필요합니다', 'error');
-        return;
-      }
+      // 로그인 체크
+      if (!requireLogin('찜하기를')) return;
       if (!currentModalRestaurant) return;
 
       const favoriteBtn = document.getElementById('favorite-btn');
@@ -3458,6 +4717,9 @@
     // ========== 리뷰 작성 모달 ==========
     function openReviewFormModal() {
       if (!currentModalRestaurant) return;
+
+      // 로그인 체크
+      if (!requireLogin('리뷰를 작성')) return;
 
       // 폼 초기화
       document.getElementById('modal-menu').value = '';
@@ -3533,6 +4795,30 @@
       }
       // 기타 카테고리
       return { emoji: '🍜', className: 'default', label: category || '맛집' };
+    }
+
+    // 카테고리별 플레이스홀더 이미지 (SVG data URI)
+    function getCategoryImage(category) {
+      const config = getCategoryConfig(category);
+      const colors = {
+        'korean': '#E74C3C',
+        'western': '#3498DB',
+        'japanese': '#2ECC71',
+        'chinese': '#F39C12',
+        'default': '#9B59B6'
+      };
+      const bgColor = colors[config.className] || colors['default'];
+
+      // SVG 플레이스홀더 이미지 생성
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+          <rect fill="${bgColor}" width="200" height="120"/>
+          <text x="100" y="50" font-size="40" text-anchor="middle" dominant-baseline="middle">${config.emoji}</text>
+          <text x="100" y="90" font-size="14" fill="white" text-anchor="middle" font-family="sans-serif">${config.label}</text>
+        </svg>
+      `.trim();
+
+      return 'data:image/svg+xml,' + encodeURIComponent(svg);
     }
 
     // 캐러셀 슬라이드 HTML 생성
@@ -3763,21 +5049,23 @@
           currentUser = result.user;
           AppState.setUser(currentUser);
 
-          // 맵레벨 설정 여부 확인
+          // 맵레벨 설정 여부 확인 - 회원인데 레벨 미설정 시 온보딩
           if (currentUser.spicy_level === null || currentUser.spicy_level === undefined) {
             showOnboarding();
           } else {
             showMain();
           }
         } else {
-          // 비로그인 상태 - 온보딩 화면 표시
-          document.getElementById('onboarding').style.display = 'flex';
-          initOnboarding();
+          // 비회원 상태 - 바로 메인 화면 진입 (기본 레벨 사용)
+          currentUser = null;
+          AppState.setUser(null);
+          showMain();
         }
       } catch (error) {
-        // 비로그인 상태 - 온보딩 화면 표시
-        document.getElementById('onboarding').style.display = 'flex';
-        initOnboarding();
+        // 비회원 상태 - 바로 메인 화면 진입 (기본 레벨 사용)
+        currentUser = null;
+        AppState.setUser(null);
+        showMain();
       }
     });
   </script>
