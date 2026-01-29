@@ -945,53 +945,100 @@
       display: block;
     }
 
-    /* 인포윈도우 스타일 */
-    .map-infowindow {
-      padding: 12px;
-      min-width: 200px;
-      max-width: 280px;
+    /* 하단 패널 스타일 */
+    .place-bottom-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+      padding: 20px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 10;
     }
 
-    .map-infowindow .place-name {
-      font-size: 14px;
+    .place-bottom-panel.show {
+      transform: translateY(0);
+    }
+
+    .place-bottom-panel .panel-handle {
+      width: 40px;
+      height: 4px;
+      background: #ddd;
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+
+    .place-bottom-panel .place-name {
+      font-size: 18px;
       font-weight: 700;
       color: #333;
-      margin-bottom: 6px;
-    }
-
-    .map-infowindow .place-address {
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 4px;
-      line-height: 1.4;
-    }
-
-    .map-infowindow .place-category {
-      font-size: 11px;
-      color: #c5171e;
       margin-bottom: 8px;
     }
 
-    .map-infowindow .place-distance {
-      font-size: 11px;
-      color: #888;
-      margin-bottom: 10px;
+    .place-bottom-panel .place-address {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 6px;
+      line-height: 1.4;
     }
 
-    .map-infowindow .select-place-btn {
+    .place-bottom-panel .place-category {
+      font-size: 12px;
+      color: #c5171e;
+      margin-bottom: 6px;
+    }
+
+    .place-bottom-panel .place-distance {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    .place-bottom-panel .select-place-btn {
       width: 100%;
-      padding: 8px 12px;
+      padding: 14px;
       background: #c5171e;
       color: white;
       border: none;
-      border-radius: 6px;
-      font-size: 13px;
+      border-radius: 10px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
     }
 
-    .map-infowindow .select-place-btn:hover {
+    .place-bottom-panel .select-place-btn:hover {
       background: #a51015;
+    }
+
+    /* 원형 마커 스타일 */
+    .circle-marker {
+      width: 36px;
+      height: 36px;
+      background: #c5171e;
+      border: 3px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .circle-marker:hover {
+      transform: scale(1.1);
+    }
+
+    .circle-marker.selected {
+      background: #ff6b35;
+      transform: scale(1.2);
     }
 
     /* 마커 번호 스타일 */
@@ -2302,6 +2349,14 @@
               <button type="button" class="report-map-reSearch-btn" id="reSearch-btn" onclick="searchInCurrentArea()">
                 이 지역에서 재검색
               </button>
+              <div class="place-bottom-panel" id="place-bottom-panel">
+                <div class="panel-handle"></div>
+                <div class="place-name" id="panel-place-name"></div>
+                <div class="place-address" id="panel-place-address"></div>
+                <div class="place-category" id="panel-place-category"></div>
+                <div class="place-distance" id="panel-place-distance"></div>
+                <button class="select-place-btn" onclick="selectFromPanel()">이 가게 선택하기</button>
+              </div>
             </div>
             <input type="hidden" id="report-lat">
             <input type="hidden" id="report-lng">
@@ -2528,8 +2583,9 @@
     let currentFavoriteStatus = false;  // 현재 맛집 찜 상태
     let reportMap = null;  // 제보하기 모달 지도
     let reportMarker = null;  // 제보하기 위치 마커 (선택된 가게)
-    let searchMarkers = [];  // 검색 결과 마커 배열
-    let currentInfoWindow = null;  // 현재 열린 인포윈도우
+    let searchMarkers = [];  // 검색 결과 마커 배열 (CustomOverlay)
+    let selectedMarkerOverlay = null;  // 현재 선택된 마커
+    let currentSelectedPlace = null;  // 현재 선택된 장소 정보
     let lastSearchKeyword = '';  // 마지막 검색어
     let mapMoved = false;  // 지도 이동 여부
     let searchInProgress = false;  // 검색 중 플래그 (이벤트 무시용)
@@ -2640,23 +2696,17 @@
         }
       });
 
-      // 인포윈도우 닫기 (지도 클릭 시)
+      // 하단 패널 닫기 (지도 클릭 시)
       kakao.maps.event.addListener(reportMap, 'click', function() {
-        if (currentInfoWindow) {
-          currentInfoWindow.close();
-          currentInfoWindow = null;
-        }
+        hideBottomPanel();
       });
     }
 
     // 검색 결과 마커 모두 제거
     function clearSearchMarkers() {
-      searchMarkers.forEach(marker => marker.setMap(null));
+      searchMarkers.forEach(m => m.overlay.setMap(null));
       searchMarkers = [];
-      if (currentInfoWindow) {
-        currentInfoWindow.close();
-        currentInfoWindow = null;
-      }
+      hideBottomPanel();
     }
 
     // 선택된 가게 마커 제거
@@ -2726,29 +2776,36 @@
       }, searchOptions);
     }
 
-    // 검색 결과를 지도 위에 마커로 표시
+    // 검색 결과를 지도 위에 원형 마커로 표시
     function displayMarkersOnMap(places) {
       // 검색 중 플래그 설정 (이벤트 무시)
       searchInProgress = true;
 
       // 기존 마커 제거
       clearSearchMarkers();
+      hideBottomPanel();
 
       places.slice(0, 15).forEach((place, index) => {
         const position = new kakao.maps.LatLng(place.y, place.x);
 
-        // 기본 마커 생성
-        const marker = new kakao.maps.Marker({
+        // 원형 마커 HTML 생성
+        const markerContent = document.createElement('div');
+        markerContent.className = 'circle-marker';
+        markerContent.textContent = index + 1;
+        markerContent.onclick = function() {
+          showBottomPanel(place, markerContent);
+        };
+
+        // CustomOverlay로 원형 마커 생성
+        const overlay = new kakao.maps.CustomOverlay({
           position: position,
-          map: reportMap
+          content: markerContent,
+          yAnchor: 0.5,
+          xAnchor: 0.5
         });
 
-        // 마커 클릭 이벤트 - 인포윈도우 표시
-        kakao.maps.event.addListener(marker, 'click', function() {
-          showPlaceInfoWindow(marker, place);
-        });
-
-        searchMarkers.push(marker);
+        overlay.setMap(reportMap);
+        searchMarkers.push({ overlay: overlay, element: markerContent });
       });
 
       // 가장 가까운 결과(첫번째)로 지도 이동, 초기 확대 수준 유지
@@ -2765,12 +2822,15 @@
       }, 500);
     }
 
-    // 인포윈도우 표시 (가게 정보 + 선택 버튼)
-    function showPlaceInfoWindow(marker, place) {
-      // 기존 인포윈도우 닫기
-      if (currentInfoWindow) {
-        currentInfoWindow.close();
-      }
+    // 하단 패널 표시
+    function showBottomPanel(place, markerElement) {
+      // 이전 선택 마커 초기화
+      searchMarkers.forEach(m => m.element.classList.remove('selected'));
+
+      // 현재 마커 선택 표시
+      markerElement.classList.add('selected');
+      selectedMarkerOverlay = markerElement;
+      currentSelectedPlace = place;
 
       // 거리 포맷팅
       let distanceText = '';
@@ -2781,33 +2841,36 @@
           : `${dist}m`;
       }
 
-      const content = `
-        <div class="map-infowindow">
-          <div class="place-name">${place.place_name}</div>
-          <div class="place-address">${place.road_address_name || place.address_name}</div>
-          ${place.category_name ? `<div class="place-category">${place.category_name}</div>` : ''}
-          ${distanceText ? `<div class="place-distance">${distanceText}</div>` : ''}
-          <button class="select-place-btn" onclick="selectPlaceFromMap('${place.place_name.replace(/'/g, "\\'")}', '${(place.road_address_name || place.address_name).replace(/'/g, "\\'")}', ${place.y}, ${place.x})">
-            이 가게 선택하기
-          </button>
-        </div>
-      `;
+      // 패널 내용 업데이트
+      document.getElementById('panel-place-name').textContent = place.place_name;
+      document.getElementById('panel-place-address').textContent = place.road_address_name || place.address_name;
+      document.getElementById('panel-place-category').textContent = place.category_name || '';
+      document.getElementById('panel-place-distance').textContent = distanceText;
 
-      currentInfoWindow = new kakao.maps.InfoWindow({
-        content: content,
-        removable: true
-      });
+      // 패널 표시
+      document.getElementById('place-bottom-panel').classList.add('show');
+    }
 
-      currentInfoWindow.open(reportMap, marker);
+    // 하단 패널 숨기기
+    function hideBottomPanel() {
+      document.getElementById('place-bottom-panel').classList.remove('show');
+      if (selectedMarkerOverlay) {
+        selectedMarkerOverlay.classList.remove('selected');
+        selectedMarkerOverlay = null;
+      }
+      currentSelectedPlace = null;
+    }
 
-      // 인포윈도우가 보이도록 지도 위치 조정 (마커를 지도 하단 1/3 지점으로)
-      const proj = reportMap.getProjection();
-      const markerPoint = proj.containerPointFromCoords(marker.getPosition());
-      const mapHeight = document.getElementById('report-map').offsetHeight;
-      const offsetY = mapHeight * 0.3;
-      const newPoint = new kakao.maps.Point(markerPoint.x, markerPoint.y - offsetY);
-      const newLatLng = proj.coordsFromContainerPoint(newPoint);
-      reportMap.panTo(newLatLng);
+    // 패널에서 가게 선택
+    function selectFromPanel() {
+      if (!currentSelectedPlace) return;
+      const place = currentSelectedPlace;
+      selectPlaceFromMap(
+        place.place_name,
+        place.road_address_name || place.address_name,
+        place.y,
+        place.x
+      );
     }
 
     // 지도에서 가게 선택
