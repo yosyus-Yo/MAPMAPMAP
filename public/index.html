@@ -2300,7 +2300,7 @@
               </div>
               <div id="report-map"></div>
               <button type="button" class="report-map-reSearch-btn" id="reSearch-btn" onclick="searchInCurrentArea()">
-                🔄 이 지역에서 재검색
+                이 지역에서 재검색
               </button>
             </div>
             <input type="hidden" id="report-lat">
@@ -2532,6 +2532,7 @@
     let currentInfoWindow = null;  // 현재 열린 인포윈도우
     let lastSearchKeyword = '';  // 마지막 검색어
     let mapMoved = false;  // 지도 이동 여부
+    let searchInProgress = false;  // 검색 중 플래그 (이벤트 무시용)
     let modalMiniMap = null;  // 맛집 상세 모달 미니맵
 
     // ========== 인증 모달 ==========
@@ -2625,7 +2626,7 @@
 
       // 지도 이동 완료 이벤트 (재검색 버튼 표시)
       kakao.maps.event.addListener(reportMap, 'dragend', function() {
-        if (lastSearchKeyword) {
+        if (lastSearchKeyword && !searchInProgress) {
           mapMoved = true;
           document.getElementById('reSearch-btn').classList.add('show');
         }
@@ -2633,7 +2634,7 @@
 
       // 줌 변경 시에도 재검색 버튼 표시
       kakao.maps.event.addListener(reportMap, 'zoom_changed', function() {
-        if (lastSearchKeyword) {
+        if (lastSearchKeyword && !searchInProgress) {
           mapMoved = true;
           document.getElementById('reSearch-btn').classList.add('show');
         }
@@ -2727,18 +2728,14 @@
 
     // 검색 결과를 지도 위에 마커로 표시
     function displayMarkersOnMap(places) {
+      // 검색 중 플래그 설정 (이벤트 무시)
+      searchInProgress = true;
+
       // 기존 마커 제거
       clearSearchMarkers();
 
-      const bounds = new kakao.maps.LatLngBounds();
-
       places.slice(0, 15).forEach((place, index) => {
         const position = new kakao.maps.LatLng(place.y, place.x);
-
-        // 커스텀 마커 이미지 (번호 표시)
-        const markerContent = document.createElement('div');
-        markerContent.className = 'marker-label';
-        markerContent.textContent = index + 1;
 
         // 기본 마커 생성
         const marker = new kakao.maps.Marker({
@@ -2746,19 +2743,26 @@
           map: reportMap
         });
 
-        // 마커 클릭 이벤트 → 인포윈도우 표시
+        // 마커 클릭 이벤트 - 인포윈도우 표시
         kakao.maps.event.addListener(marker, 'click', function() {
           showPlaceInfoWindow(marker, place);
         });
 
         searchMarkers.push(marker);
-        bounds.extend(position);
       });
 
-      // 검색 결과가 보이도록 지도 범위 조정
+      // 가장 가까운 결과(첫번째)로 지도 이동, 초기 확대 수준 유지
       if (places.length > 0) {
-        reportMap.setBounds(bounds);
+        const firstPlace = places[0];
+        const position = new kakao.maps.LatLng(firstPlace.y, firstPlace.x);
+        reportMap.setCenter(position);
+        reportMap.setLevel(4);
       }
+
+      // 지도 이동 완료 후 플래그 해제
+      setTimeout(() => {
+        searchInProgress = false;
+      }, 500);
     }
 
     // 인포윈도우 표시 (가게 정보 + 선택 버튼)
@@ -2773,8 +2777,8 @@
       if (place.distance) {
         const dist = parseInt(place.distance);
         distanceText = dist >= 1000
-          ? `📍 ${(dist / 1000).toFixed(1)}km`
-          : `📍 ${dist}m`;
+          ? `${(dist / 1000).toFixed(1)}km`
+          : `${dist}m`;
       }
 
       const content = `
