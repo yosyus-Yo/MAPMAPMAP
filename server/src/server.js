@@ -1,4 +1,6 @@
 // MapMapMap MVP - Server Entry Point
+require('dotenv').config();
+
 const app = require('./app');
 const { initDatabase } = require('./config/database');
 
@@ -6,19 +8,19 @@ const PORT = process.env.PORT || 3000;
 
 async function startServer() {
   try {
-    // Initialize database
+    // Initialize Supabase connection
     await initDatabase();
-    console.log('Database initialized');
 
     // Start server
     app.listen(PORT, () => {
       console.log(`
 ========================================
-  MapMapMap MVP Server
+  MapMapMap MVP Server (Supabase)
 ========================================
   Status: Running
   Port: ${PORT}
   URL: http://localhost:${PORT}
+  DB: Supabase Cloud
 
   API Endpoints:
   - POST /api/auth/signup
@@ -31,9 +33,12 @@ async function startServer() {
   - POST /api/restaurants
   - POST /api/reviews
   - GET  /api/reviews/my
+  - GET  /api/reviews/my/stats (Beta)
   - GET  /api/admin/reviews
   - PUT  /api/admin/reviews/:id/approve
   - PUT  /api/admin/reviews/:id/reject
+  - GET  /api/admin/beta-testers
+  - PUT  /api/admin/users/:id/beta-tester
   - GET  /api/health
 ========================================
       `);

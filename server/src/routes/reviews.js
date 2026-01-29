@@ -1,10 +1,10 @@
-// Review Routes - MapMapMap MVP
+// Review Routes - Supabase Version (with Beta Tester Rewards)
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const path = require('path');
-const { query, queryOne, run } = require('../config/database');
+const { supabase } = require('../config/database');
 
 const router = express.Router();
 
@@ -21,16 +21,15 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|gif|webp/;
     const extname = allowed.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowed.test(file.mimetype);
-
     if (extname && mimetype) {
       return cb(null, true);
     }
-    cb(new Error('이미지 파일만 업로드 가능합니다 (jpg, png, gif, webp)'));
+    cb(new Error('이미지 파일만 업로드 가능합니다'));
   }
 });
 
@@ -45,15 +44,13 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
-// POST /api/reviews - Create new review (제보하기)
+// POST /api/reviews
 router.post('/',
   requireAuth,
   upload.fields([
     { name: 'food_image', maxCount: 1 },
     { name: 'receipt_image', maxCount: 1 }
   ]),
-  body('restaurant_id').optional(),
-  body('restaurant_name').optional(),
   body('menu_name').notEmpty().withMessage('메뉴명을 입력하세요'),
   body('spicy_level').isInt({ min: 0, max: 5 }).withMessage('맵레벨은 0-5 사이여야 합니다'),
   async (req, res) => {
@@ -65,7 +62,6 @@ router.post('/',
       });
     }
 
-    // Check for receipt image (required)
     if (!req.files || !req.files.receipt_image) {
       return res.status(400).json({
         success: false,
@@ -87,19 +83,30 @@ router.post('/',
 
       // If no restaurant_id, create new restaurant
       if (!restaurant_id && restaurant_name) {
-        const existingRestaurant = queryOne(
-          'SELECT id FROM restaurants WHERE name = ? AND lat = ? AND lng = ?',
-          [restaurant_name, parseFloat(restaurant_lat), parseFloat(restaurant_lng)]
-        );
+        const { data: existing } = await supabase
+          .from('restaurants')
+          .select('id')
+          .eq('name', restaurant_name)
+          .eq('lat', parseFloat(restaurant_lat))
+          .eq('lng', parseFloat(restaurant_lng))
+          .single();
 
-        if (existingRestaurant) {
-          finalRestaurantId = existingRestaurant.id;
+        if (existing) {
+          finalRestaurantId = existing.id;
         } else {
-          finalRestaurantId = uuidv4();
-          run(
-            'INSERT INTO restaurants (id, name, address, lat, lng) VALUES (?, ?, ?, ?, ?)',
-            [finalRestaurantId, restaurant_name, restaurant_address, parseFloat(restaurant_lat), parseFloat(restaurant_lng)]
-          );
+          const { data: newRestaurant, error } = await supabase
+            .from('restaurants')
+            .insert({
+              name: restaurant_name,
+              address: restaurant_address,
+              lat: parseFloat(restaurant_lat),
+              lng: parseFloat(restaurant_lng)
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+          finalRestaurantId = newRestaurant.id;
         }
       }
 
@@ -110,23 +117,72 @@ router.post('/',
         });
       }
 
-      const reviewId = uuidv4();
       const foodImageUrl = `/uploads/${req.files.food_image[0].filename}`;
       const receiptImageUrl = `/uploads/${req.files.receipt_image[0].filename}`;
 
-      run(
-        `INSERT INTO reviews (id, user_id, restaurant_id, menu_name, spicy_level, food_image_url, receipt_image_url, comment, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-        [reviewId, req.session.userId, finalRestaurantId, menu_name, parseInt(spicy_level), foodImageUrl, receiptImageUrl, comment || null]
-      );
+      const { data: review, error: reviewError } = await supabase
+        .from('reviews')
+        .insert({
+          user_id: req.session.userId,
+          restaurant_id: finalRestaurantId,
+          menu_name,
+          spicy_level: parseInt(spicy_level),
+          food_image_url: foodImageUrl,
+          receipt_image_url: receiptImageUrl,
+          comment: comment || null,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (reviewError) throw reviewError;
+
+      // 베타테스터 리워드 정보 조회
+      const { data: user } = await supabase
+        .from('users')
+        .select('is_beta_tester')
+        .eq('id', req.session.userId)
+        .single();
+
+      let betaRewardInfo = null;
+
+      if (user?.is_beta_tester) {
+        // 승인된 리뷰 개수 조회
+        const { count: approvedCount } = await supabase
+          .from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', req.session.userId)
+          .eq('status', 'approved');
+
+        // 대기 중인 리뷰 개수 (방금 작성한 것 포함)
+        const { count: pendingCount } = await supabase
+          .from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', req.session.userId)
+          .eq('status', 'pending');
+
+        const totalApproved = approvedCount || 0;
+        const totalPending = pendingCount || 0;
+        const reviewsUntilReward = 3 - (totalApproved % 3);
+        const nextMilestone = Math.ceil((totalApproved + 1) / 3) * 3;
+
+        betaRewardInfo = {
+          approvedReviews: totalApproved,
+          pendingReviews: totalPending,
+          reviewsUntilReward: reviewsUntilReward === 3 ? 3 : reviewsUntilReward,
+          nextMilestone,
+          totalRewards: Math.floor(totalApproved / 3)
+        };
+      }
 
       res.status(201).json({
         success: true,
         review: {
-          id: reviewId,
+          id: review.id,
           status: 'pending'
         },
-        message: '제보가 접수되었습니다. 검수 후 포인트가 적립됩니다.'
+        message: '제보가 접수되었습니다. 검수 후 포인트가 적립됩니다.',
+        betaRewardInfo
       });
     } catch (error) {
       console.error('Create review error:', error);
@@ -138,26 +194,93 @@ router.post('/',
   }
 );
 
-// GET /api/reviews/my - Get my reviews
-router.get('/my', requireAuth, (req, res) => {
+// GET /api/reviews/my
+router.get('/my', requireAuth, async (req, res) => {
   try {
-    const reviews = query(`
-      SELECT r.*, rest.name as restaurant_name
-      FROM reviews r
-      JOIN restaurants rest ON r.restaurant_id = rest.id
-      WHERE r.user_id = ?
-      ORDER BY r.created_at DESC
-    `, [req.session.userId]);
+    const { data: reviews, error } = await supabase
+      .from('reviews')
+      .select(`
+        *,
+        restaurants (name)
+      `)
+      .eq('user_id', req.session.userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const transformedReviews = reviews.map(r => ({
+      ...r,
+      restaurant_name: r.restaurants?.name,
+      restaurants: undefined
+    }));
 
     res.json({
       success: true,
-      reviews
+      reviews: transformedReviews
     });
   } catch (error) {
     console.error('Get my reviews error:', error);
     res.status(500).json({
       success: false,
       error: '리뷰 목록을 불러오는 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// GET /api/reviews/my/stats - 베타테스터 리워드 통계
+router.get('/my/stats', requireAuth, async (req, res) => {
+  try {
+    const { data: user } = await supabase
+      .from('users')
+      .select('is_beta_tester')
+      .eq('id', req.session.userId)
+      .single();
+
+    if (!user?.is_beta_tester) {
+      return res.json({
+        success: true,
+        isBetaTester: false
+      });
+    }
+
+    const { count: approvedCount } = await supabase
+      .from('reviews')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', req.session.userId)
+      .eq('status', 'approved');
+
+    const { count: pendingCount } = await supabase
+      .from('reviews')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', req.session.userId)
+      .eq('status', 'pending');
+
+    const totalApproved = approvedCount || 0;
+    const reviewsUntilReward = 3 - (totalApproved % 3);
+
+    // 리워드 목록 조회
+    const { data: rewards } = await supabase
+      .from('rewards')
+      .select('*')
+      .eq('user_id', req.session.userId)
+      .order('created_at', { ascending: false });
+
+    res.json({
+      success: true,
+      isBetaTester: true,
+      stats: {
+        approvedReviews: totalApproved,
+        pendingReviews: pendingCount || 0,
+        reviewsUntilReward: reviewsUntilReward === 3 && totalApproved === 0 ? 3 : reviewsUntilReward,
+        totalRewards: Math.floor(totalApproved / 3),
+        rewards: rewards || []
+      }
+    });
+  } catch (error) {
+    console.error('Get review stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: '통계 조회 중 오류가 발생했습니다'
     });
   }
 });

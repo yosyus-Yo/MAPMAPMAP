@@ -1,7 +1,7 @@
-// Admin Routes - MapMapMap MVP
+// Admin Routes - Supabase Version (with Beta Tester Rewards)
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { query, queryOne, run } = require('../config/database');
+const { supabase } = require('../config/database');
 
 const router = express.Router();
 
@@ -24,40 +24,54 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-// GET /api/admin/reviews - Get all reviews for admin
-router.get('/reviews', requireAdmin, (req, res) => {
+// GET /api/admin/reviews
+router.get('/reviews', requireAdmin, async (req, res) => {
   try {
     const { status } = req.query;
 
-    let sql = `
-      SELECT r.*, u.nickname as user_nickname, u.email as user_email, rest.name as restaurant_name, rest.address as restaurant_address
-      FROM reviews r
-      JOIN users u ON r.user_id = u.id
-      JOIN restaurants rest ON r.restaurant_id = rest.id
-    `;
-
-    const params = [];
+    let query = supabase
+      .from('reviews')
+      .select(`
+        *,
+        users (nickname, email, is_beta_tester),
+        restaurants (name, address)
+      `)
+      .order('created_at', { ascending: false });
 
     if (status && ['pending', 'approved', 'rejected'].includes(status)) {
-      sql += ' WHERE r.status = ?';
-      params.push(status);
+      query = query.eq('status', status);
     }
 
-    sql += ' ORDER BY r.created_at DESC';
+    const { data: reviews, error } = await query;
+    if (error) throw error;
 
-    const reviews = query(sql, params);
+    const transformedReviews = reviews.map(r => ({
+      ...r,
+      user_nickname: r.users?.nickname,
+      user_email: r.users?.email,
+      is_beta_tester: r.users?.is_beta_tester,
+      restaurant_name: r.restaurants?.name,
+      restaurant_address: r.restaurants?.address,
+      users: undefined,
+      restaurants: undefined
+    }));
 
     // Get stats
-    const stats = {
-      pending: queryOne('SELECT COUNT(*) as count FROM reviews WHERE status = "pending"')?.count || 0,
-      approved: queryOne('SELECT COUNT(*) as count FROM reviews WHERE status = "approved"')?.count || 0,
-      rejected: queryOne('SELECT COUNT(*) as count FROM reviews WHERE status = "rejected"')?.count || 0
-    };
+    const { count: pendingCount } = await supabase
+      .from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+    const { count: approvedCount } = await supabase
+      .from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+    const { count: rejectedCount } = await supabase
+      .from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'rejected');
 
     res.json({
       success: true,
-      reviews,
-      stats
+      reviews: transformedReviews,
+      stats: {
+        pending: pendingCount || 0,
+        approved: approvedCount || 0,
+        rejected: rejectedCount || 0
+      }
     });
   } catch (error) {
     console.error('Get admin reviews error:', error);
@@ -68,22 +82,35 @@ router.get('/reviews', requireAdmin, (req, res) => {
   }
 });
 
-// GET /api/admin/stats - Get dashboard stats
-router.get('/stats', requireAdmin, (req, res) => {
+// GET /api/admin/stats
+router.get('/stats', requireAdmin, async (req, res) => {
   try {
-    const stats = {
-      users: queryOne('SELECT COUNT(*) as count FROM users')?.count || 0,
-      restaurants: queryOne('SELECT COUNT(*) as count FROM restaurants')?.count || 0,
-      reviews: {
-        pending: queryOne('SELECT COUNT(*) as count FROM reviews WHERE status = "pending"')?.count || 0,
-        approved: queryOne('SELECT COUNT(*) as count FROM reviews WHERE status = "approved"')?.count || 0,
-        rejected: queryOne('SELECT COUNT(*) as count FROM reviews WHERE status = "rejected"')?.count || 0
-      }
-    };
+    const { count: usersCount } = await supabase
+      .from('users').select('*', { count: 'exact', head: true });
+    const { count: restaurantsCount } = await supabase
+      .from('restaurants').select('*', { count: 'exact', head: true });
+    const { count: betaTestersCount } = await supabase
+      .from('users').select('*', { count: 'exact', head: true }).eq('is_beta_tester', true);
+
+    const { count: pendingCount } = await supabase
+      .from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+    const { count: approvedCount } = await supabase
+      .from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+    const { count: rejectedCount } = await supabase
+      .from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'rejected');
 
     res.json({
       success: true,
-      stats
+      stats: {
+        users: usersCount || 0,
+        betaTesters: betaTestersCount || 0,
+        restaurants: restaurantsCount || 0,
+        reviews: {
+          pending: pendingCount || 0,
+          approved: approvedCount || 0,
+          rejected: rejectedCount || 0
+        }
+      }
     });
   } catch (error) {
     console.error('Get admin stats error:', error);
@@ -94,12 +121,16 @@ router.get('/stats', requireAdmin, (req, res) => {
   }
 });
 
-// PUT /api/admin/reviews/:id/approve - Approve review
-router.put('/reviews/:id/approve', requireAdmin, (req, res) => {
+// PUT /api/admin/reviews/:id/approve
+router.put('/reviews/:id/approve', requireAdmin, async (req, res) => {
   try {
-    const review = queryOne('SELECT * FROM reviews WHERE id = ?', [req.params.id]);
+    const { data: review, error: fetchError } = await supabase
+      .from('reviews')
+      .select('*, users(is_beta_tester)')
+      .eq('id', req.params.id)
+      .single();
 
-    if (!review) {
+    if (fetchError || !review) {
       return res.status(404).json({
         success: false,
         error: '리뷰를 찾을 수 없습니다'
@@ -115,36 +146,72 @@ router.put('/reviews/:id/approve', requireAdmin, (req, res) => {
 
     const POINTS = 500;
 
-    // Update review status and give points
-    run(
-      'UPDATE reviews SET status = "approved", points_given = ? WHERE id = ?',
-      [POINTS, req.params.id]
-    );
+    // Update review status
+    await supabase
+      .from('reviews')
+      .update({ status: 'approved', points_given: POINTS })
+      .eq('id', req.params.id);
 
     // Add points to user
-    run(
-      'UPDATE users SET points = points + ? WHERE id = ?',
-      [POINTS, review.user_id]
-    );
+    const { data: user } = await supabase
+      .from('users')
+      .select('points, is_beta_tester')
+      .eq('id', review.user_id)
+      .single();
 
-    // Recalculate restaurant average level
-    const avgResult = queryOne(`
-      SELECT AVG(spicy_level) as avg_level, COUNT(*) as count
-      FROM reviews
-      WHERE restaurant_id = ? AND status = 'approved'
-    `, [review.restaurant_id]);
+    await supabase
+      .from('users')
+      .update({ points: (user?.points || 0) + POINTS })
+      .eq('id', review.user_id);
 
-    run(
-      'UPDATE restaurants SET avg_level = ?, review_count = ? WHERE id = ?',
-      [avgResult?.avg_level || 0, avgResult?.count || 0, review.restaurant_id]
-    );
+    // Recalculate restaurant average
+    const { data: reviewStats } = await supabase
+      .from('reviews')
+      .select('spicy_level')
+      .eq('restaurant_id', review.restaurant_id)
+      .eq('status', 'approved');
 
-    const updatedReview = queryOne('SELECT * FROM reviews WHERE id = ?', [req.params.id]);
+    if (reviewStats && reviewStats.length > 0) {
+      const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+      await supabase
+        .from('restaurants')
+        .update({ avg_level: avgLevel, review_count: reviewStats.length })
+        .eq('id', review.restaurant_id);
+    }
+
+    // 베타테스터 리워드 체크 및 생성
+    let rewardCreated = false;
+    if (user?.is_beta_tester) {
+      const { count: approvedCount } = await supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', review.user_id)
+        .eq('status', 'approved');
+
+      // 3의 배수일 때 리워드 생성
+      if (approvedCount && approvedCount % 3 === 0) {
+        await supabase
+          .from('rewards')
+          .insert({
+            user_id: review.user_id,
+            reward_type: 'review_milestone',
+            milestone_count: approvedCount,
+            status: 'pending'
+          });
+        rewardCreated = true;
+      }
+    }
+
+    const { data: updatedReview } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
 
     res.json({
       success: true,
       review: updatedReview,
-      message: `승인 완료. 사용자에게 ${POINTS}P 적립`
+      message: `승인 완료. 사용자에게 ${POINTS}P 적립${rewardCreated ? ' + 리워드 달성!' : ''}`
     });
   } catch (error) {
     console.error('Approve review error:', error);
@@ -155,11 +222,11 @@ router.put('/reviews/:id/approve', requireAdmin, (req, res) => {
   }
 });
 
-// PUT /api/admin/reviews/:id/reject - Reject review
+// PUT /api/admin/reviews/:id/reject
 router.put('/reviews/:id/reject',
   requireAdmin,
   body('reason').notEmpty().withMessage('반려 사유를 입력하세요'),
-  (req, res) => {
+  async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -169,9 +236,13 @@ router.put('/reviews/:id/reject',
     }
 
     try {
-      const review = queryOne('SELECT * FROM reviews WHERE id = ?', [req.params.id]);
+      const { data: review, error: fetchError } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('id', req.params.id)
+        .single();
 
-      if (!review) {
+      if (fetchError || !review) {
         return res.status(404).json({
           success: false,
           error: '리뷰를 찾을 수 없습니다'
@@ -187,12 +258,16 @@ router.put('/reviews/:id/reject',
 
       const { reason } = req.body;
 
-      run(
-        'UPDATE reviews SET status = "rejected", reject_reason = ? WHERE id = ?',
-        [reason, req.params.id]
-      );
+      await supabase
+        .from('reviews')
+        .update({ status: 'rejected', reject_reason: reason })
+        .eq('id', req.params.id);
 
-      const updatedReview = queryOne('SELECT * FROM reviews WHERE id = ?', [req.params.id]);
+      const { data: updatedReview } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('id', req.params.id)
+        .single();
 
       res.json({
         success: true,
@@ -208,5 +283,75 @@ router.put('/reviews/:id/reject',
     }
   }
 );
+
+// PUT /api/admin/users/:id/beta-tester - 베타테스터 지정/해제
+router.put('/users/:id/beta-tester', requireAdmin, async (req, res) => {
+  try {
+    const { is_beta_tester } = req.body;
+
+    const { error } = await supabase
+      .from('users')
+      .update({ is_beta_tester: !!is_beta_tester })
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      message: is_beta_tester ? '베타테스터로 지정되었습니다' : '베타테스터 해제되었습니다'
+    });
+  } catch (error) {
+    console.error('Update beta tester error:', error);
+    res.status(500).json({
+      success: false,
+      error: '베타테스터 설정 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// GET /api/admin/beta-testers - 베타테스터 목록
+router.get('/beta-testers', requireAdmin, async (req, res) => {
+  try {
+    const { data: testers, error } = await supabase
+      .from('users')
+      .select('id, email, nickname, created_at, is_beta_tester')
+      .eq('is_beta_tester', true);
+
+    if (error) throw error;
+
+    // 각 테스터의 리뷰 통계
+    const testersWithStats = await Promise.all(testers.map(async (tester) => {
+      const { count: approvedCount } = await supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', tester.id)
+        .eq('status', 'approved');
+
+      const { count: pendingCount } = await supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', tester.id)
+        .eq('status', 'pending');
+
+      return {
+        ...tester,
+        approvedReviews: approvedCount || 0,
+        pendingReviews: pendingCount || 0,
+        totalRewards: Math.floor((approvedCount || 0) / 3)
+      };
+    }));
+
+    res.json({
+      success: true,
+      testers: testersWithStats
+    });
+  } catch (error) {
+    console.error('Get beta testers error:', error);
+    res.status(500).json({
+      success: false,
+      error: '베타테스터 목록을 불러오는 중 오류가 발생했습니다'
+    });
+  }
+});
 
 module.exports = router;

@@ -10,23 +10,30 @@
     "test:watch": "jest --watch",
     "db:seed": "node src/config/seed.js"
   },
-  "keywords": ["spicy", "food", "map", "review"],
+  "keywords": [
+    "spicy",
+    "food",
+    "map",
+    "review"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "sql.js": "^1.10.0",
-    "express-session": "^1.17.3",
-    "session-file-store": "^1.5.0",
+    "@supabase/supabase-js": "^2.93.2",
     "bcryptjs": "^2.4.3",
-    "multer": "^2.0.0",
-    "uuid": "^9.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
     "express-validator": "^7.0.1",
-    "cors": "^2.8.5"
+    "multer": "^2.0.0",
+    "session-file-store": "^1.5.0",
+    "sql.js": "^1.10.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "supertest": "^7.0.0",
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "supertest": "^7.0.0"
   }
 }

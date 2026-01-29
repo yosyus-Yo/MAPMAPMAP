@@ -1,30 +1,41 @@
-// Restaurant Routes - MapMapMap MVP
+// Restaurant Routes - Supabase Version
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { v4: uuidv4 } = require('uuid');
-const { query, queryOne, run } = require('../config/database');
+const { supabase } = require('../config/database');
 
 const router = express.Router();
 
 // Smart Filtering logic
 function getMarkerStatus(restaurantLevel, userLevel) {
   if (restaurantLevel <= userLevel) {
-    return 'safe';     // Can enjoy!
+    return 'safe';
   } else if (restaurantLevel <= userLevel + 1) {
-    return 'warning';  // Might be spicy
+    return 'warning';
   } else {
-    return 'danger';   // Challenge required
+    return 'danger';
   }
 }
 
-// GET /api/restaurants - Get all restaurants
-router.get('/', (req, res) => {
+// GET /api/restaurants
+router.get('/', async (req, res) => {
   try {
-    const userLevel = req.session.userId
-      ? (queryOne('SELECT spicy_level FROM users WHERE id = ?', [req.session.userId])?.spicy_level || 0)
-      : 0;
+    let userLevel = 0;
 
-    const restaurants = query('SELECT * FROM restaurants ORDER BY review_count DESC');
+    if (req.session.userId) {
+      const { data: user } = await supabase
+        .from('users')
+        .select('spicy_level')
+        .eq('id', req.session.userId)
+        .single();
+      userLevel = user?.spicy_level || 0;
+    }
+
+    const { data: restaurants, error } = await supabase
+      .from('restaurants')
+      .select('*')
+      .order('review_count', { ascending: false });
+
+    if (error) throw error;
 
     const withStatus = restaurants.map(r => ({
       ...r,
@@ -44,12 +55,16 @@ router.get('/', (req, res) => {
   }
 });
 
-// GET /api/restaurants/:id - Get restaurant with reviews
-router.get('/:id', (req, res) => {
+// GET /api/restaurants/:id
+router.get('/:id', async (req, res) => {
   try {
-    const restaurant = queryOne('SELECT * FROM restaurants WHERE id = ?', [req.params.id]);
+    const { data: restaurant, error: restaurantError } = await supabase
+      .from('restaurants')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
 
-    if (!restaurant) {
+    if (restaurantError || !restaurant) {
       return res.status(404).json({
         success: false,
         error: '가게를 찾을 수 없습니다'
@@ -57,17 +72,29 @@ router.get('/:id', (req, res) => {
     }
 
     // Get approved reviews with user info
-    const reviews = query(`
-      SELECT r.*, u.nickname as user_nickname, u.spicy_level as user_level
-      FROM reviews r
-      JOIN users u ON r.user_id = u.id
-      WHERE r.restaurant_id = ? AND r.status = 'approved'
-      ORDER BY r.created_at DESC
-    `, [req.params.id]);
+    const { data: reviews, error: reviewsError } = await supabase
+      .from('reviews')
+      .select(`
+        *,
+        users (nickname, spicy_level)
+      `)
+      .eq('restaurant_id', req.params.id)
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+
+    if (reviewsError) throw reviewsError;
+
+    // Transform reviews
+    const transformedReviews = reviews.map(r => ({
+      ...r,
+      user_nickname: r.users?.nickname,
+      user_level: r.users?.spicy_level,
+      users: undefined
+    }));
 
     // Calculate level statistics
     const levelStats = {};
-    reviews.forEach(r => {
+    transformedReviews.forEach(r => {
       const level = r.user_level;
       if (!levelStats[level]) {
         levelStats[level] = { count: 0, total: 0 };
@@ -84,7 +111,7 @@ router.get('/:id', (req, res) => {
     res.json({
       success: true,
       restaurant,
-      reviews,
+      reviews: transformedReviews,
       level_stats: levelAverages
     });
   } catch (error) {
@@ -96,13 +123,13 @@ router.get('/:id', (req, res) => {
   }
 });
 
-// POST /api/restaurants - Create new restaurant
+// POST /api/restaurants
 router.post('/',
   body('name').notEmpty().withMessage('가게명을 입력하세요'),
   body('address').notEmpty().withMessage('주소를 입력하세요'),
   body('lat').isFloat().withMessage('위도가 필요합니다'),
   body('lng').isFloat().withMessage('경도가 필요합니다'),
-  (req, res) => {
+  async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -121,29 +148,41 @@ router.post('/',
     try {
       const { name, address, lat, lng, phone, category } = req.body;
 
-      // Check if restaurant already exists at this location
-      const existing = queryOne(
-        'SELECT id FROM restaurants WHERE name = ? AND lat = ? AND lng = ?',
-        [name, lat, lng]
-      );
+      // Check if restaurant already exists
+      const { data: existing } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('name', name)
+        .eq('lat', lat)
+        .eq('lng', lng)
+        .single();
 
       if (existing) {
         return res.json({
           success: true,
-          restaurant: queryOne('SELECT * FROM restaurants WHERE id = ?', [existing.id]),
+          restaurant: existing,
           existed: true
         });
       }
 
-      const id = uuidv4();
-      run(
-        'INSERT INTO restaurants (id, name, address, lat, lng, phone, category) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [id, name, address, lat, lng, phone || null, category || null]
-      );
+      const { data: restaurant, error } = await supabase
+        .from('restaurants')
+        .insert({
+          name,
+          address,
+          lat,
+          lng,
+          phone: phone || null,
+          category: category || null
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
 
       res.status(201).json({
         success: true,
-        restaurant: queryOne('SELECT * FROM restaurants WHERE id = ?', [id]),
+        restaurant,
         existed: false
       });
     } catch (error) {
