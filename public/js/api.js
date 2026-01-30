@@ -333,6 +333,47 @@ const API = {
         throw new Error('음식 사진은 필수입니다 (최소 1장)');
       }
 
+      // ========== 1단계: 이미지 업로드 먼저 (실패 시 DB 저장 안 함) ==========
+
+      // 음식 이미지 업로드
+      const foodImageUrls = [];
+      for (const file of food_images) {
+        if (!file.size) continue;
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const filename = `${crypto.randomUUID()}.${ext}`;
+
+        const { error: uploadError } = await sb.storage
+          .from('food-images')
+          .upload(filename, file);
+
+        if (uploadError) {
+          throw new Error(`음식 사진 업로드 실패: ${uploadError.message}`);
+        }
+
+        const { data: urlData } = sb.storage.from('food-images').getPublicUrl(filename);
+        foodImageUrls.push(urlData.publicUrl);
+      }
+
+      if (foodImageUrls.length === 0) {
+        throw new Error('음식 사진 업로드에 실패했습니다');
+      }
+
+      // 영수증 이미지 업로드
+      const receiptExt = receipt_image.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const receiptFilename = `${crypto.randomUUID()}.${receiptExt}`;
+
+      const { error: receiptUploadError } = await sb.storage
+        .from('receipt-images')
+        .upload(receiptFilename, receipt_image);
+
+      if (receiptUploadError) {
+        throw new Error(`영수증 사진 업로드 실패: ${receiptUploadError.message}`);
+      }
+
+      const { data: receiptUrlData } = sb.storage.from('receipt-images').getPublicUrl(receiptFilename);
+
+      // ========== 2단계: 이미지 업로드 성공 후 맛집 저장 ==========
+
       let finalRestaurantId = restaurant_id;
 
       // 새 맛집이면 생성
@@ -348,7 +389,7 @@ const API = {
         if (existing) {
           finalRestaurantId = existing.id;
         } else {
-          const { data: newRestaurant } = await sb
+          const { data: newRestaurant, error: restaurantError } = await sb
             .from('restaurants')
             .insert({
               name: restaurant_name,
@@ -358,6 +399,10 @@ const API = {
             })
             .select()
             .single();
+
+          if (restaurantError) {
+            throw new Error(`맛집 등록 실패: ${restaurantError.message}`);
+          }
           finalRestaurantId = newRestaurant.id;
         }
       }
@@ -365,33 +410,6 @@ const API = {
       if (!finalRestaurantId) {
         throw new Error('가게 정보가 필요합니다');
       }
-
-      // 이미지 업로드
-      const foodImageUrls = [];
-      for (const file of food_images) {
-        if (!file.size) continue;
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-        const filename = `${crypto.randomUUID()}.${ext}`;
-
-        const { error: uploadError } = await sb.storage
-          .from('food-images')
-          .upload(filename, file);
-
-        if (!uploadError) {
-          const { data: urlData } = sb.storage.from('food-images').getPublicUrl(filename);
-          foodImageUrls.push(urlData.publicUrl);
-        }
-      }
-
-      // 영수증 이미지 업로드
-      const receiptExt = receipt_image.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const receiptFilename = `${crypto.randomUUID()}.${receiptExt}`;
-
-      await sb.storage
-        .from('receipt-images')
-        .upload(receiptFilename, receipt_image);
-
-      const { data: receiptUrlData } = sb.storage.from('receipt-images').getPublicUrl(receiptFilename);
 
       // 리뷰 저장
       const { data: review, error: reviewError } = await sb
