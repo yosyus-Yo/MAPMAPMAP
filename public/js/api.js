@@ -92,6 +92,10 @@ const API = {
 
     async myList() {
       return API.request('GET', '/reviews/my');
+    },
+
+    async delete(id) {
+      return API.request('DELETE', `/reviews/${id}`);
     }
   },
 
@@ -112,6 +116,10 @@ const API = {
 
     async reject(id, reason) {
       return API.request('PUT', `/admin/reviews/${id}/reject`, { reason });
+    },
+
+    async deleteReview(id) {
+      return API.request('DELETE', `/admin/reviews/${id}`);
     }
   },
 

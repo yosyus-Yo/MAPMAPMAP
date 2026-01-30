@@ -28,12 +28,12 @@ if (isServerless) {
   // Vercel: cookie-session 사용 (세션 데이터를 쿠키에 저장)
   const cookieSession = require('cookie-session');
   app.use(cookieSession({
-    name: 'session',
+    name: 'mapmap_session',
     keys: [process.env.SESSION_SECRET || 'mapmap-secret-key-2025'],
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'none'
+    sameSite: 'lax'
   }));
 } else {
   // 로컬: express-session + FileStore 사용

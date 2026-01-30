@@ -213,16 +213,9 @@ router.post('/logout', async (req, res) => {
     // Supabase Auth 로그아웃
     await supabase.auth.signOut();
 
-    // 세션 삭제
-    req.session.destroy(err => {
-      if (err) {
-        return res.status(500).json({
-          success: false,
-          error: '로그아웃 중 오류가 발생했습니다'
-        });
-      }
-      res.json({ success: true });
-    });
+    // 세션 삭제 (cookie-session 호환)
+    req.session = null;
+    res.json({ success: true });
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({

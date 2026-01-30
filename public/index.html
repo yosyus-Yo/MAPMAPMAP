@@ -1130,6 +1130,26 @@
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 12px;
+      position: relative;
+    }
+
+    .review-delete-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .review-delete-btn:hover {
+      opacity: 1;
     }
 
     .review-item-header {
@@ -3351,7 +3371,7 @@
         }
 
         return `
-          <div class="review-item">
+          <div class="review-item" data-review-id="${review.id}">
             <div class="review-item-header">
               <span class="review-item-restaurant">${review.restaurant_name || '알 수 없는 맛집'}</span>
               <span class="review-item-status ${statusClass}">${statusText}</span>
@@ -3359,9 +3379,25 @@
             <div class="review-item-menu">${review.menu_name} · 맵기 Lv.${review.spicy_level}</div>
             <div class="review-item-date">${date}</div>
             ${reasonHtml}
+            <button class="review-delete-btn" onclick="deleteMyReview('${review.id}')">🗑️ 삭제</button>
           </div>
         `;
       }).join('');
+    }
+
+    // 내 리뷰 삭제
+    async function deleteMyReview(reviewId) {
+      if (!confirm('정말 이 리뷰를 삭제하시겠습니까?')) return;
+
+      try {
+        await API.reviews.delete(reviewId);
+        showToast('리뷰가 삭제되었습니다', 'success');
+        // 리뷰 목록 새로고침
+        const response = await API.reviews.myList();
+        renderMyReviews(response.reviews || []);
+      } catch (error) {
+        showToast(error.message || '리뷰 삭제에 실패했습니다', 'error');
+      }
     }
 
     // 마이페이지 모달 외부 클릭 시 닫기
@@ -3444,8 +3480,13 @@
           <div class="admin-review-actions">
             <button class="btn-approve" onclick="approveReview('${review.id}')">✓ 승인</button>
             <button class="btn-reject-action" onclick="openRejectModal('${review.id}')">✕ 반려</button>
+            <button class="btn-delete" onclick="adminDeleteReview('${review.id}')" style="background:#6c757d;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;">🗑️ 삭제</button>
           </div>
-        ` : '';
+        ` : `
+          <div class="admin-review-actions">
+            <button class="btn-delete" onclick="adminDeleteReview('${review.id}')" style="background:#6c757d;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;">🗑️ 삭제</button>
+          </div>
+        `;
 
         const rejectReasonHtml = review.status === 'rejected' && review.reject_reason ? `
           <p style="color: #dc3545;"><strong>반려 사유:</strong> ${review.reject_reason}</p>
@@ -3530,6 +3571,19 @@
         await loadAdminReviews(currentAdminFilter);
       } catch (error) {
         showToast(error.message || '반려 실패', 'error');
+      }
+    }
+
+    // 관리자 리뷰 삭제
+    async function adminDeleteReview(reviewId) {
+      if (!confirm('정말 이 리뷰를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+
+      try {
+        await API.admin.deleteReview(reviewId);
+        showToast('리뷰가 삭제되었습니다', 'success');
+        await loadAdminReviews(currentAdminFilter);
+      } catch (error) {
+        showToast(error.message || '리뷰 삭제에 실패했습니다', 'error');
       }
     }
 

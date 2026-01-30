@@ -331,4 +331,75 @@ router.get('/my/stats', requireAuth, async (req, res) => {
   }
 });
 
+// DELETE /api/reviews/:id - 본인 리뷰 삭제
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 리뷰 조회 및 소유권 확인
+    const { data: review, error: fetchError } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !review) {
+      return res.status(404).json({
+        success: false,
+        error: '리뷰를 찾을 수 없습니다'
+      });
+    }
+
+    // 본인 리뷰인지 확인
+    if (review.user_id !== req.session.userId) {
+      return res.status(403).json({
+        success: false,
+        error: '본인의 리뷰만 삭제할 수 있습니다'
+      });
+    }
+
+    // 리뷰 삭제
+    const { error: deleteError } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) throw deleteError;
+
+    // 맛집 통계 재계산 (승인된 리뷰였다면)
+    if (review.status === 'approved') {
+      const { data: reviewStats } = await supabase
+        .from('reviews')
+        .select('spicy_level')
+        .eq('restaurant_id', review.restaurant_id)
+        .eq('status', 'approved');
+
+      if (reviewStats && reviewStats.length > 0) {
+        const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+        await supabase
+          .from('restaurants')
+          .update({ avg_level: avgLevel, review_count: reviewStats.length })
+          .eq('id', review.restaurant_id);
+      } else {
+        // 리뷰가 없으면 초기화
+        await supabase
+          .from('restaurants')
+          .update({ avg_level: 0, review_count: 0 })
+          .eq('id', review.restaurant_id);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: '리뷰가 삭제되었습니다'
+    });
+  } catch (error) {
+    console.error('Delete review error:', error);
+    res.status(500).json({
+      success: false,
+      error: '리뷰 삭제 중 오류가 발생했습니다'
+    });
+  }
+});
+
 module.exports = router;
