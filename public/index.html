@@ -323,6 +323,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      width: 100%;
     }
 
     .toggle-label {
@@ -686,7 +687,7 @@
       right: 0;
       bottom: 0;
       background: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
+      z-index: 10001;
       align-items: center;
       justify-content: center;
       padding: 20px;
@@ -904,7 +905,7 @@
       border: none;
       border-radius: 8px;
       font-size: 14px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
     .report-map-search-overlay input:focus {
@@ -914,7 +915,7 @@
 
     .report-map-search-overlay .search-btn {
       padding: 12px 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
     .report-map-reSearch-btn {
@@ -931,7 +932,7 @@
       font-weight: 600;
       color: #333;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       display: none;
     }
 
@@ -953,7 +954,7 @@
       right: 0;
       background: white;
       border-radius: 16px 16px 0 0;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
       padding: 20px;
       transform: translateY(100%);
       transition: transform 0.3s ease;
@@ -1027,7 +1028,7 @@
       font-size: 14px;
       font-weight: 700;
       color: white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
       cursor: pointer;
       transition: transform 0.2s;
     }
@@ -1054,7 +1055,7 @@
       justify-content: center;
       font-size: 12px;
       font-weight: 700;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     /* ========== 마이페이지 모달 ========== */
@@ -1454,6 +1455,9 @@
     .auth-btn.admin {
       background: #6c757d;
       color: white;
+      border: none;
+      padding: 6px 12px;
+      font-size: 12px;
     }
 
     .auth-btn.admin:hover {
@@ -2075,8 +2079,7 @@
       <div class="user-info" id="header-user-info" style="display: none;">
         <span class="nickname" id="header-nickname" style="cursor: pointer;" onclick="openMyPage()"></span>
         <span class="user-level-badge" id="header-level"></span>
-        <button class="auth-btn admin" id="admin-btn" style="display: none;" onclick="openAdminDashboard()">🛡️
-          관리자</button>
+        <button class="auth-btn admin" id="admin-btn" style="display: none;" onclick="openAdminDashboard()">관리자</button>
         <button class="auth-btn mypage" onclick="openMyPage()">마이페이지</button>
         <button class="auth-btn logout" onclick="handleLogout()">로그아웃</button>
       </div>
@@ -2681,7 +2684,7 @@
       }
 
       // 지도 이동 완료 이벤트 (재검색 버튼 표시)
-      kakao.maps.event.addListener(reportMap, 'dragend', function() {
+      kakao.maps.event.addListener(reportMap, 'dragend', function () {
         if (lastSearchKeyword && !searchInProgress) {
           mapMoved = true;
           document.getElementById('reSearch-btn').classList.add('show');
@@ -2689,7 +2692,7 @@
       });
 
       // 줌 변경 시에도 재검색 버튼 표시
-      kakao.maps.event.addListener(reportMap, 'zoom_changed', function() {
+      kakao.maps.event.addListener(reportMap, 'zoom_changed', function () {
         if (lastSearchKeyword && !searchInProgress) {
           mapMoved = true;
           document.getElementById('reSearch-btn').classList.add('show');
@@ -2697,7 +2700,7 @@
       });
 
       // 하단 패널 닫기 (지도 클릭 시)
-      kakao.maps.event.addListener(reportMap, 'click', function() {
+      kakao.maps.event.addListener(reportMap, 'click', function () {
         hideBottomPanel();
       });
     }
@@ -2737,7 +2740,7 @@
         sort: kakao.maps.services.SortBy.DISTANCE
       };
 
-      placesService.keywordSearch(keyword, function(result, status) {
+      placesService.keywordSearch(keyword, function (result, status) {
         if (status === kakao.maps.services.Status.OK) {
           displayMarkersOnMap(result);
         } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
@@ -2763,7 +2766,7 @@
         sort: kakao.maps.services.SortBy.DISTANCE
       };
 
-      placesService.keywordSearch(lastSearchKeyword, function(result, status) {
+      placesService.keywordSearch(lastSearchKeyword, function (result, status) {
         if (status === kakao.maps.services.Status.OK) {
           displayMarkersOnMap(result);
           showToast(`'${lastSearchKeyword}' 재검색 완료`, 'success');
@@ -2792,7 +2795,7 @@
         const markerContent = document.createElement('div');
         markerContent.className = 'circle-marker';
         markerContent.textContent = index + 1;
-        markerContent.onclick = function() {
+        markerContent.onclick = function () {
           showBottomPanel(place, markerContent);
         };
 
