@@ -26,12 +26,12 @@ const upload = multer({
 });
 
 // Supabase Storage에 이미지 업로드
-async function uploadToSupabase(file, folder) {
+async function uploadToSupabase(file, bucketName, isPublic = true) {
   const ext = path.extname(file.originalname).toLowerCase();
-  const filename = `${folder}/${uuidv4()}${ext}`;
+  const filename = `${uuidv4()}${ext}`;
 
   const { data, error } = await supabase.storage
-    .from('images')
+    .from(bucketName)
     .upload(filename, file.buffer, {
       contentType: file.mimetype,
       upsert: false
@@ -42,12 +42,24 @@ async function uploadToSupabase(file, folder) {
     throw new Error('이미지 업로드에 실패했습니다');
   }
 
-  // Public URL 생성
-  const { data: urlData } = supabase.storage
-    .from('images')
-    .getPublicUrl(filename);
+  if (isPublic) {
+    // Public URL 생성 (food-images)
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filename);
+    return urlData.publicUrl;
+  } else {
+    // Signed URL 생성 (receipt-images, 1년 유효)
+    const { data: urlData, error: signError } = await supabase.storage
+      .from(bucketName)
+      .createSignedUrl(filename, 60 * 60 * 24 * 365);
 
-  return urlData.publicUrl;
+    if (signError) {
+      console.error('Signed URL error:', signError);
+      throw new Error('이미지 URL 생성에 실패했습니다');
+    }
+    return urlData.signedUrl;
+  }
 }
 
 // Auth middleware
@@ -135,8 +147,9 @@ router.post('/',
       }
 
       // Supabase Storage에 이미지 업로드
-      const foodImageUrl = await uploadToSupabase(req.files.food_image[0], 'food');
-      const receiptImageUrl = await uploadToSupabase(req.files.receipt_image[0], 'receipts');
+      // food-images: public, receipt-images: private
+      const foodImageUrl = await uploadToSupabase(req.files.food_image[0], 'food-images', true);
+      const receiptImageUrl = await uploadToSupabase(req.files.receipt_image[0], 'receipt-images', false);
 
       const { data: review, error: reviewError } = await supabase
         .from('reviews')
