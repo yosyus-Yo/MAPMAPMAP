@@ -6,15 +6,16 @@
 const SUPABASE_URL = 'https://yzwjsyzdspuvrjsdhank.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6d2pzeXpkc3B1dnJqc2RoYW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0NzEwNjcsImV4cCI6MjA1MTA0NzA2N30.v0TPC2Jj7VxsluZPZoTMYrfHabWNGn0hy2hRH9Ki7Hk';
 
-let supabase;
+// supabaseClient로 이름 변경 (SDK 전역변수와 충돌 방지)
+let supabaseClient = null;
 
 // Supabase 초기화 (SDK 로드 후 호출)
 function initSupabase() {
-  if (window.supabase && !supabase) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  if (window.supabase && !supabaseClient) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('✅ Supabase initialized');
   }
-  return supabase;
+  return supabaseClient;
 }
 
 // API 객체 - Supabase 직접 연동
