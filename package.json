@@ -1,24 +1,19 @@
 {
   "name": "mapmapmap",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "매운맛 실패 없는 맛집 지도",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "cd server && npm run dev",
-    "start": "cd server && npm start",
+    "dev": "node --watch api/index.js",
+    "start": "node api/index.js",
     "build": "echo 'No build required'",
     "vercel-build": "echo 'Build completed'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.93.2",
-    "cookie-session": "^2.1.1",
-    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^4.18.2",
-    "express-session": "^1.17.3",
-    "express-validator": "^7.0.1",
-    "multer": "^2.0.0",
-    "session-file-store": "^1.5.0",
+    "hono": "^4.0.0",
     "uuid": "^9.0.0"
   },
   "engines": {
