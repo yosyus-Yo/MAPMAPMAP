@@ -3,13 +3,17 @@ const { createClient } = require('@supabase/supabase-js');
 
 // Vercel 환경에서는 환경변수가 자동 주입됨
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+// Service Role Key 우선 사용 (RLS 우회), 없으면 Anon Key 사용
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Missing Supabase credentials.');
   console.error('   SUPABASE_URL:', supabaseUrl ? '✓' : '✗');
-  console.error('   SUPABASE_ANON_KEY:', supabaseKey ? '✓' : '✗');
+  console.error('   SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? '✓' : '✗');
+  console.error('   SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✓' : '✗');
   console.error('   Vercel 대시보드에서 환경변수를 설정하세요.');
+} else {
+  console.log('🔑 Using:', process.env.SUPABASE_SERVICE_KEY ? 'Service Role Key' : 'Anon Key');
 }
 
 // supabase 클라이언트 생성 (환경변수 없으면 에러 발생하도록)
