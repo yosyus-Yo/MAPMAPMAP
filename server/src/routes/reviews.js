@@ -86,7 +86,7 @@ const requireAuth = (req, res, next) => {
 router.post('/',
   requireAuth,
   upload.fields([
-    { name: 'food_image', maxCount: 1 },
+    { name: 'food_images', maxCount: 5 },  // 다중 이미지 지원 (최대 5장)
     { name: 'receipt_image', maxCount: 1 }
   ]),
   body('menu_name').notEmpty().withMessage('메뉴명을 입력하세요'),
@@ -107,10 +107,10 @@ router.post('/',
       });
     }
 
-    if (!req.files.food_image) {
+    if (!req.files.food_images || req.files.food_images.length === 0) {
       return res.status(400).json({
         success: false,
-        error: '음식 사진은 필수입니다'
+        error: '음식 사진은 필수입니다 (최소 1장)'
       });
     }
 
@@ -156,8 +156,14 @@ router.post('/',
       }
 
       // Supabase Storage에 이미지 업로드
-      // 둘 다 Public URL 사용 (UUID라서 추측 불가능)
-      const foodImageUrl = await uploadToSupabase(req.files.food_image[0], 'food-images', true);
+      // 다중 음식 이미지 업로드 (최대 5장)
+      const foodImageUrls = [];
+      for (const file of req.files.food_images) {
+        const url = await uploadToSupabase(file, 'food-images', true);
+        foodImageUrls.push(url);
+      }
+
+      // 영수증 이미지 업로드
       const receiptImageUrl = await uploadToSupabase(req.files.receipt_image[0], 'receipt-images', true);
 
       const { data: review, error: reviewError } = await supabase
@@ -167,7 +173,7 @@ router.post('/',
           restaurant_id: finalRestaurantId,
           menu_name,
           spicy_level: parseInt(spicy_level),
-          food_image_url: foodImageUrl,
+          food_image_url: JSON.stringify(foodImageUrls),  // JSON 배열로 저장
           receipt_image_url: receiptImageUrl,
           comment: comment || null,
           status: 'pending'

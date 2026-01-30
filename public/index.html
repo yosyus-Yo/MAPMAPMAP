@@ -1850,10 +1850,11 @@
     }
 
     .review-thumb {
-      width: 50px;
-      height: 50px;
+      width: 60px;
+      height: 60px;
       border-radius: 8px;
-      object-fit: cover;
+      object-fit: contain;
+      background: #f5f5f5;
       flex-shrink: 0;
     }
 
@@ -1913,8 +1914,9 @@
 
     .review-food-image {
       width: 100%;
-      max-height: 250px;
-      object-fit: cover;
+      max-height: 300px;
+      object-fit: contain;
+      background: #f5f5f5;
       border-radius: 8px;
       margin-bottom: 12px;
       cursor: pointer;
@@ -1932,7 +1934,7 @@
       right: 0;
       bottom: 0;
       background: rgba(0, 0, 0, 0.95);
-      z-index: 10000;
+      z-index: 20000;
       display: none;
       justify-content: center;
       align-items: center;
@@ -2088,6 +2090,143 @@
     .report-btn:hover {
       background: #a51015;
       transform: scale(1.05);
+    }
+
+    /* 다중 이미지 업로드 */
+    .multi-image-upload {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .multi-image-preview {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .multi-image-item {
+      position: relative;
+      width: 70px;
+      height: 70px;
+    }
+
+    .multi-image-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .multi-image-remove {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ff4444;
+      color: white;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .image-upload-area.small {
+      width: 70px;
+      height: 70px;
+      min-height: unset;
+      padding: 8px;
+    }
+
+    .image-upload-area.small .upload-icon {
+      font-size: 24px;
+    }
+
+    .image-upload-area.small .upload-text {
+      font-size: 11px;
+    }
+
+    /* 리뷰 이미지 캐러셀 */
+    .review-images-carousel {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .review-images-track {
+      display: flex;
+      transition: transform 0.3s ease;
+    }
+
+    .review-images-track img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      background: #f5f5f5;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .review-carousel-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      background: rgba(0, 0, 0, 0.3);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: background 0.2s;
+      z-index: 2;
+    }
+
+    .review-carousel-nav:hover {
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .review-carousel-nav.prev {
+      left: 8px;
+    }
+
+    .review-carousel-nav.next {
+      right: 8px;
+    }
+
+    .review-carousel-dots {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+    }
+
+    .review-carousel-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      border: none;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .review-carousel-dot.active {
+      background: white;
     }
 
     /* 반응형 */
@@ -2592,26 +2731,27 @@
             <button class="level-btn" data-level="5" onclick="selectModalLevel(5)">5</button>
           </div>
         </div>
-        <div class="image-upload-row">
-          <div class="image-upload-box">
-            <label>📷 음식 사진 (필수)</label>
-            <div class="image-upload-area" id="food-image-area"
-              onclick="document.getElementById('modal-food-image').click()">
-              <span class="upload-icon">🍜</span>
-              <span class="upload-text">클릭하여 업로드</span>
-              <input type="file" id="modal-food-image" accept="image/*"
-                onchange="handleImageUpload(this, 'food-image-area')">
+        <div class="form-row">
+          <label>📷 음식 사진 (필수, 최대 5장)</label>
+          <div class="multi-image-upload" id="food-images-container">
+            <div class="multi-image-preview" id="food-images-preview"></div>
+            <div class="image-upload-area small" id="food-image-area"
+              onclick="document.getElementById('modal-food-images').click()">
+              <span class="upload-icon">+</span>
+              <span class="upload-text">추가</span>
+              <input type="file" id="modal-food-images" accept="image/*" multiple
+                onchange="handleMultiImageUpload(this, 'food-images-preview', 5)">
             </div>
           </div>
-          <div class="image-upload-box">
-            <label>🧾 영수증 사진 (필수)</label>
-            <div class="image-upload-area" id="receipt-image-area"
-              onclick="document.getElementById('modal-receipt-image').click()">
-              <span class="upload-icon">🧾</span>
-              <span class="upload-text">클릭하여 업로드</span>
-              <input type="file" id="modal-receipt-image" accept="image/*"
-                onchange="handleImageUpload(this, 'receipt-image-area')">
-            </div>
+        </div>
+        <div class="form-row">
+          <label>🧾 영수증 사진 (필수)</label>
+          <div class="image-upload-area" id="receipt-image-area"
+            onclick="document.getElementById('modal-receipt-image').click()">
+            <span class="upload-icon">🧾</span>
+            <span class="upload-text">클릭하여 업로드</span>
+            <input type="file" id="modal-receipt-image" accept="image/*"
+              onchange="handleImageUpload(this, 'receipt-image-area')">
           </div>
         </div>
         <div class="form-row">
@@ -3313,6 +3453,17 @@
           <p style="color: #dc3545;"><strong>반려 사유:</strong> ${review.reject_reason}</p>
         ` : '';
 
+        // 음식 이미지 URL 파싱 (JSON 배열 지원)
+        let foodImageUrls = [];
+        if (review.food_image_url) {
+          try {
+            const parsed = JSON.parse(review.food_image_url);
+            foodImageUrls = Array.isArray(parsed) ? parsed : [review.food_image_url];
+          } catch {
+            foodImageUrls = [review.food_image_url];
+          }
+        }
+
         return `
           <div class="admin-review-item">
             <div class="admin-review-header">
@@ -3326,7 +3477,9 @@
             </div>
             <div class="admin-review-content">
               <div class="admin-review-images">
-                <img src="${review.food_image_url}" alt="음식 사진" onclick="openImageViewer('${review.food_image_url}', event)">
+                ${foodImageUrls.map((url, idx) =>
+                  `<img src="${url}" alt="음식 사진 ${idx + 1}" onclick="openImageViewer('${url}', event)">`
+                ).join('')}
                 <img src="${review.receipt_image_url}" alt="영수증" onclick="openImageViewer('${review.receipt_image_url}', event)">
               </div>
               <div class="admin-review-details">
@@ -3747,10 +3900,17 @@
       // 카테고리별 기본 이미지 설정
       const categoryConfig = getCategoryConfig(restaurant.category);
 
-      // 리뷰 이미지들 수집
+      // 리뷰 이미지들 수집 (JSON 배열 지원)
       const reviewImages = restaurantReviews
         .filter(r => r.food_image_url)
-        .map(r => r.food_image_url);
+        .flatMap(r => {
+          try {
+            const urls = JSON.parse(r.food_image_url);
+            return Array.isArray(urls) ? urls : [r.food_image_url];
+          } catch {
+            return [r.food_image_url]; // 단일 URL 문자열인 경우
+          }
+        });
 
       // 캐러셀 슬라이드 생성 (카테고리 기본 + 리뷰 사진들)
       const carouselSlides = buildCarouselSlides(categoryConfig, reviewImages);
@@ -3797,11 +3957,26 @@
         <div class="review-list">
           <h4>💬 리뷰 (${restaurantReviews.length})</h4>
           ${restaurantReviews.length > 0 ?
-          restaurantReviews.map((r, idx) => `
+          restaurantReviews.map((r, idx) => {
+            // 이미지 URL 파싱 (JSON 배열 또는 단일 URL)
+            let imageUrls = [];
+            if (r.food_image_url) {
+              try {
+                const parsed = JSON.parse(r.food_image_url);
+                imageUrls = Array.isArray(parsed) ? parsed : [r.food_image_url];
+              } catch {
+                imageUrls = [r.food_image_url];
+              }
+            }
+            const firstImage = imageUrls[0];
+            const hasMultipleImages = imageUrls.length > 1;
+            const reviewId = `review-${idx}`;
+
+            return `
               <div class="review-item" onclick="toggleReviewDetail(this)">
                 <div class="review-preview">
-                  ${r.food_image_url
-              ? `<img src="${r.food_image_url}" class="review-thumb" alt="음식" onclick="openImageViewer('${r.food_image_url}', event)">`
+                  ${firstImage
+              ? `<img src="${firstImage}" class="review-thumb" alt="음식" onclick="openImageViewer('${firstImage}', event)">`
               : `<div class="review-thumb-placeholder">🍜</div>`
             }
                   <div class="review-preview-info">
@@ -3815,7 +3990,24 @@
                   <span class="review-expand-icon">▼</span>
                 </div>
                 <div class="review-detail">
-                  ${r.food_image_url ? `<img src="${r.food_image_url}" class="review-food-image" alt="음식 사진" onclick="openImageViewer('${r.food_image_url}', event)">` : ''}
+                  ${imageUrls.length > 0 ? (
+                    hasMultipleImages
+                      ? `<div class="review-images-carousel" data-review-id="${reviewId}" data-current="0" data-total="${imageUrls.length}">
+                          <div class="review-images-track" style="transform: translateX(0%);">
+                            ${imageUrls.map((url, imgIdx) =>
+                              `<img src="${url}" alt="음식 사진 ${imgIdx + 1}" onclick="openImageViewer('${url}', event)">`
+                            ).join('')}
+                          </div>
+                          <button class="review-carousel-nav prev" onclick="moveReviewCarousel('${reviewId}', -1, event)">‹</button>
+                          <button class="review-carousel-nav next" onclick="moveReviewCarousel('${reviewId}', 1, event)">›</button>
+                          <div class="review-carousel-dots">
+                            ${imageUrls.map((_, dotIdx) =>
+                              `<span class="review-carousel-dot ${dotIdx === 0 ? 'active' : ''}" onclick="goToReviewSlide('${reviewId}', ${dotIdx}, event)"></span>`
+                            ).join('')}
+                          </div>
+                        </div>`
+                      : `<img src="${firstImage}" class="review-food-image" alt="음식 사진" onclick="openImageViewer('${firstImage}', event)">`
+                  ) : ''}
                   <div class="review-meta">
                     <span class="review-nickname">${r.user_nickname || '익명'}</span>
                     <span class="review-user-level">Lv.${r.user_level ?? '?'}</span>
@@ -3827,7 +4019,7 @@
                   </div>
                 </div>
               </div>
-            `).join('')
+            `}).join('')
           : '<div class="no-review">아직 리뷰가 없어요. 첫 리뷰를 남겨보세요!</div>'
         }
         </div>
@@ -3915,27 +4107,34 @@
         btn.classList.remove('selected');
       });
 
-      // 이미지 업로드 영역 초기화
-      ['food-image-area', 'receipt-image-area'].forEach(areaId => {
-        const area = document.getElementById(areaId);
-        if (area) {
-          const preview = area.querySelector('.image-preview');
-          if (preview) preview.remove();
-          const icon = area.querySelector('.upload-icon');
-          const text = area.querySelector('.upload-text');
-          if (icon) icon.style.display = '';
-          if (text) text.style.display = '';
-          area.classList.remove('has-image');
-          const input = area.querySelector('input[type="file"]');
-          if (input) input.value = '';
-        }
-      });
+      // 다중 음식 이미지 초기화
+      uploadedFoodImages = [];
+      const foodPreview = document.getElementById('food-images-preview');
+      if (foodPreview) foodPreview.innerHTML = '';
+      const foodArea = document.getElementById('food-image-area');
+      if (foodArea) foodArea.style.display = '';
+
+      // 영수증 이미지 초기화
+      const receiptArea = document.getElementById('receipt-image-area');
+      if (receiptArea) {
+        const preview = receiptArea.querySelector('.image-preview');
+        if (preview) preview.remove();
+        const icon = receiptArea.querySelector('.upload-icon');
+        const text = receiptArea.querySelector('.upload-text');
+        if (icon) icon.style.display = '';
+        if (text) text.style.display = '';
+        receiptArea.classList.remove('has-image');
+        const input = receiptArea.querySelector('input[type="file"]');
+        if (input) input.value = '';
+      }
 
       document.getElementById('review-form-overlay').classList.add('active');
     }
 
     function closeReviewFormModal() {
       document.getElementById('review-form-overlay').classList.remove('active');
+      // 모달 닫을 때도 초기화
+      uploadedFoodImages = [];
     }
 
     document.getElementById('review-form-overlay').addEventListener('click', (e) => {
@@ -4113,6 +4312,142 @@
       }
     }
 
+    // 다중 이미지 업로드 핸들러
+    let uploadedFoodImages = []; // 업로드된 음식 이미지 파일 배열
+
+    function handleMultiImageUpload(input, previewId, maxCount) {
+      const previewContainer = document.getElementById(previewId);
+      const files = Array.from(input.files);
+
+      // 최대 개수 체크
+      const currentCount = uploadedFoodImages.length;
+      const remainingSlots = maxCount - currentCount;
+
+      if (files.length > remainingSlots) {
+        showToast(`최대 ${maxCount}장까지만 업로드 가능합니다`, 'error');
+        files.splice(remainingSlots);
+      }
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'multi-image-item';
+          itemDiv.dataset.index = uploadedFoodImages.length;
+
+          const img = document.createElement('img');
+          img.src = e.target.result;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'multi-image-remove';
+          removeBtn.innerHTML = '×';
+          removeBtn.onclick = function(ev) {
+            ev.stopPropagation();
+            const idx = parseInt(itemDiv.dataset.index);
+            removeUploadedImage(idx, previewId);
+          };
+
+          itemDiv.appendChild(img);
+          itemDiv.appendChild(removeBtn);
+          previewContainer.appendChild(itemDiv);
+
+          uploadedFoodImages.push(file);
+
+          // 최대 개수 도달 시 업로드 버튼 숨기기
+          if (uploadedFoodImages.length >= maxCount) {
+            document.getElementById('food-image-area').style.display = 'none';
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // input 초기화 (같은 파일 다시 선택 가능하게)
+      input.value = '';
+    }
+
+    function removeUploadedImage(index, previewId) {
+      uploadedFoodImages.splice(index, 1);
+
+      // 프리뷰 다시 렌더링
+      const previewContainer = document.getElementById(previewId);
+      previewContainer.innerHTML = '';
+
+      uploadedFoodImages.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'multi-image-item';
+          itemDiv.dataset.index = idx;
+
+          const img = document.createElement('img');
+          img.src = e.target.result;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'multi-image-remove';
+          removeBtn.innerHTML = '×';
+          removeBtn.onclick = function(ev) {
+            ev.stopPropagation();
+            removeUploadedImage(idx, previewId);
+          };
+
+          itemDiv.appendChild(img);
+          itemDiv.appendChild(removeBtn);
+          previewContainer.appendChild(itemDiv);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // 업로드 버튼 다시 보이기
+      document.getElementById('food-image-area').style.display = '';
+    }
+
+    // 리뷰 이미지 캐러셀 네비게이션
+    function moveReviewCarousel(reviewId, direction, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+
+      const carousel = document.querySelector(`[data-review-id="${reviewId}"]`);
+      if (!carousel) return;
+
+      const track = carousel.querySelector('.review-images-track');
+      const total = parseInt(carousel.dataset.total);
+      let current = parseInt(carousel.dataset.current);
+
+      current += direction;
+      if (current < 0) current = 0;
+      if (current >= total) current = total - 1;
+
+      carousel.dataset.current = current;
+      track.style.transform = `translateX(-${current * 100}%)`;
+
+      // 도트 업데이트
+      carousel.querySelectorAll('.review-carousel-dot').forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === current);
+      });
+    }
+
+    // 리뷰 캐러셀 슬라이드 직접 이동
+    function goToReviewSlide(reviewId, slideIndex, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+
+      const carousel = document.querySelector(`[data-review-id="${reviewId}"]`);
+      if (!carousel) return;
+
+      const track = carousel.querySelector('.review-images-track');
+      carousel.dataset.current = slideIndex;
+      track.style.transform = `translateX(-${slideIndex * 100}%)`;
+
+      // 도트 업데이트
+      carousel.querySelectorAll('.review-carousel-dot').forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === slideIndex);
+      });
+    }
+
     async function submitModalReview() {
       if (!currentModalRestaurant) {
         showToast('맛집 정보를 찾을 수 없습니다', 'error');
@@ -4122,12 +4457,11 @@
       const menu = document.getElementById('modal-menu').value.trim();
       const level = selectedLevels.modal;
       const text = document.getElementById('modal-text').value.trim();
-      const foodImage = document.getElementById('modal-food-image').files[0];
       const receiptImage = document.getElementById('modal-receipt-image').files[0];
 
       if (!menu) { showToast('메뉴를 입력해주세요!', 'error'); return; }
       if (level === undefined) { showToast('맵기 레벨을 선택해주세요!', 'error'); return; }
-      if (!foodImage) { showToast('음식 사진을 첨부해주세요!', 'error'); return; }
+      if (uploadedFoodImages.length === 0) { showToast('음식 사진을 첨부해주세요!', 'error'); return; }
       if (!receiptImage) { showToast('영수증 사진을 첨부해주세요!', 'error'); return; }
 
       try {
@@ -4136,11 +4470,16 @@
         formData.append('menu_name', menu);
         formData.append('spicy_level', level);
         formData.append('comment', text);
-        formData.append('food_image', foodImage);
+
+        // 다중 음식 이미지
+        uploadedFoodImages.forEach((file, idx) => {
+          formData.append('food_images', file);
+        });
+
         formData.append('receipt_image', receiptImage);
 
         await API.reviews.create(formData);
-        showToast('리뷰가 등록되었습니다! 관리자 승인 후 반영됩니다. 🔥', 'success');
+        showToast('리뷰가 등록되었습니다! 관리자 승인 후 반영됩니다.', 'success');
 
         // 리뷰 폼 모달 닫기
         closeReviewFormModal();
