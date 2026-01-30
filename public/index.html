@@ -4628,26 +4628,39 @@
         console.error('카카오맵 로드 중 오류:', e);
       }
 
-      // 세션 체크
-      try {
-        const result = await API.auth.me();
-        if (result.user) {
-          currentUser = result.user;
-          AppState.setUser(currentUser);
+      // 1. localStorage에서 사용자 정보 먼저 로드 (빠른 UI 표시)
+      const storedUser = AppState.loadUser();
 
-          // 맵레벨 설정 여부 확인
-          if (currentUser.spicy_level === null || currentUser.spicy_level === undefined) {
-            showOnboarding();
-          } else {
-            showMain();
-          }
+      if (storedUser) {
+        // localStorage에 사용자 정보 있음 → 바로 메인 화면 표시
+        currentUser = storedUser;
+        AppState.user = storedUser;
+        AppState.updateUI();
+
+        if (currentUser.spicy_level === null || currentUser.spicy_level === undefined) {
+          showOnboarding();
         } else {
-          // 비로그인 상태 - 온보딩 화면 표시
+          showMain();
+        }
+
+        // 2. 백그라운드에서 서버와 동기화 (유효성 검증)
+        API.auth.me().then(result => {
+          if (result.success && result.user) {
+            // 서버 정보로 업데이트
+            currentUser = result.user;
+            AppState.setUser(result.user);
+          }
+        }).catch(() => {
+          // 서버 인증 실패 → 로그아웃 처리
+          currentUser = null;
+          AppState.setUser(null);
+          document.getElementById('main-container').style.display = 'none';
           document.getElementById('onboarding').style.display = 'flex';
           initOnboarding();
-        }
-      } catch (error) {
-        // 비로그인 상태 - 온보딩 화면 표시
+          showToast('세션이 만료되었습니다. 다시 로그인해주세요.', 'error');
+        });
+      } else {
+        // localStorage에 정보 없음 → 온보딩 화면
         document.getElementById('onboarding').style.display = 'flex';
         initOnboarding();
       }

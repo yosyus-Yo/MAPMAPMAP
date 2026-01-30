@@ -149,9 +149,51 @@ const AppState = {
   restaurants: [],
   isLoading: false,
 
+  // localStorage 키
+  STORAGE_KEY: 'mapmap_user',
+
   setUser(user) {
     this.user = user;
+    // localStorage에 저장
+    if (user) {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(this.STORAGE_KEY);
+    }
     this.updateUI();
+  },
+
+  // localStorage에서 사용자 정보 로드
+  loadUser() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        this.user = JSON.parse(stored);
+        return this.user;
+      }
+    } catch (e) {
+      localStorage.removeItem(this.STORAGE_KEY);
+    }
+    return null;
+  },
+
+  // 서버와 동기화 (localStorage 데이터 검증)
+  async syncWithServer() {
+    const storedUser = this.loadUser();
+    if (!storedUser) return null;
+
+    try {
+      // 서버에서 최신 정보 가져오기
+      const response = await API.auth.me();
+      if (response.success && response.user) {
+        this.setUser(response.user);
+        return response.user;
+      }
+    } catch (error) {
+      // 서버 인증 실패 시 localStorage 클리어
+      this.setUser(null);
+    }
+    return null;
   },
 
   updateUI() {
