@@ -197,9 +197,11 @@ const API = {
         userLevel = userData?.spicy_level || 0;
       }
 
+      // 승인된 리뷰가 1개 이상 있는 맛집만 조회
       const { data: restaurants, error } = await sb
         .from('restaurants')
         .select('*')
+        .gt('review_count', 0)
         .order('review_count', { ascending: false });
 
       if (error) throw error;
