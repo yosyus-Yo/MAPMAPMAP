@@ -25,7 +25,10 @@ const API = {
 
       return result;
     } catch (error) {
-      console.error('API Error:', error);
+      // 401 에러는 정상적인 로그인 체크이므로 콘솔에 출력하지 않음
+      if (!error.message.includes('로그인이 필요합니다')) {
+        console.error('API Error:', error);
+      }
       throw error;
     }
   },
