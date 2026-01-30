@@ -1,144 +1,803 @@
-// MapMapMap API Client
+// MapMapMap - Supabase Direct Client (No Backend Required)
+// Supabase SDK는 index.html에서 로드됨
+
+// Supabase 클라이언트 초기화 (환경변수 대신 직접 설정)
+// 주의: ANON KEY는 공개되어도 안전 (RLS로 보호됨)
+const SUPABASE_URL = 'https://yzwjsyzdspuvrjsdhank.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6d2pzeXpkc3B1dnJqc2RoYW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0NzEwNjcsImV4cCI6MjA1MTA0NzA2N30.v0TPC2Jj7VxsluZPZoTMYrfHabWNGn0hy2hRH9Ki7Hk';
+
+let supabase;
+
+// Supabase 초기화 (SDK 로드 후 호출)
+function initSupabase() {
+  if (window.supabase && !supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase initialized');
+  }
+  return supabase;
+}
+
+// API 객체 - Supabase 직접 연동
 const API = {
-  baseURL: '/api',
-
-  async request(method, path, data = null) {
-    const options = {
-      method,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include'
-    };
-
-    if (data && method !== 'GET') {
-      options.body = JSON.stringify(data);
-    }
-
-    try {
-      const response = await fetch(`${this.baseURL}${path}`, options);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'API request failed');
-      }
-
-      return result;
-    } catch (error) {
-      // 401 에러는 정상적인 로그인 체크이므로 콘솔에 출력하지 않음
-      if (!error.message.includes('로그인이 필요합니다')) {
-        console.error('API Error:', error);
-      }
-      throw error;
-    }
-  },
-
   // Auth APIs
   auth: {
     async signup(email, password, nickname, spicy_level = 0) {
-      return API.request('POST', '/auth/signup', { email, password, nickname, spicy_level });
+      const sb = initSupabase();
+
+      // 1. Supabase Auth 회원가입
+      const { data: authData, error: authError } = await sb.auth.signUp({
+        email,
+        password,
+        options: { data: { nickname } }
+      });
+
+      if (authError) {
+        if (authError.message.includes('already registered')) {
+          throw new Error('이미 등록된 이메일입니다');
+        }
+        throw new Error(authError.message);
+      }
+
+      if (!authData.user) {
+        throw new Error('회원가입에 실패했습니다');
+      }
+
+      // 2. users 테이블에 추가 정보 저장
+      const { data: user, error: dbError } = await sb
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          email,
+          nickname,
+          spicy_level: spicy_level ?? 0,
+          points: 0,
+          is_admin: false,
+          is_beta_tester: false
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('DB insert error:', dbError);
+        throw new Error('사용자 정보 저장에 실패했습니다');
+      }
+
+      return {
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          nickname: user.nickname,
+          spicy_level: user.spicy_level,
+          points: user.points,
+          is_admin: user.is_admin,
+          is_beta_tester: user.is_beta_tester
+        }
+      };
     },
 
     async login(email, password) {
-      return API.request('POST', '/auth/login', { email, password });
+      const sb = initSupabase();
+
+      const { data: authData, error: authError } = await sb.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (authError) {
+        throw new Error('이메일 또는 비밀번호가 올바르지 않습니다');
+      }
+
+      // users 테이블에서 추가 정보 조회
+      let { data: user } = await sb
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+
+      // users 테이블에 없으면 자동 생성
+      if (!user) {
+        const { data: newUser } = await sb
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: authData.user.email,
+            nickname: authData.user.user_metadata?.nickname || email.split('@')[0],
+            spicy_level: 0,
+            points: 0,
+            is_admin: false,
+            is_beta_tester: false
+          })
+          .select()
+          .single();
+        user = newUser;
+      }
+
+      return {
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          nickname: user.nickname,
+          spicy_level: user.spicy_level,
+          points: user.points,
+          is_admin: user.is_admin,
+          is_beta_tester: user.is_beta_tester
+        }
+      };
     },
 
     async logout() {
-      return API.request('POST', '/auth/logout');
+      const sb = initSupabase();
+      await sb.auth.signOut();
+      return { success: true };
     },
 
     async me() {
-      return API.request('GET', '/auth/me');
+      const sb = initSupabase();
+
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      const { data: user, error } = await sb
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      if (error || !user) {
+        throw new Error('사용자를 찾을 수 없습니다');
+      }
+
+      return {
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          nickname: user.nickname,
+          spicy_level: user.spicy_level,
+          points: user.points,
+          is_admin: user.is_admin,
+          is_beta_tester: user.is_beta_tester
+        }
+      };
     },
 
     async setSpicyLevel(spicy_level) {
-      return API.request('PUT', '/auth/spicy-level', { spicy_level });
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      await sb.from('users').update({ spicy_level }).eq('id', authUser.id);
+      return { success: true, spicy_level };
     }
   },
 
   // Restaurant APIs
   restaurants: {
     async list() {
-      return API.request('GET', '/restaurants');
+      const sb = initSupabase();
+
+      let userLevel = 0;
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (authUser) {
+        const { data: userData } = await sb
+          .from('users')
+          .select('spicy_level')
+          .eq('id', authUser.id)
+          .single();
+        userLevel = userData?.spicy_level || 0;
+      }
+
+      const { data: restaurants, error } = await sb
+        .from('restaurants')
+        .select('*')
+        .order('review_count', { ascending: false });
+
+      if (error) throw error;
+
+      const getMarkerStatus = (restaurantLevel, userLevel) => {
+        if (restaurantLevel <= userLevel) return 'safe';
+        if (restaurantLevel <= userLevel + 1) return 'warning';
+        return 'danger';
+      };
+
+      const withStatus = restaurants.map(r => ({
+        ...r,
+        marker_status: getMarkerStatus(r.avg_level, userLevel)
+      }));
+
+      return { success: true, restaurants: withStatus };
     },
 
     async get(id) {
-      return API.request('GET', `/restaurants/${id}`);
+      const sb = initSupabase();
+
+      // 병렬로 맛집과 리뷰 조회
+      const [restaurantResult, reviewsResult] = await Promise.all([
+        sb.from('restaurants').select('*').eq('id', id).single(),
+        sb.from('reviews')
+          .select('*, users (nickname, spicy_level)')
+          .eq('restaurant_id', id)
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+      ]);
+
+      if (restaurantResult.error || !restaurantResult.data) {
+        throw new Error('가게를 찾을 수 없습니다');
+      }
+
+      const transformedReviews = (reviewsResult.data || []).map(r => ({
+        ...r,
+        user_nickname: r.users?.nickname,
+        user_level: r.users?.spicy_level,
+        users: undefined
+      }));
+
+      const levelStats = {};
+      transformedReviews.forEach(r => {
+        const level = r.user_level;
+        if (!levelStats[level]) levelStats[level] = { count: 0, total: 0 };
+        levelStats[level].count++;
+        levelStats[level].total += r.spicy_level;
+      });
+
+      const levelAverages = {};
+      for (const level in levelStats) {
+        levelAverages[level] = (levelStats[level].total / levelStats[level].count).toFixed(1);
+      }
+
+      return {
+        success: true,
+        restaurant: restaurantResult.data,
+        reviews: transformedReviews,
+        level_stats: levelAverages
+      };
     },
 
     async create(data) {
-      return API.request('POST', '/restaurants', data);
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      const { name, address, lat, lng, phone, category } = data;
+
+      // 이미 존재하는지 확인
+      const { data: existing } = await sb
+        .from('restaurants')
+        .select('*')
+        .eq('name', name)
+        .eq('lat', lat)
+        .eq('lng', lng)
+        .single();
+
+      if (existing) {
+        return { success: true, restaurant: existing, existed: true };
+      }
+
+      const { data: restaurant, error } = await sb
+        .from('restaurants')
+        .insert({ name, address, lat, lng, phone: phone || null, category: category || null })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return { success: true, restaurant, existed: false };
     }
   },
 
   // Review APIs
   reviews: {
     async create(formData) {
-      // FormData for file upload - different handling
-      const response = await fetch(`${API.baseURL}/reviews`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData // No Content-Type header for FormData
-      });
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Review creation failed');
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
       }
 
-      return result;
+      const restaurant_id = formData.get('restaurant_id');
+      const restaurant_name = formData.get('restaurant_name');
+      const restaurant_address = formData.get('restaurant_address');
+      const restaurant_lat = formData.get('restaurant_lat');
+      const restaurant_lng = formData.get('restaurant_lng');
+      const menu_name = formData.get('menu_name');
+      const spicy_level = formData.get('spicy_level');
+      const comment = formData.get('comment');
+      const food_images = formData.getAll('food_images');
+      const receipt_image = formData.get('receipt_image');
+
+      if (!menu_name || spicy_level === null) {
+        throw new Error('메뉴명과 맵기 레벨은 필수입니다');
+      }
+
+      if (!receipt_image || !receipt_image.size) {
+        throw new Error('영수증 사진은 필수입니다');
+      }
+
+      if (!food_images || food_images.length === 0 || !food_images[0].size) {
+        throw new Error('음식 사진은 필수입니다 (최소 1장)');
+      }
+
+      let finalRestaurantId = restaurant_id;
+
+      // 새 맛집이면 생성
+      if (!restaurant_id && restaurant_name) {
+        const { data: existing } = await sb
+          .from('restaurants')
+          .select('id')
+          .eq('name', restaurant_name)
+          .eq('lat', parseFloat(restaurant_lat))
+          .eq('lng', parseFloat(restaurant_lng))
+          .single();
+
+        if (existing) {
+          finalRestaurantId = existing.id;
+        } else {
+          const { data: newRestaurant } = await sb
+            .from('restaurants')
+            .insert({
+              name: restaurant_name,
+              address: restaurant_address,
+              lat: parseFloat(restaurant_lat),
+              lng: parseFloat(restaurant_lng)
+            })
+            .select()
+            .single();
+          finalRestaurantId = newRestaurant.id;
+        }
+      }
+
+      if (!finalRestaurantId) {
+        throw new Error('가게 정보가 필요합니다');
+      }
+
+      // 이미지 업로드
+      const foodImageUrls = [];
+      for (const file of food_images) {
+        if (!file.size) continue;
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const filename = `${crypto.randomUUID()}.${ext}`;
+
+        const { error: uploadError } = await sb.storage
+          .from('food-images')
+          .upload(filename, file);
+
+        if (!uploadError) {
+          const { data: urlData } = sb.storage.from('food-images').getPublicUrl(filename);
+          foodImageUrls.push(urlData.publicUrl);
+        }
+      }
+
+      // 영수증 이미지 업로드
+      const receiptExt = receipt_image.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const receiptFilename = `${crypto.randomUUID()}.${receiptExt}`;
+
+      await sb.storage
+        .from('receipt-images')
+        .upload(receiptFilename, receipt_image);
+
+      const { data: receiptUrlData } = sb.storage.from('receipt-images').getPublicUrl(receiptFilename);
+
+      // 리뷰 저장
+      const { data: review, error: reviewError } = await sb
+        .from('reviews')
+        .insert({
+          user_id: authUser.id,
+          restaurant_id: finalRestaurantId,
+          menu_name,
+          spicy_level: parseInt(spicy_level),
+          food_image_url: JSON.stringify(foodImageUrls),
+          receipt_image_url: receiptUrlData.publicUrl,
+          comment: comment || null,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (reviewError) throw reviewError;
+
+      return {
+        success: true,
+        review: { id: review.id, status: 'pending' },
+        message: '제보가 접수되었습니다. 검수 후 포인트가 적립됩니다.'
+      };
     },
 
     async myList() {
-      return API.request('GET', '/reviews/my');
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      const { data: reviews, error } = await sb
+        .from('reviews')
+        .select('*, restaurants (name)')
+        .eq('user_id', authUser.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformed = reviews.map(r => ({
+        ...r,
+        restaurant_name: r.restaurants?.name,
+        restaurants: undefined
+      }));
+
+      return { success: true, reviews: transformed };
     },
 
     async delete(id) {
-      return API.request('DELETE', `/reviews/${id}`);
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      const { data: review } = await sb
+        .from('reviews')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!review) {
+        throw new Error('리뷰를 찾을 수 없습니다');
+      }
+
+      if (review.user_id !== authUser.id) {
+        throw new Error('본인의 리뷰만 삭제할 수 있습니다');
+      }
+
+      await sb.from('reviews').delete().eq('id', id);
+
+      // 맛집 통계 재계산
+      if (review.status === 'approved') {
+        const { data: reviewStats } = await sb
+          .from('reviews')
+          .select('spicy_level')
+          .eq('restaurant_id', review.restaurant_id)
+          .eq('status', 'approved');
+
+        if (reviewStats && reviewStats.length > 0) {
+          const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+          await sb
+            .from('restaurants')
+            .update({ avg_level: avgLevel, review_count: reviewStats.length })
+            .eq('id', review.restaurant_id);
+        } else {
+          await sb
+            .from('restaurants')
+            .update({ avg_level: 0, review_count: 0 })
+            .eq('id', review.restaurant_id);
+        }
+      }
+
+      return { success: true, message: '리뷰가 삭제되었습니다' };
     }
   },
 
   // Admin APIs
   admin: {
     async getReviews(status = '') {
-      const query = status ? `?status=${status}` : '';
-      return API.request('GET', `/admin/reviews${query}`);
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      // 관리자 권한 확인
+      const { data: userData } = await sb
+        .from('users')
+        .select('is_admin')
+        .eq('id', authUser.id)
+        .single();
+
+      if (!userData?.is_admin) {
+        throw new Error('관리자 권한이 필요합니다');
+      }
+
+      let query = sb
+        .from('reviews')
+        .select('*, users (nickname, email, is_beta_tester), restaurants (name, address)')
+        .order('created_at', { ascending: false });
+
+      if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+        query = query.eq('status', status);
+      }
+
+      const { data: reviews, error } = await query;
+      if (error) throw error;
+
+      const transformed = reviews.map(r => ({
+        ...r,
+        user_nickname: r.users?.nickname,
+        user_email: r.users?.email,
+        is_beta_tester: r.users?.is_beta_tester,
+        restaurant_name: r.restaurants?.name,
+        restaurant_address: r.restaurants?.address,
+        users: undefined,
+        restaurants: undefined
+      }));
+
+      // 병렬로 통계 조회
+      const [pending, approved, rejected] = await Promise.all([
+        sb.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        sb.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        sb.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'rejected')
+      ]);
+
+      return {
+        success: true,
+        reviews: transformed,
+        stats: {
+          pending: pending.count || 0,
+          approved: approved.count || 0,
+          rejected: rejected.count || 0
+        }
+      };
     },
 
     async getStats() {
-      return API.request('GET', '/admin/stats');
+      const sb = initSupabase();
+
+      const [users, betaTesters, restaurants, pending, approved, rejected] = await Promise.all([
+        sb.from('users').select('*', { count: 'exact', head: true }),
+        sb.from('users').select('*', { count: 'exact', head: true }).eq('is_beta_tester', true),
+        sb.from('restaurants').select('*', { count: 'exact', head: true }),
+        sb.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        sb.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        sb.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'rejected')
+      ]);
+
+      return {
+        success: true,
+        stats: {
+          users: users.count || 0,
+          betaTesters: betaTesters.count || 0,
+          restaurants: restaurants.count || 0,
+          reviews: {
+            pending: pending.count || 0,
+            approved: approved.count || 0,
+            rejected: rejected.count || 0
+          }
+        }
+      };
     },
 
     async approve(id) {
-      return API.request('PUT', `/admin/reviews/${id}/approve`);
+      const sb = initSupabase();
+
+      const { data: review } = await sb
+        .from('reviews')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!review) {
+        throw new Error('리뷰를 찾을 수 없습니다');
+      }
+
+      if (review.status !== 'pending') {
+        throw new Error('이미 처리된 리뷰입니다');
+      }
+
+      const POINTS = 500;
+
+      // 리뷰 승인
+      await sb
+        .from('reviews')
+        .update({ status: 'approved', points_given: POINTS })
+        .eq('id', id);
+
+      // 포인트 지급
+      const { data: user } = await sb
+        .from('users')
+        .select('points')
+        .eq('id', review.user_id)
+        .single();
+
+      await sb
+        .from('users')
+        .update({ points: (user?.points || 0) + POINTS })
+        .eq('id', review.user_id);
+
+      // 맛집 평균 재계산
+      const { data: reviewStats } = await sb
+        .from('reviews')
+        .select('spicy_level')
+        .eq('restaurant_id', review.restaurant_id)
+        .eq('status', 'approved');
+
+      if (reviewStats && reviewStats.length > 0) {
+        const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+        await sb
+          .from('restaurants')
+          .update({ avg_level: avgLevel, review_count: reviewStats.length })
+          .eq('id', review.restaurant_id);
+      }
+
+      return { success: true, message: `승인 완료. 사용자에게 ${POINTS}P 적립` };
     },
 
     async reject(id, reason) {
-      return API.request('PUT', `/admin/reviews/${id}/reject`, { reason });
+      const sb = initSupabase();
+
+      if (!reason) {
+        throw new Error('반려 사유를 입력하세요');
+      }
+
+      const { data: review } = await sb
+        .from('reviews')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!review) {
+        throw new Error('리뷰를 찾을 수 없습니다');
+      }
+
+      if (review.status !== 'pending') {
+        throw new Error('이미 처리된 리뷰입니다');
+      }
+
+      await sb
+        .from('reviews')
+        .update({ status: 'rejected', reject_reason: reason })
+        .eq('id', id);
+
+      return { success: true, message: '반려 완료' };
     },
 
     async deleteReview(id) {
-      return API.request('DELETE', `/admin/reviews/${id}`);
+      const sb = initSupabase();
+
+      const { data: review } = await sb
+        .from('reviews')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!review) {
+        throw new Error('리뷰를 찾을 수 없습니다');
+      }
+
+      await sb.from('reviews').delete().eq('id', id);
+
+      // 맛집 통계 재계산
+      if (review.status === 'approved') {
+        const { data: reviewStats } = await sb
+          .from('reviews')
+          .select('spicy_level')
+          .eq('restaurant_id', review.restaurant_id)
+          .eq('status', 'approved');
+
+        if (reviewStats && reviewStats.length > 0) {
+          const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+          await sb
+            .from('restaurants')
+            .update({ avg_level: avgLevel, review_count: reviewStats.length })
+            .eq('id', review.restaurant_id);
+        } else {
+          await sb
+            .from('restaurants')
+            .update({ avg_level: 0, review_count: 0 })
+            .eq('id', review.restaurant_id);
+        }
+      }
+
+      return { success: true, message: '리뷰가 삭제되었습니다' };
     }
   },
 
-  // Favorites (찜하기) APIs
+  // Favorites APIs
   favorites: {
     async list() {
-      return API.request('GET', '/favorites');
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      const { data: favorites, error } = await sb
+        .from('favorites')
+        .select('id, created_at, restaurants (id, name, address, lat, lng, category, avg_level, review_count)')
+        .eq('user_id', authUser.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformed = favorites.map(f => ({
+        id: f.id,
+        created_at: f.created_at,
+        restaurant_id: f.restaurants?.id,
+        name: f.restaurants?.name,
+        address: f.restaurants?.address,
+        lat: f.restaurants?.lat,
+        lng: f.restaurants?.lng,
+        category: f.restaurants?.category,
+        avg_level: f.restaurants?.avg_level,
+        review_count: f.restaurants?.review_count
+      }));
+
+      return { success: true, favorites: transformed };
     },
 
     async check(restaurantId) {
-      return API.request('GET', `/favorites/check/${restaurantId}`);
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (!authUser) {
+        return { success: true, isFavorite: false };
+      }
+
+      const { data } = await sb
+        .from('favorites')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .eq('restaurant_id', restaurantId)
+        .single();
+
+      return { success: true, isFavorite: !!data };
     },
 
     async add(restaurantId) {
-      return API.request('POST', `/favorites/${restaurantId}`);
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      const { data: existing } = await sb
+        .from('favorites')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .eq('restaurant_id', restaurantId)
+        .single();
+
+      if (existing) {
+        throw new Error('이미 찜한 맛집입니다');
+      }
+
+      await sb.from('favorites').insert({
+        user_id: authUser.id,
+        restaurant_id: restaurantId
+      });
+
+      return { success: true, message: '찜 목록에 추가되었습니다' };
     },
 
     async remove(restaurantId) {
-      return API.request('DELETE', `/favorites/${restaurantId}`);
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      await sb
+        .from('favorites')
+        .delete()
+        .eq('user_id', authUser.id)
+        .eq('restaurant_id', restaurantId);
+
+      return { success: true, message: '찜 목록에서 제거되었습니다' };
     }
   }
 };
@@ -148,13 +807,10 @@ const AppState = {
   user: null,
   restaurants: [],
   isLoading: false,
-
-  // localStorage 키
   STORAGE_KEY: 'mapmap_user',
 
   setUser(user) {
     this.user = user;
-    // localStorage에 저장
     if (user) {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user));
     } else {
@@ -163,7 +819,6 @@ const AppState = {
     this.updateUI();
   },
 
-  // localStorage에서 사용자 정보 로드
   loadUser() {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -177,27 +832,23 @@ const AppState = {
     return null;
   },
 
-  // 서버와 동기화 (localStorage 데이터 검증)
   async syncWithServer() {
     const storedUser = this.loadUser();
     if (!storedUser) return null;
 
     try {
-      // 서버에서 최신 정보 가져오기
       const response = await API.auth.me();
       if (response.success && response.user) {
         this.setUser(response.user);
         return response.user;
       }
     } catch (error) {
-      // 서버 인증 실패 시 localStorage 클리어
       this.setUser(null);
     }
     return null;
   },
 
   updateUI() {
-    // Update header user info
     const headerUserInfo = document.getElementById('header-user-info');
     const headerNickname = document.getElementById('header-nickname');
     const headerLevel = document.getElementById('header-level');
@@ -212,7 +863,6 @@ const AppState = {
         headerLevel.className = `user-level-badge level-${this.user.spicy_level}`;
       }
       if (authButtons) authButtons.style.display = 'none';
-      // 관리자 버튼 표시/숨김
       if (adminBtn) {
         adminBtn.style.display = this.user.is_admin ? 'inline-block' : 'none';
       }
@@ -250,3 +900,8 @@ function showToast(message, type = 'info') {
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
+
+// Supabase SDK 로드 대기
+document.addEventListener('DOMContentLoaded', () => {
+  initSupabase();
+});
