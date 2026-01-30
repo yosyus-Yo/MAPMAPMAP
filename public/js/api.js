@@ -3,8 +3,8 @@
 
 // Supabase 클라이언트 초기화 (환경변수 대신 직접 설정)
 // 주의: ANON KEY는 공개되어도 안전 (RLS로 보호됨)
-const SUPABASE_URL = 'https://yzwjsyzdspuvrjsdhank.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6d2pzeXpkc3B1dnJqc2RoYW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0NzEwNjcsImV4cCI6MjA1MTA0NzA2N30.v0TPC2Jj7VxsluZPZoTMYrfHabWNGn0hy2hRH9Ki7Hk';
+const SUPABASE_URL = 'https://xwnqpsnagdcleseqifqv.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_plHB6vw9K1bbWpr6xtkFXA_heBnWR4U';
 
 // supabaseClient로 이름 변경 (SDK 전역변수와 충돌 방지)
 let supabaseClient = null;
