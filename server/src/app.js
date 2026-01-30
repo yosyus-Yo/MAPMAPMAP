@@ -1,7 +1,6 @@
 // MapMapMap MVP - Express Application
 const express = require('express');
 const cors = require('cors');
-const session = require('express-session');
 const path = require('path');
 
 const app = express();
@@ -24,36 +23,43 @@ if (!isServerless) {
   app.use(express.static(path.join(__dirname, '../../public')));
 }
 
-// 이미지는 Supabase Storage에서 제공 (로컬 uploads 폴더 불필요)
-
 // Session configuration
-const sessionConfig = {
-  secret: process.env.SESSION_SECRET || 'mapmap-secret-key-2025',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
+if (isServerless) {
+  // Vercel: cookie-session 사용 (세션 데이터를 쿠키에 저장)
+  const cookieSession = require('cookie-session');
+  app.use(cookieSession({
+    name: 'session',
+    keys: [process.env.SESSION_SECRET || 'mapmap-secret-key-2025'],
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    secure: true,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
-};
-
-// 로컬 개발 환경에서만 FileStore 사용
-if (!isServerless) {
+    sameSite: 'none'
+  }));
+} else {
+  // 로컬: express-session + FileStore 사용
+  const session = require('express-session');
   const FileStore = require('session-file-store')(session);
   const fs = require('fs');
   const sessionsPath = path.join(__dirname, '../sessions');
   if (!fs.existsSync(sessionsPath)) {
     fs.mkdirSync(sessionsPath, { recursive: true });
   }
-  sessionConfig.store = new FileStore({
-    path: sessionsPath,
-    ttl: 86400
-  });
+  app.use(session({
+    store: new FileStore({
+      path: sessionsPath,
+      ttl: 86400
+    }),
+    secret: process.env.SESSION_SECRET || 'mapmap-secret-key-2025',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax'
+    }
+  }));
 }
-
-app.use(session(sessionConfig));
 
 // Request logging (development)
 if (process.env.NODE_ENV !== 'production') {
@@ -63,7 +69,7 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// API Routes (will be added in Phase 2-4)
+// API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/restaurants', require('./routes/restaurants'));
 app.use('/api/reviews', require('./routes/reviews'));
@@ -94,7 +100,7 @@ app.use('/api/*', (req, res) => {
   });
 });
 
-// SPA fallback - serve index.html for all other routes (로컬 개발용)
+// SPA fallback (로컬 개발용)
 if (!isServerless) {
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../../public/index.html'));
@@ -105,7 +111,6 @@ if (!isServerless) {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
 
-  // Multer errors
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({
       success: false,
