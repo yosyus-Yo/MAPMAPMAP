@@ -3632,16 +3632,12 @@
       }
 
       try {
-        // 회원가입
-        const result = await API.auth.signup(email, password, nickname);
+        // 회원가입 (spicy_level 포함)
+        const result = await API.auth.signup(email, password, nickname, onboardingSelectedLevel);
         currentUser = result.user;
 
-        // 맵레벨 설정
-        await API.auth.setSpicyLevel(onboardingSelectedLevel);
-        currentUser.spicy_level = onboardingSelectedLevel;
-
         AppState.setUser(currentUser);
-        showToast(`환영합니다, ${currentUser.nickname}님! Lv.${onboardingSelectedLevel} 맵부심으로 설정되었습니다!`, 'success');
+        showToast(`환영합니다, ${currentUser.nickname}님! Lv.${currentUser.spicy_level} 맵부심으로 설정되었습니다!`, 'success');
         showMain();
       } catch (error) {
         errorEl.textContent = error.message || '회원가입에 실패했습니다';

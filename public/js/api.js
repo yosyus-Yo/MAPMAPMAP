@@ -32,8 +32,8 @@ const API = {
 
   // Auth APIs
   auth: {
-    async signup(email, password, nickname) {
-      return API.request('POST', '/auth/signup', { email, password, nickname });
+    async signup(email, password, nickname, spicy_level = 0) {
+      return API.request('POST', '/auth/signup', { email, password, nickname, spicy_level });
     },
 
     async login(email, password) {
