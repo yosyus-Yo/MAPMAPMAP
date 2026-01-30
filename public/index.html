@@ -4548,7 +4548,7 @@
           return false;
         }
 
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
           const script = document.createElement('script');
           script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${config.kakaoMapKey}&libraries=services&autoload=false`;
           script.onload = () => {
@@ -4557,7 +4557,10 @@
               resolve(true);
             });
           };
-          script.onerror = () => reject(new Error('카카오맵 SDK 로드 실패'));
+          script.onerror = () => {
+            console.error('카카오맵 SDK 로드 실패');
+            resolve(false); // reject 대신 resolve(false)로 처리
+          };
           document.head.appendChild(script);
         });
       } catch (error) {
@@ -4568,8 +4571,12 @@
 
     // ========== 초기화 ==========
     document.addEventListener('DOMContentLoaded', async () => {
-      // 카카오맵 SDK 먼저 로드
-      await loadKakaoMapSDK();
+      // 카카오맵 SDK 로드 (실패해도 앱은 계속 실행)
+      try {
+        await loadKakaoMapSDK();
+      } catch (e) {
+        console.error('카카오맵 로드 중 오류:', e);
+      }
 
       // 세션 체크
       try {
