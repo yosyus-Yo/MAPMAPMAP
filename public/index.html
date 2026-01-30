@@ -2650,14 +2650,17 @@
             </div>
           </div>
           <div class="image-upload-row">
-            <div class="image-upload-box">
-              <label>📷 음식 사진 (필수)</label>
-              <div class="image-upload-area" id="report-food-area"
-                onclick="document.getElementById('report-food-image').click()">
-                <span class="upload-icon">🍜</span>
-                <span class="upload-text">클릭하여 업로드</span>
-                <input type="file" id="report-food-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
-                  onchange="handleImageUpload(this, 'report-food-area')">
+            <div class="image-upload-box" style="flex: 2;">
+              <label>📷 음식 사진 (필수, 최대 5장)</label>
+              <div class="multi-image-upload-container">
+                <div id="report-food-images-preview" class="multi-image-preview"></div>
+                <div class="image-upload-area small" id="report-food-area"
+                  onclick="document.getElementById('report-food-images').click()">
+                  <span class="upload-icon">+</span>
+                  <span class="upload-text">추가</span>
+                  <input type="file" id="report-food-images" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" multiple
+                    onchange="handleReportMultiImageUpload(this, 'report-food-images-preview', 5)">
+                </div>
               </div>
             </div>
             <div class="image-upload-box">
@@ -2951,10 +2954,17 @@
         btn.classList.remove('selected');
       });
 
+      // 다중 이미지 업로드 배열 초기화
+      uploadedReportFoodImages = [];
+
       // 이미지 업로드 영역 초기화
       const foodArea = document.getElementById('report-food-area');
-      foodArea.innerHTML = '<span class="upload-icon">🍜</span><span class="upload-text">클릭하여 업로드</span><input type="file" id="report-food-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" onchange="handleImageUpload(this, \'report-food-area\')">';
-      foodArea.classList.remove('has-image');
+      foodArea.innerHTML = '<span class="upload-icon">+</span><span class="upload-text">추가</span><input type="file" id="report-food-images" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" multiple onchange="handleReportMultiImageUpload(this, \'report-food-images-preview\', 5)">';
+      foodArea.style.display = 'flex';
+
+      // 이미지 프리뷰 영역 초기화
+      const foodPreview = document.getElementById('report-food-images-preview');
+      if (foodPreview) foodPreview.innerHTML = '';
 
       const receiptArea = document.getElementById('report-receipt-area');
       receiptArea.innerHTML = '<span class="upload-icon">🧾</span><span class="upload-text">클릭하여 업로드</span><input type="file" id="report-receipt-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" onchange="handleImageUpload(this, \'report-receipt-area\')">';
@@ -3269,7 +3279,6 @@
       const menu = document.getElementById('report-menu').value.trim();
       const level = selectedLevels.report;
       const comment = document.getElementById('report-comment').value.trim();
-      const foodImage = document.getElementById('report-food-image').files[0];
       const receiptImage = document.getElementById('report-receipt-image').files[0];
       const errorEl = document.getElementById('report-error');
 
@@ -3279,10 +3288,11 @@
       if (!lat || !lng) { errorEl.textContent = '지도에서 위치를 선택해주세요'; return; }
       if (!menu) { errorEl.textContent = '메뉴를 입력해주세요'; return; }
       if (level === undefined) { errorEl.textContent = '맵기 레벨을 선택해주세요'; return; }
-      if (!foodImage) { errorEl.textContent = '음식 사진을 첨부해주세요'; return; }
+      if (uploadedReportFoodImages.length === 0) { errorEl.textContent = '음식 사진을 1장 이상 첨부해주세요'; return; }
       if (!receiptImage) { errorEl.textContent = '영수증 사진을 첨부해주세요'; return; }
 
       errorEl.textContent = '';
+      showLoading('제보 등록 중...');
 
       try {
         // 1. 맛집 등록
@@ -3300,7 +3310,12 @@
         formData.append('menu_name', menu);
         formData.append('spicy_level', level);
         formData.append('comment', comment);
-        formData.append('food_image', foodImage);
+
+        // 다중 음식 이미지
+        uploadedReportFoodImages.forEach((file) => {
+          formData.append('food_images', file);
+        });
+
         formData.append('receipt_image', receiptImage);
 
         await API.reviews.create(formData);
@@ -3312,6 +3327,8 @@
         await loadRestaurants();
       } catch (error) {
         errorEl.textContent = error.message || '제보 처리에 실패했습니다';
+      } finally {
+        hideLoading();
       }
     }
 
@@ -4478,7 +4495,95 @@
     }
 
     // 다중 이미지 업로드 핸들러
-    let uploadedFoodImages = []; // 업로드된 음식 이미지 파일 배열
+    let uploadedFoodImages = []; // 업로드된 음식 이미지 파일 배열 (리뷰 모달용)
+    let uploadedReportFoodImages = []; // 업로드된 음식 이미지 파일 배열 (제보 모달용)
+
+    // 제보하기 다중 이미지 업로드 핸들러
+    async function handleReportMultiImageUpload(input, previewId, maxCount) {
+      const previewContainer = document.getElementById(previewId);
+      let files = Array.from(input.files);
+
+      // 최대 개수 체크
+      const currentCount = uploadedReportFoodImages.length;
+      const remainingSlots = maxCount - currentCount;
+
+      if (files.length > remainingSlots) {
+        showToast(`최대 ${maxCount}장까지 업로드 가능합니다`, 'error');
+        files = files.slice(0, remainingSlots);
+      }
+
+      for (const file of files) {
+        // HEIC 변환
+        const processedFile = await convertHeicIfNeeded(file);
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'multi-image-item';
+          itemDiv.dataset.index = uploadedReportFoodImages.length;
+
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          itemDiv.appendChild(img);
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'multi-image-remove';
+          removeBtn.textContent = '×';
+          removeBtn.onclick = (e) => {
+            e.stopPropagation();
+            removeReportUploadedImage(parseInt(itemDiv.dataset.index), previewId);
+          };
+          itemDiv.appendChild(removeBtn);
+          previewContainer.appendChild(itemDiv);
+
+          uploadedReportFoodImages.push(processedFile);
+
+          // 최대 개수 도달 시 업로드 버튼 숨기기
+          if (uploadedReportFoodImages.length >= maxCount) {
+            document.getElementById('report-food-area').style.display = 'none';
+          }
+        };
+        reader.readAsDataURL(processedFile);
+      }
+
+      // input 초기화 (같은 파일 다시 선택 가능하게)
+      input.value = '';
+    }
+
+    function removeReportUploadedImage(index, previewId) {
+      uploadedReportFoodImages.splice(index, 1);
+
+      // 프리뷰 다시 렌더링
+      const previewContainer = document.getElementById(previewId);
+      previewContainer.innerHTML = '';
+
+      uploadedReportFoodImages.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'multi-image-item';
+          itemDiv.dataset.index = idx;
+
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          itemDiv.appendChild(img);
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'multi-image-remove';
+          removeBtn.textContent = '×';
+          removeBtn.onclick = (ev) => {
+            ev.stopPropagation();
+            removeReportUploadedImage(idx, previewId);
+          };
+          itemDiv.appendChild(removeBtn);
+          previewContainer.appendChild(itemDiv);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // 업로드 버튼 다시 표시
+      document.getElementById('report-food-area').style.display = 'flex';
+    }
 
     async function handleMultiImageUpload(input, previewId, maxCount) {
       const previewContainer = document.getElementById(previewId);
