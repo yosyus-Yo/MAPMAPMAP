@@ -4633,35 +4633,25 @@
     }
 
     // ========== 카카오맵 SDK 동적 로드 ==========
+    // 카카오맵 API 키 (도메인 제한으로 보호됨)
+    const KAKAO_MAP_KEY = '80397851cbdcec5a798a9cd405203780';
+
     async function loadKakaoMapSDK() {
-      try {
-        const response = await fetch('/api/config');
-        const config = await response.json();
-
-        if (!config.kakaoMapKey) {
-          console.error('카카오맵 API 키가 설정되지 않았습니다.');
-          return false;
-        }
-
-        return new Promise((resolve) => {
-          const script = document.createElement('script');
-          script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${config.kakaoMapKey}&libraries=services&autoload=false`;
-          script.onload = () => {
-            kakao.maps.load(() => {
-              console.log('카카오맵 SDK 로드 완료');
-              resolve(true);
-            });
-          };
-          script.onerror = () => {
-            console.error('카카오맵 SDK 로드 실패');
-            resolve(false); // reject 대신 resolve(false)로 처리
-          };
-          document.head.appendChild(script);
-        });
-      } catch (error) {
-        console.error('카카오맵 설정 로드 실패:', error);
-        return false;
-      }
+      return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_KEY}&libraries=services&autoload=false`;
+        script.onload = () => {
+          kakao.maps.load(() => {
+            console.log('카카오맵 SDK 로드 완료');
+            resolve(true);
+          });
+        };
+        script.onerror = () => {
+          console.error('카카오맵 SDK 로드 실패');
+          resolve(false);
+        };
+        document.head.appendChild(script);
+      });
     }
 
     // ========== 초기화 ==========
