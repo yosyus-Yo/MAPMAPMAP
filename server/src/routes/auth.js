@@ -1,7 +1,6 @@
-// Auth Routes - Supabase Version
+// Auth Routes - Supabase Auth Version
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const bcrypt = require('bcryptjs');
 const { supabase } = require('../config/database');
 
 const router = express.Router();
@@ -18,7 +17,7 @@ const validate = (req, res, next) => {
   next();
 };
 
-// POST /api/auth/signup
+// POST /api/auth/signup - Supabase Auth 사용
 router.post('/signup',
   body('email').isEmail().withMessage('올바른 이메일을 입력하세요'),
   body('password').isLength({ min: 6 }).withMessage('비밀번호는 6자 이상이어야 합니다'),
@@ -26,33 +25,48 @@ router.post('/signup',
   validate,
   async (req, res) => {
     try {
-      const { email, password, nickname } = req.body;
+      const { email, password, nickname, spicy_level } = req.body;
 
-      // 이메일 중복 확인
-      const { data: existing } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single();
+      // Supabase Auth로 회원가입
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            nickname: nickname
+          }
+        }
+      });
 
-      if (existing) {
+      if (authError) {
+        console.error('Supabase Auth signup error:', authError);
+        if (authError.message.includes('already registered')) {
+          return res.status(400).json({
+            success: false,
+            error: '이미 등록된 이메일입니다'
+          });
+        }
         return res.status(400).json({
           success: false,
-          error: '이미 등록된 이메일입니다'
+          error: authError.message
         });
       }
 
-      // 비밀번호 해시
-      const password_hash = await bcrypt.hash(password, 10);
+      if (!authData.user) {
+        return res.status(400).json({
+          success: false,
+          error: '회원가입에 실패했습니다'
+        });
+      }
 
-      // 사용자 생성
-      const { data: user, error } = await supabase
+      // users 테이블에 추가 정보 저장
+      const { data: user, error: dbError } = await supabase
         .from('users')
         .insert({
+          id: authData.user.id,  // Supabase Auth user ID 사용
           email,
-          password_hash,
           nickname,
-          spicy_level: 0,
+          spicy_level: spicy_level ?? 0,
           points: 0,
           is_admin: false,
           is_beta_tester: false
@@ -60,7 +74,14 @@ router.post('/signup',
         .select()
         .single();
 
-      if (error) throw error;
+      if (dbError) {
+        console.error('DB insert error:', dbError);
+        // Auth는 성공했지만 DB 실패 시, 사용자에게 알림
+        return res.status(500).json({
+          success: false,
+          error: '사용자 정보 저장에 실패했습니다'
+        });
+      }
 
       // 세션 설정
       req.session.userId = user.id;
@@ -88,7 +109,7 @@ router.post('/signup',
   }
 );
 
-// POST /api/auth/login
+// POST /api/auth/login - Supabase Auth 사용
 router.post('/login',
   body('email').isEmail().withMessage('올바른 이메일을 입력하세요'),
   body('password').notEmpty().withMessage('비밀번호를 입력하세요'),
@@ -97,26 +118,66 @@ router.post('/login',
     try {
       const { email, password } = req.body;
 
-      // 사용자 찾기
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
+      // Supabase Auth로 로그인
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-      if (error || !user) {
+      if (authError) {
+        console.error('Supabase Auth login error:', authError);
         return res.status(401).json({
           success: false,
           error: '이메일 또는 비밀번호가 올바르지 않습니다'
         });
       }
 
-      // 비밀번호 확인
-      const valid = await bcrypt.compare(password, user.password_hash);
-      if (!valid) {
-        return res.status(401).json({
-          success: false,
-          error: '이메일 또는 비밀번호가 올바르지 않습니다'
+      // users 테이블에서 추가 정보 조회
+      const { data: user, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (dbError || !user) {
+        // Auth는 있지만 users 테이블에 없는 경우 (마이그레이션 케이스)
+        // 자동으로 users 테이블에 추가
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: authData.user.email,
+            nickname: authData.user.user_metadata?.nickname || email.split('@')[0],
+            spicy_level: 0,
+            points: 0,
+            is_admin: false,
+            is_beta_tester: false
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Auto-create user error:', insertError);
+          return res.status(500).json({
+            success: false,
+            error: '사용자 정보 조회에 실패했습니다'
+          });
+        }
+
+        req.session.userId = newUser.id;
+        req.session.isAdmin = newUser.is_admin;
+
+        return res.json({
+          success: true,
+          user: {
+            id: newUser.id,
+            email: newUser.email,
+            nickname: newUser.nickname,
+            spicy_level: newUser.spicy_level,
+            points: newUser.points,
+            is_admin: newUser.is_admin,
+            is_beta_tester: newUser.is_beta_tester
+          }
         });
       }
 
@@ -147,16 +208,28 @@ router.post('/login',
 );
 
 // POST /api/auth/logout
-router.post('/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) {
-      return res.status(500).json({
-        success: false,
-        error: '로그아웃 중 오류가 발생했습니다'
-      });
-    }
-    res.json({ success: true });
-  });
+router.post('/logout', async (req, res) => {
+  try {
+    // Supabase Auth 로그아웃
+    await supabase.auth.signOut();
+
+    // 세션 삭제
+    req.session.destroy(err => {
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          error: '로그아웃 중 오류가 발생했습니다'
+        });
+      }
+      res.json({ success: true });
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      error: '로그아웃 중 오류가 발생했습니다'
+    });
+  }
 });
 
 // GET /api/auth/me
