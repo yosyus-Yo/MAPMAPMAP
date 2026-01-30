@@ -79,6 +79,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// 프론트엔드 설정 (카카오맵 API 키 등)
+app.get('/api/config', (req, res) => {
+  res.json({
+    kakaoMapKey: process.env.KAKAO_MAP_KEY || ''
+  });
+});
+
 // 404 handler for API routes
 app.use('/api/*', (req, res) => {
   res.status(404).json({
