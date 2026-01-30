@@ -1917,6 +1917,59 @@
       object-fit: cover;
       border-radius: 8px;
       margin-bottom: 12px;
+      cursor: pointer;
+    }
+
+    .review-thumb {
+      cursor: pointer;
+    }
+
+    /* 이미지 전체보기 모달 */
+    .image-viewer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 10000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .image-viewer-overlay.active {
+      display: flex;
+    }
+
+    .image-viewer-content {
+      position: relative;
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .image-viewer-content img {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .image-viewer-close {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 32px;
+      cursor: pointer;
+      padding: 5px 10px;
+    }
+
+    .image-viewer-close:hover {
+      color: #ff6b6b;
     }
 
     .review-meta {
@@ -2570,10 +2623,43 @@
     </div>
   </div>
 
+  <!-- 이미지 전체보기 모달 -->
+  <div class="image-viewer-overlay" id="image-viewer-overlay" onclick="closeImageViewer(event)">
+    <div class="image-viewer-content">
+      <button class="image-viewer-close" onclick="closeImageViewer(event)">&times;</button>
+      <img id="image-viewer-img" src="" alt="전체보기">
+    </div>
+  </div>
+
   <!-- API Client -->
   <script src="/js/api.js"></script>
 
   <script>
+    // ========== 이미지 전체보기 ==========
+    function openImageViewer(imageUrl, event) {
+      if (event) {
+        event.stopPropagation();
+      }
+      document.getElementById('image-viewer-img').src = imageUrl;
+      document.getElementById('image-viewer-overlay').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageViewer(event) {
+      if (event && event.target.tagName === 'IMG') {
+        return; // 이미지 클릭 시 닫지 않음
+      }
+      document.getElementById('image-viewer-overlay').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // ESC 키로 닫기
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeImageViewer();
+      }
+    });
+
     // ========== 상태 ==========
     let restaurants = [];
     let currentUser = null;
@@ -3240,8 +3326,8 @@
             </div>
             <div class="admin-review-content">
               <div class="admin-review-images">
-                <img src="${review.food_image_url}" alt="음식 사진" onclick="window.open('${review.food_image_url}', '_blank')">
-                <img src="${review.receipt_image_url}" alt="영수증" onclick="window.open('${review.receipt_image_url}', '_blank')">
+                <img src="${review.food_image_url}" alt="음식 사진" onclick="openImageViewer('${review.food_image_url}', event)">
+                <img src="${review.receipt_image_url}" alt="영수증" onclick="openImageViewer('${review.receipt_image_url}', event)">
               </div>
               <div class="admin-review-details">
                 <p><strong>메뉴:</strong> ${review.menu_name}</p>
@@ -3715,7 +3801,7 @@
               <div class="review-item" onclick="toggleReviewDetail(this)">
                 <div class="review-preview">
                   ${r.food_image_url
-              ? `<img src="${r.food_image_url}" class="review-thumb" alt="음식">`
+              ? `<img src="${r.food_image_url}" class="review-thumb" alt="음식" onclick="openImageViewer('${r.food_image_url}', event)">`
               : `<div class="review-thumb-placeholder">🍜</div>`
             }
                   <div class="review-preview-info">
@@ -3729,7 +3815,7 @@
                   <span class="review-expand-icon">▼</span>
                 </div>
                 <div class="review-detail">
-                  ${r.food_image_url ? `<img src="${r.food_image_url}" class="review-food-image" alt="음식 사진">` : ''}
+                  ${r.food_image_url ? `<img src="${r.food_image_url}" class="review-food-image" alt="음식 사진" onclick="openImageViewer('${r.food_image_url}', event)">` : ''}
                   <div class="review-meta">
                     <span class="review-nickname">${r.user_nickname || '익명'}</span>
                     <span class="review-user-level">Lv.${r.user_level ?? '?'}</span>

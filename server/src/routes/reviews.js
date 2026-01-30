@@ -30,6 +30,8 @@ async function uploadToSupabase(file, bucketName, isPublic = true) {
   const ext = path.extname(file.originalname).toLowerCase();
   const filename = `${uuidv4()}${ext}`;
 
+  console.log(`Uploading to ${bucketName}: ${filename}`);
+
   const { data, error } = await supabase.storage
     .from(bucketName)
     .upload(filename, file.buffer, {
@@ -39,25 +41,32 @@ async function uploadToSupabase(file, bucketName, isPublic = true) {
 
   if (error) {
     console.error('Supabase Storage upload error:', error);
-    throw new Error('이미지 업로드에 실패했습니다');
+    throw new Error(`이미지 업로드 실패: ${error.message}`);
   }
+
+  console.log('Upload success, path:', data.path);
+
+  // 업로드된 실제 경로 사용
+  const filePath = data.path;
 
   if (isPublic) {
     // Public URL 생성 (food-images)
     const { data: urlData } = supabase.storage
       .from(bucketName)
-      .getPublicUrl(filename);
+      .getPublicUrl(filePath);
+    console.log('Public URL:', urlData.publicUrl);
     return urlData.publicUrl;
   } else {
     // Signed URL 생성 (receipt-images, 1년 유효)
     const { data: urlData, error: signError } = await supabase.storage
       .from(bucketName)
-      .createSignedUrl(filename, 60 * 60 * 24 * 365);
+      .createSignedUrl(filePath, 60 * 60 * 24 * 365);
 
     if (signError) {
       console.error('Signed URL error:', signError);
-      throw new Error('이미지 URL 생성에 실패했습니다');
+      throw new Error(`URL 생성 실패: ${signError.message}`);
     }
+    console.log('Signed URL created');
     return urlData.signedUrl;
   }
 }
@@ -147,9 +156,9 @@ router.post('/',
       }
 
       // Supabase Storage에 이미지 업로드
-      // food-images: public, receipt-images: private
+      // 둘 다 Public URL 사용 (UUID라서 추측 불가능)
       const foodImageUrl = await uploadToSupabase(req.files.food_image[0], 'food-images', true);
-      const receiptImageUrl = await uploadToSupabase(req.files.receipt_image[0], 'receipt-images', false);
+      const receiptImageUrl = await uploadToSupabase(req.files.receipt_image[0], 'receipt-images', true);
 
       const { data: review, error: reviewError } = await supabase
         .from('reviews')
