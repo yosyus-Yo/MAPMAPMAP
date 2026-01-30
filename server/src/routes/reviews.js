@@ -15,13 +15,14 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp/;
+    // HEIC/HEIF는 클라이언트에서 JPEG로 변환되어 오지만, 혹시 모를 경우를 대비해 허용
+    const allowed = /jpeg|jpg|png|gif|webp|heic|heif/;
     const extname = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowed.test(file.mimetype);
-    if (extname && mimetype) {
+    const mimetype = /jpeg|jpg|png|gif|webp|heic|heif/.test(file.mimetype);
+    if (extname || mimetype) {
       return cb(null, true);
     }
-    cb(new Error('이미지 파일만 업로드 가능합니다'));
+    cb(new Error('이미지 파일만 업로드 가능합니다 (JPG, PNG, GIF, WEBP, HEIC)'));
   }
 });
 

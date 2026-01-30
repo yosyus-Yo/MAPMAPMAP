@@ -2279,6 +2279,8 @@
       }
     }
   </style>
+  <!-- HEIC to JPEG 변환 라이브러리 (아이폰 사진 지원) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
 </head>
 
 <body>
@@ -2604,7 +2606,7 @@
                 onclick="document.getElementById('report-food-image').click()">
                 <span class="upload-icon">🍜</span>
                 <span class="upload-text">클릭하여 업로드</span>
-                <input type="file" id="report-food-image" accept="image/jpeg,image/png,image/gif,image/webp"
+                <input type="file" id="report-food-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
                   onchange="handleImageUpload(this, 'report-food-area')">
               </div>
             </div>
@@ -2614,7 +2616,7 @@
                 onclick="document.getElementById('report-receipt-image').click()">
                 <span class="upload-icon">🧾</span>
                 <span class="upload-text">클릭하여 업로드</span>
-                <input type="file" id="report-receipt-image" accept="image/jpeg,image/png,image/gif,image/webp"
+                <input type="file" id="report-receipt-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
                   onchange="handleImageUpload(this, 'report-receipt-area')">
               </div>
             </div>
@@ -2757,7 +2759,7 @@
               onclick="document.getElementById('modal-food-images').click()">
               <span class="upload-icon">+</span>
               <span class="upload-text">추가</span>
-              <input type="file" id="modal-food-images" accept="image/jpeg,image/png,image/gif,image/webp" multiple
+              <input type="file" id="modal-food-images" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" multiple
                 onchange="handleMultiImageUpload(this, 'food-images-preview', 5)">
             </div>
           </div>
@@ -2768,7 +2770,7 @@
             onclick="document.getElementById('modal-receipt-image').click()">
             <span class="upload-icon">🧾</span>
             <span class="upload-text">클릭하여 업로드</span>
-            <input type="file" id="modal-receipt-image" accept="image/jpeg,image/png,image/gif,image/webp"
+            <input type="file" id="modal-receipt-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
               onchange="handleImageUpload(this, 'receipt-image-area')">
           </div>
         </div>
@@ -2888,11 +2890,11 @@
 
       // 이미지 업로드 영역 초기화
       const foodArea = document.getElementById('report-food-area');
-      foodArea.innerHTML = '<span class="upload-icon">🍜</span><span class="upload-text">클릭하여 업로드</span><input type="file" id="report-food-image" accept="image/jpeg,image/png,image/gif,image/webp" onchange="handleImageUpload(this, \'report-food-area\')">';
+      foodArea.innerHTML = '<span class="upload-icon">🍜</span><span class="upload-text">클릭하여 업로드</span><input type="file" id="report-food-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" onchange="handleImageUpload(this, \'report-food-area\')">';
       foodArea.classList.remove('has-image');
 
       const receiptArea = document.getElementById('report-receipt-area');
-      receiptArea.innerHTML = '<span class="upload-icon">🧾</span><span class="upload-text">클릭하여 업로드</span><input type="file" id="report-receipt-image" accept="image/jpeg,image/png,image/gif,image/webp" onchange="handleImageUpload(this, \'report-receipt-area\')">';
+      receiptArea.innerHTML = '<span class="upload-icon">🧾</span><span class="upload-text">클릭하여 업로드</span><input type="file" id="report-receipt-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" onchange="handleImageUpload(this, \'report-receipt-area\')">';
       receiptArea.classList.remove('has-image');
 
       // 지도 초기화 (약간의 지연 후)
@@ -4333,10 +4335,47 @@
       }
     }
 
+    // HEIC/HEIF 파일을 JPEG로 변환하는 함수 (아이폰 사진 지원)
+    async function convertHeicIfNeeded(file) {
+      const isHeic = file.type === 'image/heic' ||
+                     file.type === 'image/heif' ||
+                     file.name.toLowerCase().endsWith('.heic') ||
+                     file.name.toLowerCase().endsWith('.heif');
+
+      if (isHeic && typeof heic2any !== 'undefined') {
+        try {
+          showToast('아이폰 사진 변환 중...', 'info');
+          const blob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.9
+          });
+          const newFileName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+          return new File([blob], newFileName, { type: 'image/jpeg' });
+        } catch (error) {
+          console.error('HEIC 변환 오류:', error);
+          showToast('이미지 변환에 실패했습니다', 'error');
+          return null;
+        }
+      }
+      return file;
+    }
+
     // 이미지 업로드 미리보기 핸들러
-    function handleImageUpload(input, areaId) {
+    async function handleImageUpload(input, areaId) {
       const area = document.getElementById(areaId);
       if (input.files && input.files[0]) {
+        let file = input.files[0];
+
+        // HEIC 파일이면 JPEG로 변환
+        file = await convertHeicIfNeeded(file);
+        if (!file) return; // 변환 실패 시 중단
+
+        // 변환된 파일로 input 업데이트 (DataTransfer 사용)
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+
         const reader = new FileReader();
         reader.onload = function (e) {
           // 기존 프리뷰 이미지 제거
@@ -4356,16 +4395,16 @@
           area.insertBefore(img, input);
           area.classList.add('has-image');
         };
-        reader.readAsDataURL(input.files[0]);
+        reader.readAsDataURL(file);
       }
     }
 
     // 다중 이미지 업로드 핸들러
     let uploadedFoodImages = []; // 업로드된 음식 이미지 파일 배열
 
-    function handleMultiImageUpload(input, previewId, maxCount) {
+    async function handleMultiImageUpload(input, previewId, maxCount) {
       const previewContainer = document.getElementById(previewId);
-      const files = Array.from(input.files);
+      let files = Array.from(input.files);
 
       // 최대 개수 체크
       const currentCount = uploadedFoodImages.length;
@@ -4373,10 +4412,14 @@
 
       if (files.length > remainingSlots) {
         showToast(`최대 ${maxCount}장까지만 업로드 가능합니다`, 'error');
-        files.splice(remainingSlots);
+        files = files.slice(0, remainingSlots);
       }
 
-      files.forEach((file, index) => {
+      // 모든 파일에 대해 HEIC 변환 처리
+      for (const originalFile of files) {
+        let file = await convertHeicIfNeeded(originalFile);
+        if (!file) continue; // 변환 실패 시 건너뛰기
+
         const reader = new FileReader();
         reader.onload = function(e) {
           const itemDiv = document.createElement('div');
@@ -4407,7 +4450,7 @@
           }
         };
         reader.readAsDataURL(file);
-      });
+      }
 
       // input 초기화 (같은 파일 다시 선택 가능하게)
       input.value = '';
