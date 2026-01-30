@@ -27,8 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 // Static files - serve public folder
 app.use(express.static(path.join(__dirname, '../../public')));
 
-// Serve uploaded images
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// 이미지는 Supabase Storage에서 제공 (로컬 uploads 폴더 불필요)
 
 // Session configuration
 app.use(session({

@@ -1,4 +1,4 @@
-// Review Routes - Supabase Version (with Beta Tester Rewards)
+// Review Routes - Supabase Storage Version
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
@@ -8,20 +8,12 @@ const { supabase } = require('../config/database');
 
 const router = express.Router();
 
-// Multer configuration for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../uploads'));
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${file.fieldname}_${uuidv4()}${ext}`);
-  }
-});
+// Multer - 메모리 스토리지 (Supabase로 업로드하기 위해)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|gif|webp/;
     const extname = allowed.test(path.extname(file.originalname).toLowerCase());
@@ -32,6 +24,31 @@ const upload = multer({
     cb(new Error('이미지 파일만 업로드 가능합니다'));
   }
 });
+
+// Supabase Storage에 이미지 업로드
+async function uploadToSupabase(file, folder) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const filename = `${folder}/${uuidv4()}${ext}`;
+
+  const { data, error } = await supabase.storage
+    .from('images')
+    .upload(filename, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+
+  if (error) {
+    console.error('Supabase Storage upload error:', error);
+    throw new Error('이미지 업로드에 실패했습니다');
+  }
+
+  // Public URL 생성
+  const { data: urlData } = supabase.storage
+    .from('images')
+    .getPublicUrl(filename);
+
+  return urlData.publicUrl;
+}
 
 // Auth middleware
 const requireAuth = (req, res, next) => {
@@ -117,8 +134,9 @@ router.post('/',
         });
       }
 
-      const foodImageUrl = `/uploads/${req.files.food_image[0].filename}`;
-      const receiptImageUrl = `/uploads/${req.files.receipt_image[0].filename}`;
+      // Supabase Storage에 이미지 업로드
+      const foodImageUrl = await uploadToSupabase(req.files.food_image[0], 'food');
+      const receiptImageUrl = await uploadToSupabase(req.files.receipt_image[0], 'receipts');
 
       const { data: review, error: reviewError } = await supabase
         .from('reviews')
@@ -188,7 +206,7 @@ router.post('/',
       console.error('Create review error:', error);
       res.status(500).json({
         success: false,
-        error: '리뷰 등록 중 오류가 발생했습니다'
+        error: error.message || '리뷰 등록 중 오류가 발생했습니다'
       });
     }
   }
