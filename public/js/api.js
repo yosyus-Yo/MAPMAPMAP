@@ -63,6 +63,9 @@ const API = {
         throw new Error('사용자 정보 저장에 실패했습니다');
       }
 
+      // 회원가입 이벤트 로깅
+      logAccess('signup', { email: user.email, nickname: user.nickname });
+
       return {
         success: true,
         user: {
@@ -114,6 +117,9 @@ const API = {
         user = newUser;
       }
 
+      // 로그인 이벤트 로깅
+      logAccess('login', { email: user.email, nickname: user.nickname });
+
       return {
         success: true,
         user: {
@@ -130,6 +136,8 @@ const API = {
 
     async logout() {
       const sb = initSupabase();
+      // 로그아웃 이벤트 로깅 (로그아웃 전에 기록)
+      await logAccess('logout');
       await sb.auth.signOut();
       return { success: true };
     },
@@ -256,6 +264,12 @@ const API = {
       for (const level in levelStats) {
         levelAverages[level] = (levelStats[level].total / levelStats[level].count).toFixed(1);
       }
+
+      // 맛집 상세 조회 로깅
+      logAccess('view_restaurant', {
+        restaurant_id: id,
+        restaurant_name: restaurantResult.data.name
+      });
 
       return {
         success: true,
@@ -428,6 +442,13 @@ const API = {
         .single();
 
       if (reviewError) throw reviewError;
+
+      // 리뷰 제출 로깅
+      logAccess('submit_review', {
+        restaurant_id: finalRestaurantId,
+        restaurant_name: restaurant_name,
+        menu_name: menu_name
+      });
 
       return {
         success: true,
@@ -801,6 +822,9 @@ const API = {
         restaurant_id: restaurantId
       });
 
+      // 즐겨찾기 추가 로깅
+      logAccess('add_favorite', { restaurant_id: restaurantId });
+
       return { success: true, message: '찜 목록에 추가되었습니다' };
     },
 
@@ -817,6 +841,9 @@ const API = {
         .delete()
         .eq('user_id', authUser.id)
         .eq('restaurant_id', restaurantId);
+
+      // 즐겨찾기 제거 로깅
+      logAccess('remove_favorite', { restaurant_id: restaurantId });
 
       return { success: true, message: '찜 목록에서 제거되었습니다' };
     }
@@ -922,7 +949,118 @@ function showToast(message, type = 'info') {
   }, 3000);
 }
 
-// Supabase SDK 로드 대기
+// ============================================
+// 사용자 접속 기록 로깅 시스템
+// ============================================
+
+// 세션 ID 생성 (브라우저 탭 단위로 고유)
+function getSessionId() {
+  let sessionId = sessionStorage.getItem('mapmap_session_id');
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    sessionStorage.setItem('mapmap_session_id', sessionId);
+  }
+  return sessionId;
+}
+
+// 접속 기록 저장 함수
+async function logAccess(action, metadata = {}) {
+  try {
+    const sb = initSupabase();
+    if (!sb) return;
+
+    // 현재 로그인한 사용자 확인 (자동 로그인 포함)
+    const { data: { user: authUser } } = await sb.auth.getUser();
+
+    const logData = {
+      user_id: authUser?.id || null,
+      session_id: getSessionId(),
+      action: action,
+      page: window.location.pathname,
+      metadata: {
+        ...metadata,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+      },
+      user_agent: navigator.userAgent,
+      referrer: document.referrer || null
+    };
+
+    await sb.from('access_logs').insert(logData);
+    console.log(`📊 Access logged: ${action}`, authUser ? `(user: ${authUser.id})` : '(anonymous)');
+  } catch (error) {
+    // 로깅 실패는 사용자 경험에 영향을 주지 않도록 조용히 처리
+    console.warn('Access logging failed:', error.message);
+  }
+}
+
+// 페이지 방문 로깅 (자동 로그인 포함)
+async function logPageVisit() {
+  const sb = initSupabase();
+  if (!sb) return;
+
+  // Supabase 세션 확인 (자동 로그인된 세션도 감지)
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (session) {
+    // 자동 로그인 또는 기존 세션으로 접속
+    await logAccess('visit_authenticated', {
+      login_type: 'session_restored',  // 자동 로그인/세션 복원
+      email: session.user?.email
+    });
+  } else {
+    // 비로그인 상태 방문
+    await logAccess('visit_anonymous');
+  }
+}
+
+// 특정 액션 로깅 헬퍼 함수들
+const AccessLog = {
+  // 로그인 이벤트
+  async login(email) {
+    await logAccess('login', { email });
+  },
+
+  // 로그아웃 이벤트
+  async logout() {
+    await logAccess('logout');
+  },
+
+  // 맛집 상세 조회
+  async viewRestaurant(restaurantId, restaurantName) {
+    await logAccess('view_restaurant', {
+      restaurant_id: restaurantId,
+      restaurant_name: restaurantName
+    });
+  },
+
+  // 리뷰 제출
+  async submitReview(restaurantId, restaurantName) {
+    await logAccess('submit_review', {
+      restaurant_id: restaurantId,
+      restaurant_name: restaurantName
+    });
+  },
+
+  // 검색
+  async search(query) {
+    await logAccess('search', { query });
+  },
+
+  // 즐겨찾기 추가/제거
+  async favorite(restaurantId, action) {
+    await logAccess(action === 'add' ? 'add_favorite' : 'remove_favorite', {
+      restaurant_id: restaurantId
+    });
+  }
+};
+
+// Supabase SDK 로드 대기 및 초기 접속 로깅
 document.addEventListener('DOMContentLoaded', () => {
   initSupabase();
+
+  // 페이지 방문 로깅 (자동 로그인 세션 포함)
+  setTimeout(() => {
+    logPageVisit();
+  }, 500);  // Supabase 초기화 완료 대기
 });

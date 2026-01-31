@@ -14,7 +14,37 @@ ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rewards ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
--- 2. users 테이블 정책
+-- 2. 기존 정책 삭제 (있으면)
+-- ============================================
+
+-- users 테이블
+DROP POLICY IF EXISTS "Users are viewable by everyone" ON public.users;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can insert own record" ON public.users;
+
+-- restaurants 테이블
+DROP POLICY IF EXISTS "Restaurants are viewable by everyone" ON public.restaurants;
+DROP POLICY IF EXISTS "Authenticated users can insert restaurants" ON public.restaurants;
+DROP POLICY IF EXISTS "Admins can update restaurants" ON public.restaurants;
+DROP POLICY IF EXISTS "Admins can delete restaurants" ON public.restaurants;
+
+-- reviews 테이블
+DROP POLICY IF EXISTS "Reviews viewable by owner, admin, or if approved" ON public.reviews;
+DROP POLICY IF EXISTS "Authenticated users can create reviews" ON public.reviews;
+DROP POLICY IF EXISTS "Users can update own pending reviews" ON public.reviews;
+DROP POLICY IF EXISTS "Users can delete own pending reviews, admins can delete any" ON public.reviews;
+
+-- favorites 테이블
+DROP POLICY IF EXISTS "Users can view own favorites" ON public.favorites;
+DROP POLICY IF EXISTS "Users can add own favorites" ON public.favorites;
+DROP POLICY IF EXISTS "Users can delete own favorites" ON public.favorites;
+
+-- rewards 테이블
+DROP POLICY IF EXISTS "Users can view own rewards" ON public.rewards;
+DROP POLICY IF EXISTS "Admins can manage rewards" ON public.rewards;
+
+-- ============================================
+-- 3. users 테이블 정책
 -- ============================================
 
 -- 모든 사용자가 다른 사용자 정보 조회 가능 (닉네임, 레벨 표시용)
@@ -34,7 +64,7 @@ ON public.users FOR INSERT
 WITH CHECK (auth.uid() = id);
 
 -- ============================================
--- 3. restaurants 테이블 정책
+-- 4. restaurants 테이블 정책
 -- ============================================
 
 -- 모든 사용자가 식당 정보 조회 가능
@@ -62,7 +92,7 @@ USING (
 );
 
 -- ============================================
--- 4. reviews 테이블 정책
+-- 5. reviews 테이블 정책
 -- ============================================
 
 -- 승인된 리뷰는 모두가 볼 수 있음
@@ -102,7 +132,7 @@ USING (
 );
 
 -- ============================================
--- 5. favorites 테이블 정책
+-- 6. favorites 테이블 정책
 -- ============================================
 
 -- 자신의 즐겨찾기만 조회 가능
@@ -121,7 +151,7 @@ ON public.favorites FOR DELETE
 USING (user_id = auth.uid());
 
 -- ============================================
--- 6. rewards 테이블 정책
+-- 7. rewards 테이블 정책
 -- ============================================
 
 -- 자신의 리워드만 조회 가능
@@ -138,7 +168,7 @@ USING (
 );
 
 -- ============================================
--- 7. Storage 버킷 정책 (Dashboard에서 설정)
+-- 8. Storage 버킷 정책 (Dashboard에서 설정)
 -- ============================================
 -- food-images 버킷:
 --   SELECT: 모두 허용 (public.buckets에서 public으로 설정)
