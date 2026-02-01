@@ -10,7 +10,7 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-6B878F8F37"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
     gtag('config', 'G-6B878F8F37');
   </script>
@@ -75,6 +75,138 @@
       border-radius: 20px;
       font-size: 13px;
       font-weight: 700;
+    }
+
+    /* 데스크톱에서 버튼들 */
+    .desktop-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 모바일 드롭다운 메뉴 */
+    .mobile-menu-wrapper {
+      display: none;
+      position: relative;
+    }
+
+    .mobile-menu-trigger {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #f5f5f5;
+      border: none;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mobile-menu-trigger:hover {
+      background: #eee;
+    }
+
+    .mobile-menu-trigger .trigger-icon {
+      font-size: 16px;
+    }
+
+    .mobile-menu-trigger .nickname {
+      font-weight: 600;
+      font-size: 13px;
+      color: #333;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mobile-menu-trigger .menu-arrow {
+      font-size: 10px;
+      color: #888;
+      transition: transform 0.2s;
+    }
+
+    .mobile-menu-wrapper.open .menu-arrow {
+      transform: rotate(180deg);
+    }
+
+    .mobile-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      min-width: 200px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.2s ease;
+      overflow: hidden;
+    }
+
+    .mobile-menu-wrapper.open .mobile-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .mobile-dropdown-header {
+      padding: 16px;
+      background: linear-gradient(135deg, #c5171e 0%, #ff6b35 100%);
+      color: white;
+      text-align: center;
+    }
+
+    .mobile-dropdown-header .nickname {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .mobile-dropdown-header .user-level-badge {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 12px;
+      padding: 4px 10px;
+    }
+
+    .mobile-dropdown-menu {
+      padding: 8px 0;
+    }
+
+    .mobile-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      font-size: 14px;
+      color: #333;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .mobile-dropdown-item:hover {
+      background: #f5f5f5;
+    }
+
+    .mobile-dropdown-item.admin {
+      color: #6c757d;
+    }
+
+    .mobile-dropdown-item.logout {
+      color: #c5171e;
+      border-top: 1px solid #eee;
+    }
+
+    .mobile-dropdown-item .item-icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
     }
 
     .level-0 {
@@ -386,7 +518,63 @@
       transform: translateX(22px);
     }
 
-    /* 범례 */
+    /* 범례 - 플로팅 오버레이 */
+    .map-legend-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+      max-width: 280px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .map-legend-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: #fafafa;
+      border-bottom: 1px solid #eee;
+      gap: 4px;
+    }
+
+    .map-legend-header h4 {
+      font-size: 13px;
+      color: #333;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .map-legend-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: #888;
+      padding: 0;
+      transition: transform 0.3s;
+    }
+
+    .map-legend-overlay.collapsed .map-legend-toggle {
+      transform: rotate(180deg);
+    }
+
+    .map-legend-content {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .map-legend-overlay.collapsed .map-legend-content {
+      display: none;
+    }
+
     .legend {
       display: flex;
       gap: 20px;
@@ -397,14 +585,15 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 14px;
+      font-size: 13px;
       color: #555;
     }
 
     .legend-dot {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
+      flex-shrink: 0;
     }
 
     .legend-dot.safe {
@@ -419,7 +608,6 @@
       background: #f44336;
     }
 
-    /* 지도 영역 */
     .map-section {
       background: white;
       border-radius: 16px;
@@ -438,6 +626,10 @@
       font-size: 18px;
       border: none;
       margin-bottom: 12px;
+    }
+
+    .map-container {
+      position: relative;
     }
 
     #map {
@@ -719,8 +911,13 @@
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     .loading-spinner p {
@@ -768,6 +965,7 @@
       top: 0;
       background: white;
       border-radius: 20px 20px 0 0;
+      z-index: 11;
     }
 
     .modal-header h2 {
@@ -810,6 +1008,7 @@
       align-items: center;
       justify-content: center;
       transition: all 0.2s;
+      display: none !important;
     }
 
     .favorite-btn:hover {
@@ -841,7 +1040,7 @@
       border-radius: 20px;
       font-size: 13px;
       font-weight: 600;
-      margin-left: 8px;
+      margin-left: 0;
       margin-bottom: 12px;
     }
 
@@ -1165,7 +1364,7 @@
     }
 
     .mypage-section {
-      margin-top: 20px;
+      margin-top: 16px;
     }
 
     .mypage-section-title {
@@ -1175,6 +1374,100 @@
       margin-bottom: 12px;
       padding-bottom: 8px;
       border-bottom: 2px solid #c5171e;
+    }
+
+    /* 마이페이지 탭 */
+    .mypage-tabs {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 0;
+    }
+
+    .mypage-tab {
+      flex: 1;
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-size: 14px;
+      font-weight: 600;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mypage-tab:hover {
+      color: #333;
+    }
+
+    .mypage-tab.active {
+      color: #c5171e;
+      border-bottom-color: #c5171e;
+    }
+
+    /* 찜 목록 아이템 */
+    .favorite-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f9f9f9;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .favorite-item:hover {
+      background: #f0f0f0;
+      transform: translateX(4px);
+    }
+
+    .favorite-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .favorite-item-name {
+      font-weight: 600;
+      color: #333;
+      font-size: 15px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .favorite-item-address {
+      font-size: 13px;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .favorite-item-level {
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+
+    .favorite-remove-btn {
+      background: none;
+      border: none;
+      color: #dc3545;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      margin-left: 8px;
+      opacity: 0.6;
+      transition: all 0.2s;
+    }
+
+    .favorite-remove-btn:hover {
+      opacity: 1;
+      transform: scale(1.1);
     }
 
     .review-item {
@@ -1535,15 +1828,22 @@
     }
 
     .image-upload-row {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
+      margin-bottom: 0;
     }
 
     .image-upload-box {
       flex: 1;
       text-align: center;
+      margin-bottom: 12px;
     }
+
+    .image-upload-box .multi-image-upload-container {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
 
     .image-upload-box label {
       display: block;
@@ -1559,6 +1859,7 @@
       cursor: pointer;
       transition: all 0.2s;
       background: white;
+      text-align: center;
     }
 
     .image-upload-area:hover {
@@ -1576,9 +1877,9 @@
     }
 
     .image-upload-area .upload-icon {
-      font-size: 24px;
+      font-size: 20px;
       display: block;
-      margin-bottom: 4px;
+      margin: 0;
     }
 
     .image-upload-area .upload-text {
@@ -2212,10 +2513,12 @@
       height: 70px;
       min-height: unset;
       padding: 8px;
+      text-align: center;
     }
 
     .image-upload-area.small .upload-icon {
-      font-size: 24px;
+      font-size: 20px;
+      margin: 0;
     }
 
     .image-upload-area.small .upload-text {
@@ -2302,11 +2605,34 @@
     /* 반응형 */
     @media (max-width: 768px) {
       .header-inner {
-        padding: 12px 16px;
+        padding: 10px 12px;
+        gap: 8px;
       }
 
-      .logo {
-        font-size: 0px;
+      .logo img {
+        width: 32px;
+      }
+
+      /* 헤더 유저 정보 - 모바일 최적화 */
+      .user-info {
+        gap: 6px;
+        flex-shrink: 1;
+        min-width: 0;
+      }
+
+      /* 데스크톱 버튼 숨기기 */
+      .desktop-buttons {
+        display: none;
+      }
+
+      .user-info .nickname,
+      .user-info>.user-level-badge {
+        display: none;
+      }
+
+      /* 모바일 드롭다운 메뉴 표시 */
+      .mobile-menu-wrapper {
+        display: block;
       }
 
       .main-content {
@@ -2329,6 +2655,33 @@
         flex-direction: column;
         gap: 10px;
       }
+
+      /* 맛집 제보하기 모달 - 이미지 업로드 모바일 반응형 */
+      /* .image-upload-row {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .image-upload-box {
+        flex: 1 1 100% !important;
+        width: 100%;
+      }
+
+      .multi-image-upload-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .multi-image-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .image-upload-area {
+        min-height: 100px;
+      } */
     }
   </style>
   <!-- HEIC to JPEG 변환 라이브러리 (아이폰 사진 지원) -->
@@ -2351,16 +2704,46 @@
     <div class="header-inner">
       <div class="logo"><img src="/img/logo.svg" alt="logo" width="40px"></div>
       <div class="user-info" id="header-user-info" style="display: none;">
+        <!-- 데스크톱: 기존 레이아웃 -->
         <span class="nickname" id="header-nickname" style="cursor: pointer;" onclick="openMyPage()"></span>
         <span class="user-level-badge" id="header-level"></span>
-        <button class="auth-btn admin" id="admin-btn" style="display: none;" onclick="openAdminDashboard()">관리자</button>
-        <button class="auth-btn mypage" onclick="openMyPage()">마이페이지</button>
-        <button class="auth-btn logout" onclick="handleLogout()">로그아웃</button>
+        <div class="desktop-buttons">
+          <button class="auth-btn admin" id="admin-btn" style="display: none;"
+            onclick="openAdminDashboard()">관리자</button>
+          <button class="auth-btn mypage" onclick="openMyPage()">마이페이지</button>
+          <button class="auth-btn logout" onclick="handleLogout()">로그아웃</button>
+        </div>
+
+        <!-- 모바일: 드롭다운 메뉴 -->
+        <div class="mobile-menu-wrapper" id="mobile-menu">
+          <button class="mobile-menu-trigger" onclick="toggleMobileMenu(event)">
+            <span class="trigger-icon">👤</span>
+            <span class="nickname" id="mobile-nickname"></span>
+            <span class="menu-arrow">▼</span>
+          </button>
+          <div class="mobile-dropdown">
+            <div class="mobile-dropdown-header">
+              <div class="nickname" id="mobile-dropdown-nickname"></div>
+              <span class="user-level-badge" id="mobile-dropdown-level"></span>
+            </div>
+            <div class="mobile-dropdown-menu">
+              <button class="mobile-dropdown-item admin" id="mobile-admin-btn" style="display: none;"
+                onclick="openAdminDashboard(); closeMobileMenu();">
+                <span class="item-icon">🛡️</span>
+                관리자 대시보드
+              </button>
+              <button class="mobile-dropdown-item" onclick="openMyPage(); closeMobileMenu();">
+                <span class="item-icon">👤</span>
+                마이페이지
+              </button>
+              <button class="mobile-dropdown-item logout" onclick="handleLogout()">
+                <span class="item-icon">🚪</span>
+                로그아웃
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-      <!-- <div class="auth-buttons" id="auth-buttons">
-        <button class="auth-btn login" onclick="openAuthModal('login')">로그인</button>
-        <button class="auth-btn signup" onclick="openAuthModal('signup')">회원가입</button>
-      </div> -->
     </div>
   </header>
 
@@ -2404,6 +2787,11 @@
           <input type="password" id="onboarding-signup-password" placeholder="8자 이상 입력하세요" minlength="8" required>
         </div>
         <div class="form-group">
+          <label>비밀번호 확인</label>
+          <input type="password" id="onboarding-signup-password-confirm" placeholder="비밀번호를 다시 입력하세요" minlength="8"
+            required>
+        </div>
+        <div class="form-group">
           <label>닉네임</label>
           <input type="text" id="onboarding-signup-nickname" placeholder="닉네임을 입력해주세요" maxlength="10" required>
         </div>
@@ -2412,50 +2800,44 @@
           <div class="level-options" id="onboarding-level-options">
             <label class="level-option" data-level="0">
               <input type="radio" name="onboarding-level" value="0">
-              <span class="level-badge level-0">Lv.0</span>
+              <span class="level-badge level-0">Lv.0 맵찔이 🐥</span>
               <span class="level-desc">
-                <strong>전혀 못 먹는다</strong>
-                진라면 순한맛도 매움
+                진라면 순한맛도 매움... 케찹이 좋아
               </span>
             </label>
             <label class="level-option" data-level="1">
               <input type="radio" name="onboarding-level" value="1">
-              <span class="level-badge level-1">Lv.1</span>
+              <span class="level-badge level-1">Lv.1 맵초보 👼</span>
               <span class="level-desc">
-                <strong>거의 못 먹는다</strong>
-                신라면 정도 가능
+                신라면 정도는 가능! 근데 콧물 나
               </span>
             </label>
             <label class="level-option" data-level="2">
               <input type="radio" name="onboarding-level" value="2">
-              <span class="level-badge level-2">Lv.2 🌶️</span>
+              <span class="level-badge level-2">Lv.2 맵보통 🌶️</span>
               <span class="level-desc">
-                <strong>잘 못 먹는 편이다</strong>
-                열라면 정도 가능
+                열라면 즐겨먹음. 한국인 평균?
               </span>
             </label>
             <label class="level-option" data-level="3">
               <input type="radio" name="onboarding-level" value="3">
-              <span class="level-badge level-3">Lv.3 🌶️🌶️</span>
+              <span class="level-badge level-3">Lv.3 맵니아 🔥</span>
               <span class="level-desc">
-                <strong>보통이다</strong>
-                불닭볶음면, 엽떡 오리지널 가능
+                불닭, 엽떡 오리지널 맛있게 먹음
               </span>
             </label>
             <label class="level-option" data-level="4">
               <input type="radio" name="onboarding-level" value="4">
-              <span class="level-badge level-4">Lv.4 🔥🔥</span>
+              <span class="level-badge level-4">Lv.4 맵고수 💣</span>
               <span class="level-desc">
-                <strong>잘 먹는 편이다</strong>
-                엽떡 매운맛 가능
+                엽떡 매운맛? 스트레스 풀려!
               </span>
             </label>
             <label class="level-option" data-level="5">
               <input type="radio" name="onboarding-level" value="5">
-              <span class="level-badge level-5">Lv.5 🔥🔥🔥</span>
+              <span class="level-badge level-5">Lv.5 맵친자 💀</span>
               <span class="level-desc">
-                <strong>아주 잘 먹는다</strong>
-                핵불닭, 디진다돈까스 도전 가능
+                핵불닭, 디진다돈까스... 고통을 즐김
               </span>
             </label>
           </div>
@@ -2469,38 +2851,6 @@
   <!-- 메인 컨테이너 -->
   <div id="main-container">
     <div class="main-content">
-      <!-- 상단 컨트롤 -->
-      <div class="top-controls">
-        <!-- <div class="filter-card">
-          <h3>🛡️ 안전 필터</h3>
-          <div class="toggle-row">
-            <span class="toggle-label">내 레벨 이하만 보기</span>
-            <label class="switch">
-              <input type="checkbox" id="safety-filter">
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div> -->
-
-        <div class="filter-card">
-          <h3>📍 내 기준으로 다시 쓰는 맵레벨</h3>
-          <div class="legend">
-            <div class="legend-item">
-              <span class="legend-dot safe"></span>
-              <span>Safe - 맛있게 먹을 수 있어요</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot warning"></span>
-              <span>Warning - 조금 매울 수 있어요</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot danger"></span>
-              <span>Danger - 도전이 필요해요</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- 지도 -->
       <div class="map-section">
         <div class="map-section-header">
@@ -2521,7 +2871,30 @@
             </div>
           </div>
         </div>
-        <div id="map"></div>
+        <div class="map-container">
+          <div id="map"></div>
+          <!-- 플로팅 범례 -->
+          <div class="map-legend-overlay" id="map-legend">
+            <div class="map-legend-header" onclick="toggleMapLegend()">
+              <h4>📍 내 기준 맵레벨</h4>
+              <button class="map-legend-toggle">▲</button>
+            </div>
+            <div class="map-legend-content">
+              <div class="legend-item">
+                <span class="legend-dot safe"></span>
+                <span>Safe - 맛있게 먹을 수 있어요</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot warning"></span>
+                <span>Warning - 조금 매울 수 있어요</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot danger"></span>
+                <span>Danger - 도전이 필요해요</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 맛집 리스트 -->
@@ -2546,7 +2919,8 @@
       <div class="modal-header">
         <h2 id="modal-title"></h2>
         <div class="modal-header-buttons">
-          <button class="favorite-btn" id="favorite-btn" onclick="toggleFavorite()" title="찜하기">🤍</button>
+          <button style="display: none;" class="favorite-btn" id="favorite-btn" onclick="toggleFavorite()"
+            title="찜하기">🤍</button>
           <button class="modal-close" onclick="closeModal()">×</button>
         </div>
       </div>
@@ -2554,19 +2928,14 @@
     </div>
   </div>
 
-  <!-- 인증 모달 -->
+  <!-- 인증 모달 (로그인 전용) -->
   <div class="modal-overlay" id="auth-modal-overlay">
     <div class="modal auth-modal">
       <div class="modal-header">
-        <h2>🔥 맵맵맵</h2>
+        <h2>🔥 맵맵맵 로그인</h2>
         <button class="modal-close" onclick="closeAuthModal()">×</button>
       </div>
       <div class="modal-body">
-        <div class="auth-tabs">
-          <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">로그인</button>
-          <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">회원가입</button>
-        </div>
-
         <!-- 로그인 폼 -->
         <form id="login-form" onsubmit="handleLogin(event)">
           <div class="auth-form-group">
@@ -2580,24 +2949,10 @@
           <button type="submit" class="auth-submit">로그인</button>
           <div class="auth-error" id="login-error"></div>
         </form>
-
-        <!-- 회원가입 폼 -->
-        <form id="signup-form" style="display: none;" onsubmit="handleSignup(event)">
-          <div class="auth-form-group">
-            <label>이메일</label>
-            <input type="email" id="signup-email" placeholder="이메일을 입력하세요" required>
-          </div>
-          <div class="auth-form-group">
-            <label>비밀번호</label>
-            <input type="password" id="signup-password" placeholder="6자 이상 입력하세요" minlength="6" required>
-          </div>
-          <div class="auth-form-group">
-            <label>닉네임</label>
-            <input type="text" id="signup-nickname" placeholder="닉네임을 입력하세요" maxlength="20" required>
-          </div>
-          <button type="submit" class="auth-submit">회원가입</button>
-          <div class="auth-error" id="signup-error"></div>
-        </form>
+        <p style="text-align: center; margin-top: 16px; font-size: 13px; color: #666;">
+          계정이 없으신가요? <button type="button" onclick="closeAuthModal(); location.reload();"
+            style="color: #c5171e; background: none; border: none; cursor: pointer; font-size: 13px; text-decoration: underline;">회원가입하기</button>
+        </p>
       </div>
     </div>
   </div>
@@ -2615,36 +2970,19 @@
         </p>
         <form id="report-form" onsubmit="submitReport(event)">
           <div class="auth-form-group">
-            <label>📍 지도에서 가게 검색 *</label>
-            <p style="font-size: 11px; color: #888; margin-bottom: 8px;">지도 위에서 검색하거나, 마커를 클릭해서 가게를 선택하세요</p>
-            <div class="report-map-container">
-              <div class="report-map-search-overlay">
-                <input type="text" id="report-search" placeholder="가게 이름으로 검색하세요">
-                <button type="button" class="search-btn" onclick="searchPlaceOnMap()">검색</button>
-              </div>
-              <div id="report-map"></div>
-              <button type="button" class="report-map-reSearch-btn" id="reSearch-btn" onclick="searchInCurrentArea()">
-                이 지역에서 재검색
-              </button>
-              <div class="place-bottom-panel" id="place-bottom-panel">
-                <div class="panel-handle"></div>
-                <div class="place-name" id="panel-place-name"></div>
-                <div class="place-address" id="panel-place-address"></div>
-                <div class="place-category" id="panel-place-category"></div>
-                <div class="place-distance" id="panel-place-distance"></div>
-                <button class="select-place-btn" onclick="selectFromPanel()">이 가게 선택하기</button>
-              </div>
-            </div>
-            <input type="hidden" id="report-lat">
-            <input type="hidden" id="report-lng">
-          </div>
-          <div class="auth-form-group">
             <label>가게 이름 *</label>
-            <input type="text" id="report-name" placeholder="위 지도에서 가게를 선택하세요" required readonly>
+            <input type="text" id="report-name" placeholder="가게 이름을 입력하세요" required>
           </div>
           <div class="auth-form-group">
             <label>주소 *</label>
-            <input type="text" id="report-address" placeholder="지도에서 가게를 선택하면 자동 입력됩니다" required readonly>
+            <input type="text" id="report-address" placeholder="가게 주소를 입력하세요 (예: 서울 마포구 양화로 123)" required>
+          </div>
+          <div class="auth-form-group">
+            <label>🔗 네이버 지도 링크 (선택)</label>
+            <p style="font-size: 11px; color: #888; margin-bottom: 8px;">
+              네이버 지도에서 가게 검색 후 공유 링크를 붙여넣어주세요. 관리자가 위치 확인에 활용합니다.
+            </p>
+            <input type="text" id="report-naver-link" placeholder="예: https://naver.me/xxx">
           </div>
           <div class="auth-form-group">
             <label>드신 메뉴 *</label>
@@ -2662,26 +3000,28 @@
             </div>
           </div>
           <div class="image-upload-row">
-            <div class="image-upload-box" style="flex: 2;">
-              <label>📷 음식 사진 (필수, 최대 5장)</label>
+            <div class="image-upload-box">
+              <label>📷 음식 사진 <br> (필수, 최대 5장)</label>
               <div class="multi-image-upload-container">
                 <div id="report-food-images-preview" class="multi-image-preview"></div>
                 <div class="image-upload-area small" id="report-food-area"
                   onclick="document.getElementById('report-food-images').click()">
                   <span class="upload-icon">+</span>
                   <span class="upload-text">추가</span>
-                  <input type="file" id="report-food-images" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" multiple
+                  <input type="file" id="report-food-images"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" multiple
                     onchange="handleReportMultiImageUpload(this, 'report-food-images-preview', 5)">
                 </div>
               </div>
             </div>
             <div class="image-upload-box">
-              <label>🧾 영수증 사진 (필수)</label>
+              <label>🧾 영수증 사진 <br> (필수)</label>
               <div class="image-upload-area" id="report-receipt-area"
                 onclick="document.getElementById('report-receipt-image').click()">
                 <span class="upload-icon">🧾</span>
                 <span class="upload-text">클릭하여 업로드</span>
-                <input type="file" id="report-receipt-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
+                <input type="file" id="report-receipt-image"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
                   onchange="handleImageUpload(this, 'report-receipt-area')">
               </div>
             </div>
@@ -2719,16 +3059,36 @@
               <div class="mypage-stat-value" id="mypage-review-count">0</div>
               <div class="mypage-stat-label">작성 리뷰</div>
             </div>
+            <!-- <div class="mypage-stat">
+              <div class="mypage-stat-value" id="mypage-favorite-count">0</div>
+              <div class="mypage-stat-label">찜한 맛집</div>
+            </div> -->
           </div>
         </div>
 
+        <!-- 탭 메뉴 -->
+        <div class="mypage-tabs">
+          <button class="mypage-tab active" id="mypage-tab-reviews" onclick="switchMyPageTab('reviews')">📝 내
+            리뷰</button>
+          <!-- <button class="mypage-tab" id="mypage-tab-favorites" onclick="switchMyPageTab('favorites')">❤️ 찜 목록</button> -->
+        </div>
+
         <!-- 내 리뷰 섹션 -->
-        <div class="mypage-section">
-          <h3 class="mypage-section-title">📝 내 리뷰</h3>
+        <div class="mypage-section" id="mypage-reviews-section">
           <div id="mypage-reviews">
             <div class="no-reviews">
               <div class="no-reviews-icon">📋</div>
               <div>아직 작성한 리뷰가 없습니다</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 찜 목록 섹션 -->
+        <div class="mypage-section" id="mypage-favorites-section" style="display: none;">
+          <div id="mypage-favorites">
+            <div class="no-reviews">
+              <div class="no-reviews-icon">❤️</div>
+              <div>아직 찜한 맛집이 없습니다</div>
             </div>
           </div>
         </div>
@@ -2824,7 +3184,8 @@
               onclick="document.getElementById('modal-food-images').click()">
               <span class="upload-icon">+</span>
               <span class="upload-text">추가</span>
-              <input type="file" id="modal-food-images" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" multiple
+              <input type="file" id="modal-food-images"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" multiple
                 onchange="handleMultiImageUpload(this, 'food-images-preview', 5)">
             </div>
           </div>
@@ -2835,7 +3196,8 @@
             onclick="document.getElementById('modal-receipt-image').click()">
             <span class="upload-icon">🧾</span>
             <span class="upload-text">클릭하여 업로드</span>
-            <input type="file" id="modal-receipt-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
+            <input type="file" id="modal-receipt-image"
+              accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
               onchange="handleImageUpload(this, 'receipt-image-area')">
           </div>
         </div>
@@ -2872,6 +3234,38 @@
       const overlay = document.getElementById('loading-overlay');
       if (overlay) overlay.style.display = 'none';
     }
+
+    // ========== 지도 범례 토글 ==========
+    function toggleMapLegend() {
+      const legend = document.getElementById('map-legend');
+      if (legend) {
+        legend.classList.toggle('collapsed');
+      }
+    }
+
+    // ========== 모바일 메뉴 토글 ==========
+    function toggleMobileMenu(event) {
+      event.stopPropagation();
+      const menu = document.getElementById('mobile-menu');
+      if (menu) {
+        menu.classList.toggle('open');
+      }
+    }
+
+    function closeMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      if (menu) {
+        menu.classList.remove('open');
+      }
+    }
+
+    // 외부 클릭 시 모바일 메뉴 닫기
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('mobile-menu');
+      if (menu && !menu.contains(e.target)) {
+        menu.classList.remove('open');
+      }
+    });
 
     // ========== 이미지 전체보기 ==========
     function openImageViewer(imageUrl, event) {
@@ -2918,11 +3312,10 @@
     let searchInProgress = false;  // 검색 중 플래그 (이벤트 무시용)
     let modalMiniMap = null;  // 맛집 상세 모달 미니맵
 
-    // ========== 인증 모달 ==========
-    function openAuthModal(tab = 'login') {
+    // ========== 인증 모달 (로그인 전용) ==========
+    function openAuthModal() {
       document.getElementById('auth-modal-overlay').classList.add('active');
       document.body.style.overflow = 'hidden';
-      switchAuthTab(tab);
     }
 
     function closeAuthModal() {
@@ -2930,14 +3323,6 @@
       document.body.style.overflow = '';
       // 에러 메시지 초기화
       document.getElementById('login-error').textContent = '';
-      document.getElementById('signup-error').textContent = '';
-    }
-
-    function switchAuthTab(tab) {
-      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
-      document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
-      document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
-      document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
     }
 
     document.getElementById('auth-modal-overlay').addEventListener('click', (e) => {
@@ -2948,7 +3333,7 @@
     function openReportModal() {
       if (!currentUser) {
         showToast('로그인이 필요합니다', 'error');
-        openAuthModal('login');
+        openAuthModal();
         return;
       }
 
@@ -2957,10 +3342,7 @@
 
       // 폼 초기화
       document.getElementById('report-form').reset();
-      document.getElementById('report-lat').value = '';
-      document.getElementById('report-lng').value = '';
       document.getElementById('report-error').textContent = '';
-      document.getElementById('reSearch-btn').classList.remove('show');
       selectedLevels.report = undefined;
       document.querySelectorAll('#report-level-buttons .level-btn').forEach(btn => {
         btn.classList.remove('selected');
@@ -2972,7 +3354,7 @@
       // 이미지 업로드 영역 초기화
       const foodArea = document.getElementById('report-food-area');
       foodArea.innerHTML = '<span class="upload-icon">+</span><span class="upload-text">추가</span><input type="file" id="report-food-images" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" multiple onchange="handleReportMultiImageUpload(this, \'report-food-images-preview\', 5)">';
-      foodArea.style.display = 'flex';
+      foodArea.style.display = 'block';
 
       // 이미지 프리뷰 영역 초기화
       const foodPreview = document.getElementById('report-food-images-preview');
@@ -2981,297 +3363,34 @@
       const receiptArea = document.getElementById('report-receipt-area');
       receiptArea.innerHTML = '<span class="upload-icon">🧾</span><span class="upload-text">클릭하여 업로드</span><input type="file" id="report-receipt-image" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif" onchange="handleImageUpload(this, \'report-receipt-area\')">';
       receiptArea.classList.remove('has-image');
-
-      // 지도 초기화 (약간의 지연 후)
-      setTimeout(() => {
-        initReportMap();
-      }, 100);
     }
 
-    // 역지오코딩을 위한 Geocoder
-    let reportGeocoder = null;
-    let placesService = null;
+    // 네이버 지도 링크에서 가게 정보 파싱
+    async function parseNaverMapLink(url) {
+      if (!url || !url.trim()) return;
 
-    function initReportMap() {
-      const mapContainer = document.getElementById('report-map');
+      const urlTrimmed = url.trim();
 
-      // 현재 위치 또는 기본 위치 사용
-      const centerLat = userLocation ? userLocation.lat : 37.5665;
-      const centerLng = userLocation ? userLocation.lng : 126.9780;
+      // 네이버 지도 링크 형식 확인
+      const isNaverMapLink = urlTrimmed.includes('naver.me') ||
+        urlTrimmed.includes('map.naver.com') ||
+        urlTrimmed.includes('naver.com/place');
 
-      const options = {
-        center: new kakao.maps.LatLng(centerLat, centerLng),
-        level: 4
-      };
-
-      reportMap = new kakao.maps.Map(mapContainer, options);
-
-      // Geocoder 초기화
-      reportGeocoder = new kakao.maps.services.Geocoder();
-
-      // Places 서비스 초기화
-      if (!placesService) {
-        placesService = new kakao.maps.services.Places();
+      if (!isNaverMapLink) {
+        return; // 링크가 아니면 무시
       }
 
-      // 지도 이동 완료 이벤트 (재검색 버튼 표시)
-      kakao.maps.event.addListener(reportMap, 'dragend', function () {
-        if (lastSearchKeyword && !searchInProgress) {
-          mapMoved = true;
-          document.getElementById('reSearch-btn').classList.add('show');
-        }
-      });
-
-      // 줌 변경 시에도 재검색 버튼 표시
-      kakao.maps.event.addListener(reportMap, 'zoom_changed', function () {
-        if (lastSearchKeyword && !searchInProgress) {
-          mapMoved = true;
-          document.getElementById('reSearch-btn').classList.add('show');
-        }
-      });
-
-      // 하단 패널 닫기 (지도 클릭 시)
-      kakao.maps.event.addListener(reportMap, 'click', function () {
-        hideBottomPanel();
-      });
-    }
-
-    // 검색 결과 마커 모두 제거
-    function clearSearchMarkers() {
-      searchMarkers.forEach(m => m.overlay.setMap(null));
-      searchMarkers = [];
-      hideBottomPanel();
-    }
-
-    // 선택된 가게 마커 제거
-    function clearSelectedMarker() {
-      if (reportMarker) {
-        reportMarker.setMap(null);
-        reportMarker = null;
-      }
-    }
-
-    // 지도 위에서 장소 검색 (카카오맵 스타일)
-    function searchPlaceOnMap() {
-      const keyword = document.getElementById('report-search').value.trim();
-
-      if (!keyword) {
-        showToast('검색어를 입력해주세요', 'error');
-        return;
-      }
-
-      lastSearchKeyword = keyword;
-      mapMoved = false;
-      document.getElementById('reSearch-btn').classList.remove('show');
-
-      // 현재 지도 중심 기준 검색
-      const center = reportMap.getCenter();
-      const searchOptions = {
-        location: center,
-        sort: kakao.maps.services.SortBy.DISTANCE
-      };
-
-      placesService.keywordSearch(keyword, function (result, status) {
-        if (status === kakao.maps.services.Status.OK) {
-          displayMarkersOnMap(result);
-        } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-          showToast('검색 결과가 없습니다', 'error');
-          clearSearchMarkers();
-        } else {
-          showToast('검색 중 오류가 발생했습니다', 'error');
-        }
-      }, searchOptions);
-    }
-
-    // 이 지역에서 재검색
-    function searchInCurrentArea() {
-      if (!lastSearchKeyword) return;
-
-      mapMoved = false;
-      document.getElementById('reSearch-btn').classList.remove('show');
-
-      // 현재 지도 중심 기준 재검색
-      const center = reportMap.getCenter();
-      const searchOptions = {
-        location: center,
-        sort: kakao.maps.services.SortBy.DISTANCE
-      };
-
-      placesService.keywordSearch(lastSearchKeyword, function (result, status) {
-        if (status === kakao.maps.services.Status.OK) {
-          displayMarkersOnMap(result);
-          showToast(`'${lastSearchKeyword}' 재검색 완료`, 'success');
-        } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-          showToast('이 지역에 검색 결과가 없습니다', 'error');
-          clearSearchMarkers();
-        } else {
-          showToast('검색 중 오류가 발생했습니다', 'error');
-        }
-      }, searchOptions);
-    }
-
-    // 검색 결과를 지도 위에 원형 마커로 표시
-    function displayMarkersOnMap(places) {
-      // 검색 중 플래그 설정 (이벤트 무시)
-      searchInProgress = true;
-
-      // 기존 마커 제거
-      clearSearchMarkers();
-      hideBottomPanel();
-
-      places.slice(0, 15).forEach((place, index) => {
-        const position = new kakao.maps.LatLng(place.y, place.x);
-
-        // 원형 마커 HTML 생성
-        const markerContent = document.createElement('div');
-        markerContent.className = 'circle-marker';
-        markerContent.textContent = index + 1;
-        markerContent.onclick = function () {
-          showBottomPanel(place, markerContent);
-        };
-
-        // CustomOverlay로 원형 마커 생성
-        const overlay = new kakao.maps.CustomOverlay({
-          position: position,
-          content: markerContent,
-          yAnchor: 0.5,
-          xAnchor: 0.5
-        });
-
-        overlay.setMap(reportMap);
-        searchMarkers.push({ overlay: overlay, element: markerContent });
-      });
-
-      // 가장 가까운 결과(첫번째)로 지도 이동, 초기 확대 수준 유지
-      if (places.length > 0) {
-        const firstPlace = places[0];
-        const position = new kakao.maps.LatLng(firstPlace.y, firstPlace.x);
-        reportMap.setCenter(position);
-        reportMap.setLevel(4);
-      }
-
-      // 지도 이동 완료 후 플래그 해제
-      setTimeout(() => {
-        searchInProgress = false;
-      }, 500);
-    }
-
-    // 하단 패널 표시
-    function showBottomPanel(place, markerElement) {
-      // 이전 선택 마커 초기화
-      searchMarkers.forEach(m => m.element.classList.remove('selected'));
-
-      // 현재 마커 선택 표시
-      markerElement.classList.add('selected');
-      selectedMarkerOverlay = markerElement;
-      currentSelectedPlace = place;
-
-      // 거리 포맷팅
-      let distanceText = '';
-      if (place.distance) {
-        const dist = parseInt(place.distance);
-        distanceText = dist >= 1000
-          ? `${(dist / 1000).toFixed(1)}km`
-          : `${dist}m`;
-      }
-
-      // 패널 내용 업데이트
-      document.getElementById('panel-place-name').textContent = place.place_name;
-      document.getElementById('panel-place-address').textContent = place.road_address_name || place.address_name;
-      document.getElementById('panel-place-category').textContent = place.category_name || '';
-      document.getElementById('panel-place-distance').textContent = distanceText;
-
-      // 패널 표시
-      document.getElementById('place-bottom-panel').classList.add('show');
-    }
-
-    // 하단 패널 숨기기
-    function hideBottomPanel() {
-      document.getElementById('place-bottom-panel').classList.remove('show');
-      if (selectedMarkerOverlay) {
-        selectedMarkerOverlay.classList.remove('selected');
-        selectedMarkerOverlay = null;
-      }
-      currentSelectedPlace = null;
-    }
-
-    // 패널에서 가게 선택
-    function selectFromPanel() {
-      if (!currentSelectedPlace) return;
-      const place = currentSelectedPlace;
-      selectPlaceFromMap(
-        place.place_name,
-        place.road_address_name || place.address_name,
-        place.y,
-        place.x
-      );
-    }
-
-    // 지도에서 가게 선택
-    function selectPlaceFromMap(name, address, lat, lng) {
-      // 폼에 정보 채우기
-      document.getElementById('report-name').value = name;
-      document.getElementById('report-address').value = address;
-      document.getElementById('report-lat').value = lat;
-      document.getElementById('report-lng').value = lng;
-
-      // 검색 마커 모두 제거
-      clearSearchMarkers();
-
-      // 선택된 가게에 빨간 마커 표시
-      const position = new kakao.maps.LatLng(lat, lng);
-
-      // 기존 선택 마커 제거
-      clearSelectedMarker();
-
-      // 선택된 가게 마커 (빨간색)
-      const markerImage = new kakao.maps.MarkerImage(
-        'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
-        new kakao.maps.Size(35, 45)
-      );
-
-      reportMarker = new kakao.maps.Marker({
-        position: position,
-        map: reportMap,
-        image: markerImage
-      });
-
-      // 지도 중심 이동
-      reportMap.setCenter(position);
-      reportMap.setLevel(3);
-
-      // 검색창 초기화
-      document.getElementById('report-search').value = '';
-      lastSearchKeyword = '';
-      document.getElementById('reSearch-btn').classList.remove('show');
-
-      showToast(`'${name}' 선택 완료!`, 'success');
+      // 간단히 텍스트로 안내 (실제 파싱은 복잡하므로 사용자 입력으로 대체)
+      showToast('링크가 확인되었습니다. 가게 이름과 주소를 확인 후 입력해주세요.', 'info');
     }
 
     function closeReportModal() {
       document.getElementById('report-modal-overlay').classList.remove('active');
       document.body.style.overflow = '';
-
-      // 마커 정리
-      clearSearchMarkers();
-      clearSelectedMarker();
-
-      // 상태 초기화
-      lastSearchKeyword = '';
-      mapMoved = false;
-      document.getElementById('reSearch-btn').classList.remove('show');
     }
 
     document.getElementById('report-modal-overlay').addEventListener('click', (e) => {
       if (e.target === document.getElementById('report-modal-overlay')) closeReportModal();
-    });
-
-    // 검색 입력창 Enter 키 지원
-    document.getElementById('report-search').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        searchPlaceOnMap();
-      }
     });
 
     function selectReportLevel(level) {
@@ -3286,8 +3405,7 @@
 
       const name = document.getElementById('report-name').value.trim();
       const address = document.getElementById('report-address').value.trim();
-      const lat = document.getElementById('report-lat').value;
-      const lng = document.getElementById('report-lng').value;
+      const naverLink = document.getElementById('report-naver-link').value.trim();
       const menu = document.getElementById('report-menu').value.trim();
       const level = selectedLevels.report;
       const comment = document.getElementById('report-comment').value.trim();
@@ -3297,7 +3415,6 @@
       // 유효성 검사
       if (!name) { errorEl.textContent = '가게 이름을 입력해주세요'; return; }
       if (!address) { errorEl.textContent = '주소를 입력해주세요'; return; }
-      if (!lat || !lng) { errorEl.textContent = '지도에서 위치를 선택해주세요'; return; }
       if (!menu) { errorEl.textContent = '메뉴를 입력해주세요'; return; }
       if (level === undefined) { errorEl.textContent = '맵기 레벨을 선택해주세요'; return; }
       if (uploadedReportFoodImages.length === 0) { errorEl.textContent = '음식 사진을 1장 이상 첨부해주세요'; return; }
@@ -3307,13 +3424,14 @@
       showLoading('제보 등록 중...');
 
       try {
-        // 1. 맛집 등록
+        // 1. 맛집 등록 (좌표는 0으로 설정, 추후 주소 기반 좌표 변환)
         const restaurantResult = await API.restaurants.create({
           name,
           address,
-          lat: parseFloat(lat),
-          lng: parseFloat(lng),
-          category: '매운맛'
+          lat: 0,
+          lng: 0,
+          category: '매운맛',
+          naver_link: naverLink || null
         });
 
         // 2. 리뷰 등록
@@ -3412,7 +3530,8 @@
 
       // 사용자 정보 표시
       document.getElementById('mypage-nickname').textContent = currentUser.nickname;
-      document.getElementById('mypage-level').textContent = `Lv.${currentUser.spicy_level}`;
+      const levelInfo = AppState.getLevelInfo(currentUser.spicy_level);
+      document.getElementById('mypage-level').textContent = `Lv.${currentUser.spicy_level} ${levelInfo.name} ${levelInfo.emoji}`;
       document.getElementById('mypage-level').className = `user-level-badge level-${currentUser.spicy_level}`;
       document.getElementById('mypage-points').textContent = currentUser.points || 0;
 
@@ -3613,8 +3732,8 @@
             <div class="admin-review-content">
               <div class="admin-review-images">
                 ${foodImageUrls.map((url, idx) =>
-                  `<img src="${url}" alt="음식 사진 ${idx + 1}" onclick="openImageViewer('${url}', event)">`
-                ).join('')}
+          `<img src="${url}" alt="음식 사진 ${idx + 1}" onclick="openImageViewer('${url}', event)">`
+        ).join('')}
                 <img src="${review.receipt_image_url}" alt="영수증" onclick="openImageViewer('${review.receipt_image_url}', event)">
               </div>
               <div class="admin-review-details">
@@ -3773,10 +3892,17 @@
       event.preventDefault();
       const email = document.getElementById('onboarding-signup-email').value.trim();
       const password = document.getElementById('onboarding-signup-password').value;
+      const passwordConfirm = document.getElementById('onboarding-signup-password-confirm').value;
       const nickname = document.getElementById('onboarding-signup-nickname').value.trim();
       const errorEl = document.getElementById('onboarding-signup-error');
 
       errorEl.textContent = '';
+
+      // 비밀번호 확인 검사
+      if (password !== passwordConfirm) {
+        errorEl.textContent = '비밀번호가 일치하지 않습니다';
+        return;
+      }
 
       // 맵레벨 선택 확인
       if (onboardingSelectedLevel === null) {
@@ -3792,7 +3918,8 @@
         currentUser = result.user;
 
         AppState.setUser(currentUser);
-        showToast(`환영합니다, ${currentUser.nickname}님! Lv.${currentUser.spicy_level} 맵부심으로 설정되었습니다!`, 'success');
+        const levelInfo = AppState.getLevelInfo(currentUser.spicy_level);
+        showToast(`환영합니다, ${currentUser.nickname}님! Lv.${currentUser.spicy_level} ${levelInfo.name} ${levelInfo.emoji}로 설정되었습니다!`, 'success');
         showMain();
       } catch (error) {
         errorEl.textContent = error.message || '회원가입에 실패했습니다';
@@ -4132,9 +4259,9 @@
               <div class="review-item" onclick="toggleReviewDetail(this)">
                 <div class="review-preview">
                   ${firstImage
-              ? `<img src="${firstImage}" class="review-thumb" alt="음식" onclick="openImageViewer('${firstImage}', event)">`
-              : `<div class="review-thumb-placeholder">🍜</div>`
-            }
+                ? `<img src="${firstImage}" class="review-thumb" alt="음식" onclick="openImageViewer('${firstImage}', event)">`
+                : `<div class="review-thumb-placeholder">🍜</div>`
+              }
                   <div class="review-preview-info">
                     <div class="review-preview-top">
                       <span class="review-nickname">${r.user_nickname || '익명'}</span>
@@ -4147,23 +4274,23 @@
                 </div>
                 <div class="review-detail">
                   ${imageUrls.length > 0 ? (
-                    hasMultipleImages
-                      ? `<div class="review-images-carousel" data-review-id="${reviewId}" data-current="0" data-total="${imageUrls.length}">
+                hasMultipleImages
+                  ? `<div class="review-images-carousel" data-review-id="${reviewId}" data-current="0" data-total="${imageUrls.length}">
                           <div class="review-images-track" style="transform: translateX(0%);">
                             ${imageUrls.map((url, imgIdx) =>
-                              `<img src="${url}" alt="음식 사진 ${imgIdx + 1}" onclick="openImageViewer('${url}', event)">`
-                            ).join('')}
+                    `<img src="${url}" alt="음식 사진 ${imgIdx + 1}" onclick="openImageViewer('${url}', event)">`
+                  ).join('')}
                           </div>
                           <button class="review-carousel-nav prev" onclick="moveReviewCarousel('${reviewId}', -1, event)">‹</button>
                           <button class="review-carousel-nav next" onclick="moveReviewCarousel('${reviewId}', 1, event)">›</button>
                           <div class="review-carousel-dots">
                             ${imageUrls.map((_, dotIdx) =>
-                              `<span class="review-carousel-dot ${dotIdx === 0 ? 'active' : ''}" onclick="goToReviewSlide('${reviewId}', ${dotIdx}, event)"></span>`
-                            ).join('')}
+                    `<span class="review-carousel-dot ${dotIdx === 0 ? 'active' : ''}" onclick="goToReviewSlide('${reviewId}', ${dotIdx}, event)"></span>`
+                  ).join('')}
                           </div>
                         </div>`
-                      : `<img src="${firstImage}" class="review-food-image" alt="음식 사진" onclick="openImageViewer('${firstImage}', event)">`
-                  ) : ''}
+                  : `<img src="${firstImage}" class="review-food-image" alt="음식 사진" onclick="openImageViewer('${firstImage}', event)">`
+              ) : ''}
                   <div class="review-meta">
                     <span class="review-nickname">${r.user_nickname || '익명'}</span>
                     <span class="review-user-level">Lv.${r.user_level ?? '?'}</span>
@@ -4182,7 +4309,7 @@
 
         ${currentUser
           ? `<button class="write-review-btn" onclick="openReviewFormModal()">✍️ 리뷰하기</button>`
-          : `<button class="write-review-btn" onclick="openAuthModal('login'); closeModal();" style="background: #888;">로그인하고 리뷰 작성하기</button>`
+          : `<button class="write-review-btn" onclick="openAuthModal(); closeModal();" style="background: #888;">로그인하고 리뷰 작성하기</button>`
         }
       `;
 
@@ -4445,9 +4572,9 @@
     // HEIC/HEIF 파일을 JPEG로 변환하는 함수 (아이폰 사진 지원)
     async function convertHeicIfNeeded(file) {
       const isHeic = file.type === 'image/heic' ||
-                     file.type === 'image/heif' ||
-                     file.name.toLowerCase().endsWith('.heic') ||
-                     file.name.toLowerCase().endsWith('.heif');
+        file.type === 'image/heif' ||
+        file.name.toLowerCase().endsWith('.heic') ||
+        file.name.toLowerCase().endsWith('.heif');
 
       if (isHeic && typeof heic2any !== 'undefined') {
         try {
@@ -4529,7 +4656,7 @@
         const processedFile = await convertHeicIfNeeded(file);
 
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
           const itemDiv = document.createElement('div');
           itemDiv.className = 'multi-image-item';
           itemDiv.dataset.index = uploadedReportFoodImages.length;
@@ -4571,7 +4698,7 @@
 
       uploadedReportFoodImages.forEach((file, idx) => {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
           const itemDiv = document.createElement('div');
           itemDiv.className = 'multi-image-item';
           itemDiv.dataset.index = idx;
@@ -4594,7 +4721,7 @@
       });
 
       // 업로드 버튼 다시 표시
-      document.getElementById('report-food-area').style.display = 'flex';
+      document.getElementById('report-food-area').style.display = 'block';
     }
 
     async function handleMultiImageUpload(input, previewId, maxCount) {
@@ -4616,7 +4743,7 @@
         if (!file) continue; // 변환 실패 시 건너뛰기
 
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
           const itemDiv = document.createElement('div');
           itemDiv.className = 'multi-image-item';
           itemDiv.dataset.index = uploadedFoodImages.length;
@@ -4627,7 +4754,7 @@
           const removeBtn = document.createElement('button');
           removeBtn.className = 'multi-image-remove';
           removeBtn.innerHTML = '×';
-          removeBtn.onclick = function(ev) {
+          removeBtn.onclick = function (ev) {
             ev.stopPropagation();
             const idx = parseInt(itemDiv.dataset.index);
             removeUploadedImage(idx, previewId);
@@ -4660,7 +4787,7 @@
 
       uploadedFoodImages.forEach((file, idx) => {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
           const itemDiv = document.createElement('div');
           itemDiv.className = 'multi-image-item';
           itemDiv.dataset.index = idx;
@@ -4671,7 +4798,7 @@
           const removeBtn = document.createElement('button');
           removeBtn.className = 'multi-image-remove';
           removeBtn.innerHTML = '×';
-          removeBtn.onclick = function(ev) {
+          removeBtn.onclick = function (ev) {
             ev.stopPropagation();
             removeUploadedImage(idx, previewId);
           };

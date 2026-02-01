@@ -857,6 +857,19 @@ const AppState = {
   isLoading: false,
   STORAGE_KEY: 'mapmap_user',
 
+  // Helper function to get level name and emoji
+  getLevelInfo(level) {
+    const levelInfo = {
+      0: { name: '맵찔이', emoji: '🐥' },
+      1: { name: '맵초보', emoji: '👼' },
+      2: { name: '맵보통', emoji: '🌶️' },
+      3: { name: '맵니아', emoji: '🔥' },
+      4: { name: '맵고수', emoji: '💣' },
+      5: { name: '맵친자', emoji: '💀' }
+    };
+    return levelInfo[level] || { name: '맵?', emoji: '❓' };
+  },
+
   setUser(user) {
     this.user = user;
     if (user) {
@@ -903,13 +916,34 @@ const AppState = {
     const authButtons = document.getElementById('auth-buttons');
     const adminBtn = document.getElementById('admin-btn');
 
+    // 모바일 메뉴 요소들
+    const mobileNickname = document.getElementById('mobile-nickname');
+    const mobileDropdownNickname = document.getElementById('mobile-dropdown-nickname');
+    const mobileDropdownLevel = document.getElementById('mobile-dropdown-level');
+    const mobileAdminBtn = document.getElementById('mobile-admin-btn');
+
     if (this.user) {
+      const levelInfo = this.getLevelInfo(this.user.spicy_level);
+      const levelText = `Lv.${this.user.spicy_level} ${levelInfo.name} ${levelInfo.emoji}`;
+
       if (headerUserInfo) {
         headerUserInfo.style.display = 'flex';
         headerNickname.textContent = this.user.nickname;
-        headerLevel.textContent = `Lv.${this.user.spicy_level}`;
+        headerLevel.textContent = levelText;
         headerLevel.className = `user-level-badge level-${this.user.spicy_level}`;
       }
+
+      // 모바일 메뉴 업데이트
+      if (mobileNickname) mobileNickname.textContent = this.user.nickname;
+      if (mobileDropdownNickname) mobileDropdownNickname.textContent = this.user.nickname;
+      if (mobileDropdownLevel) {
+        mobileDropdownLevel.textContent = levelText;
+        mobileDropdownLevel.className = `user-level-badge level-${this.user.spicy_level}`;
+      }
+      if (mobileAdminBtn) {
+        mobileAdminBtn.style.display = this.user.is_admin ? 'flex' : 'none';
+      }
+
       if (authButtons) authButtons.style.display = 'none';
       if (adminBtn) {
         adminBtn.style.display = this.user.is_admin ? 'inline-block' : 'none';
@@ -918,6 +952,7 @@ const AppState = {
       if (headerUserInfo) headerUserInfo.style.display = 'none';
       if (authButtons) authButtons.style.display = 'flex';
       if (adminBtn) adminBtn.style.display = 'none';
+      if (mobileAdminBtn) mobileAdminBtn.style.display = 'none';
     }
   }
 };
