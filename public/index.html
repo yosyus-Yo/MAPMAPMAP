@@ -3729,6 +3729,8 @@
         // 리뷰 목록 새로고침
         const response = await API.reviews.myList();
         renderMyReviews(response.reviews || []);
+        // 맛집 목록/지도 새로고침
+        await loadRestaurants();
       } catch (error) {
         showToast(error.message || '리뷰 삭제에 실패했습니다', 'error');
       }
@@ -3875,6 +3877,8 @@
         const response = await API.admin.approve(reviewId);
         showToast(response.message || '승인 완료', 'success');
         await loadAdminReviews(currentAdminFilter);
+        // 맛집 목록/지도 새로고침 (승인된 맛집이 표시됨)
+        await loadRestaurants();
       } catch (error) {
         showToast(error.message || '승인 실패', 'error');
       }
@@ -3903,6 +3907,8 @@
         showToast(response.message || '반려 완료', 'success');
         closeRejectModal();
         await loadAdminReviews(currentAdminFilter);
+        // 맛집 목록/지도 새로고침
+        await loadRestaurants();
       } catch (error) {
         showToast(error.message || '반려 실패', 'error');
       }
@@ -3916,6 +3922,8 @@
         await API.admin.deleteReview(reviewId);
         showToast('리뷰가 삭제되었습니다', 'success');
         await loadAdminReviews(currentAdminFilter);
+        // 맛집 목록/지도 새로고침
+        await loadRestaurants();
       } catch (error) {
         showToast(error.message || '리뷰 삭제에 실패했습니다', 'error');
       }
