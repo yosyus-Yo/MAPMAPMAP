@@ -2763,7 +2763,7 @@
       </div>
 
       <!-- 로그인 폼 -->
-      <form id="onboarding-login-form" onsubmit="handleOnboardingLogin(event)">
+      <form id="onboarding-login-form" method="POST" onsubmit="handleOnboardingLogin(event)">
         <div class="form-group">
           <label>이메일</label>
           <input type="email" id="onboarding-login-email" placeholder="이메일을 입력하세요" required>
@@ -2777,7 +2777,7 @@
       </form>
 
       <!-- 회원가입 폼 -->
-      <form id="onboarding-signup-form" style="display: none;" onsubmit="handleOnboardingSignup(event)">
+      <form id="onboarding-signup-form" method="POST" style="display: none;" onsubmit="handleOnboardingSignup(event)">
         <div class="form-group">
           <label>이메일</label>
           <input type="email" id="onboarding-signup-email" placeholder="이메일을 입력하세요" required>
@@ -2937,7 +2937,7 @@
       </div>
       <div class="modal-body">
         <!-- 로그인 폼 -->
-        <form id="login-form" onsubmit="handleLogin(event)">
+        <form id="login-form" method="POST" onsubmit="handleLogin(event)">
           <div class="auth-form-group">
             <label>이메일</label>
             <input type="email" id="login-email" placeholder="이메일을 입력하세요" required>
@@ -2968,7 +2968,7 @@
         <p style="color: #666; font-size: 13px; margin-bottom: 16px;">
           새로운 매운맛집을 발견하셨나요? 정보를 입력하고 리뷰와 함께 제보해주세요!
         </p>
-        <form id="report-form" onsubmit="submitReport(event)">
+        <form id="report-form" method="POST" onsubmit="submitReport(event)">
           <div class="auth-form-group">
             <label>가게 이름 *</label>
             <input type="text" id="report-name" placeholder="가게 이름을 입력하세요" required>
