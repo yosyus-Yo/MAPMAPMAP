@@ -4086,6 +4086,21 @@
       });
     }
 
+    // ========== 맛집 목록 새로고침 ==========
+    async function loadRestaurants() {
+      try {
+        const result = await API.restaurants.list();
+        restaurants = result.restaurants || [];
+        AppState.restaurants = restaurants;
+        // 지도 마커 및 리스트 업데이트
+        if (typeof updateMarkers === 'function') updateMarkers();
+        if (typeof renderRestaurantList === 'function') renderRestaurantList();
+        console.log('✅ 맛집 목록 새로고침 완료');
+      } catch (error) {
+        console.error('맛집 새로고침 실패:', error);
+      }
+    }
+
     // ========== 지도 (카카오맵) ==========
     function initMap(centerLat = 37.54, centerLng = 126.98) {
       const container = document.getElementById('map');
