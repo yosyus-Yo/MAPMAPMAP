@@ -22,14 +22,14 @@ function initSupabase() {
 const API = {
   // Auth APIs
   auth: {
-    async signup(email, password, nickname, spicy_level = 0) {
+    async signup(email, password, nickname, spicy_level = 0, phone = null) {
       const sb = initSupabase();
 
       // 1. Supabase Auth 회원가입
       const { data: authData, error: authError } = await sb.auth.signUp({
         email,
         password,
-        options: { data: { nickname } }
+        options: { data: { nickname, phone } }
       });
 
       if (authError) {
@@ -50,6 +50,7 @@ const API = {
           id: authData.user.id,
           email,
           nickname,
+          phone: phone || null,
           spicy_level: spicy_level ?? 0,
           points: 0,
           is_admin: false,

@@ -2898,6 +2898,10 @@
           <input type="text" id="onboarding-signup-nickname" placeholder="닉네임을 입력해주세요" maxlength="10" required>
         </div>
         <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="onboarding-signup-phone" placeholder="리워드를 받기 위해서는 정확하게 입력하셔야 합니다" maxlength="13" required>
+        </div>
+        <div class="form-group">
           <label>나의 맵레벨은?</label>
           <div class="level-options" id="onboarding-level-options">
             <label class="level-option" data-level="0">
@@ -4021,6 +4025,7 @@
       const password = document.getElementById('onboarding-signup-password').value;
       const passwordConfirm = document.getElementById('onboarding-signup-password-confirm').value;
       const nickname = document.getElementById('onboarding-signup-nickname').value.trim();
+      const phone = document.getElementById('onboarding-signup-phone').value.trim();
       const errorEl = document.getElementById('onboarding-signup-error');
 
       errorEl.textContent = '';
@@ -4028,6 +4033,12 @@
       // 비밀번호 확인 검사
       if (password !== passwordConfirm) {
         errorEl.textContent = '비밀번호가 일치하지 않습니다';
+        return;
+      }
+
+      // 전화번호 검사
+      if (!phone) {
+        errorEl.textContent = '전화번호를 입력해주세요';
         return;
       }
 
@@ -4040,8 +4051,8 @@
       showLoading('회원가입 중...');
 
       try {
-        // 회원가입 (spicy_level 포함)
-        const result = await API.auth.signup(email, password, nickname, onboardingSelectedLevel);
+        // 회원가입 (spicy_level, phone 포함)
+        const result = await API.auth.signup(email, password, nickname, onboardingSelectedLevel, phone);
         currentUser = result.user;
 
         AppState.setUser(currentUser);
