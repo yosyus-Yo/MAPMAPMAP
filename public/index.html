@@ -1895,6 +1895,97 @@
       gap: 6px;
     }
 
+    .spicy-guide-btn {
+      font-size: 11px;
+      color: #999;
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 2px 8px;
+      cursor: pointer;
+      margin-left: 6px;
+      font-family: inherit;
+      vertical-align: middle;
+    }
+
+    .spicy-guide-btn:hover {
+      color: #c5171e;
+      border-color: #c5171e;
+    }
+
+    .spicy-guide-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .spicy-guide-overlay.active {
+      display: flex;
+    }
+
+    .spicy-guide-popup {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      width: 85%;
+      max-width: 320px;
+      position: relative;
+    }
+
+    .spicy-guide-popup h3 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    .spicy-guide-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #999;
+      padding: 4px 8px;
+      line-height: 1;
+    }
+
+    .spicy-guide-close:hover {
+      color: #333;
+    }
+
+    .spicy-guide-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .spicy-guide-list li {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+
+    .spicy-guide-list li:last-child {
+      border-bottom: none;
+    }
+
+    .spicy-guide-level {
+      font-weight: 700;
+      color: #c5171e;
+      min-width: 42px;
+    }
+
     .level-btn {
       flex: 1;
       padding: 12px 8px;
@@ -3101,7 +3192,7 @@
             <input type="text" id="report-menu" placeholder="드신 메뉴를 입력하세요" required>
           </div>
           <div class="auth-form-group">
-            <label>맵기 평가 *</label>
+            <label>맵기 평가 * <button type="button" class="spicy-guide-btn" onclick="openSpicyGuide()">평가 기준</button></label>
             <div class="level-buttons" id="report-level-buttons">
               <button type="button" class="level-btn" data-level="0" onclick="selectReportLevel(0)">0</button>
               <button type="button" class="level-btn" data-level="1" onclick="selectReportLevel(1)">1</button>
@@ -3278,7 +3369,7 @@
           <input type="text" id="modal-menu" placeholder="드신 메뉴를 입력하세요">
         </div>
         <div class="form-row">
-          <label>맵기 평가</label>
+          <label>맵기 평가 <button type="button" class="spicy-guide-btn" onclick="openSpicyGuide()">평가 기준</button></label>
           <div class="level-buttons" id="modal-level-buttons">
             <button class="level-btn" data-level="0" onclick="selectModalLevel(0)">0</button>
             <button class="level-btn" data-level="1" onclick="selectModalLevel(1)">1</button>
@@ -5306,6 +5397,34 @@
         initOnboarding();
       }
     });
+  </script>
+
+  <!-- 맵기 평가 기준 레이어 -->
+  <div class="spicy-guide-overlay" id="spicy-guide-overlay" onclick="closeSpicyGuide(event)">
+    <div class="spicy-guide-popup" onclick="event.stopPropagation()">
+      <button class="spicy-guide-close" onclick="closeSpicyGuide()">&times;</button>
+      <h3>🌶️ 맵기 평가 기준</h3>
+      <ul class="spicy-guide-list">
+        <li><span class="spicy-guide-level">Lv.0</span>진라면 순한맛</li>
+        <li><span class="spicy-guide-level">Lv.1</span>신라면</li>
+        <li><span class="spicy-guide-level">Lv.2</span>열라면</li>
+        <li><span class="spicy-guide-level">Lv.3</span>불닭볶음면</li>
+        <li><span class="spicy-guide-level">Lv.4</span>엽기떡볶이 매운맛</li>
+        <li><span class="spicy-guide-level">Lv.5</span>디진다돈까스</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    function openSpicyGuide() {
+      document.getElementById('spicy-guide-overlay').classList.add('active');
+    }
+
+    function closeSpicyGuide(event) {
+      if (!event || event.target === event.currentTarget) {
+        document.getElementById('spicy-guide-overlay').classList.remove('active');
+      }
+    }
   </script>
 </body>
 
