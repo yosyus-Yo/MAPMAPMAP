@@ -1895,6 +1895,21 @@
       gap: 6px;
     }
 
+    .char-counter {
+      text-align: right;
+      font-size: 12px;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    .char-counter.under {
+      color: #e53e3e;
+    }
+
+    .char-counter.over {
+      color: #38a169;
+    }
+
     .spicy-guide-btn {
       font-size: 11px;
       color: #999;
@@ -3230,8 +3245,9 @@
             </div>
           </div>
           <div class="auth-form-group">
-            <label>한줄평 (선택)</label>
-            <input type="text" id="report-comment" placeholder="맛은 어땠나요?">
+            <label>한줄평 *</label>
+            <input type="text" id="report-comment" placeholder="맛은 어땠나요? (30자 이상)" oninput="updateCharCounter('report-comment', 'report-comment-counter')">
+            <div class="char-counter under" id="report-comment-counter">0/30</div>
           </div>
           <button type="submit" class="auth-submit">제보하기</button>
           <div class="auth-error" id="report-error"></div>
@@ -3405,8 +3421,9 @@
           </div>
         </div>
         <div class="form-row">
-          <label>한줄평 (선택)</label>
-          <input type="text" id="modal-text" placeholder="맛은 어땠나요?">
+          <label>한줄평 *</label>
+          <input type="text" id="modal-text" placeholder="맛은 어땠나요? (30자 이상)" oninput="updateCharCounter('modal-text', 'modal-text-counter')">
+          <div class="char-counter under" id="modal-text-counter">0/30</div>
         </div>
         <button class="submit-btn" id="review-submit-btn" onclick="submitModalReview()">리뷰 등록</button>
       </div>
@@ -3628,6 +3645,7 @@
       if (!address) { errorEl.textContent = '가게를 검색하여 선택해주세요'; return; }
       if (!menu) { errorEl.textContent = '메뉴를 입력해주세요'; return; }
       if (level === undefined) { errorEl.textContent = '맵기 레벨을 선택해주세요'; return; }
+      if (comment.length < 30) { errorEl.textContent = '한줄평을 30자 이상 작성해주세요'; return; }
       if (uploadedReportFoodImages.length === 0) { errorEl.textContent = '음식 사진을 1장 이상 첨부해주세요'; return; }
       if (!receiptImage) { errorEl.textContent = '영수증 사진을 첨부해주세요'; return; }
 
@@ -5148,6 +5166,7 @@
 
       if (!menu) { showToast('메뉴를 입력해주세요!', 'error'); return; }
       if (level === undefined) { showToast('맵기 레벨을 선택해주세요!', 'error'); return; }
+      if (text.length < 30) { showToast('한줄평을 30자 이상 작성해주세요!', 'error'); return; }
       if (uploadedFoodImages.length === 0) { showToast('음식 사진을 첨부해주세요!', 'error'); return; }
       if (!receiptImage) { showToast('영수증 사진을 첨부해주세요!', 'error'); return; }
 
@@ -5416,6 +5435,13 @@
   </div>
 
   <script>
+    function updateCharCounter(inputId, counterId) {
+      const len = document.getElementById(inputId).value.length;
+      const counter = document.getElementById(counterId);
+      counter.textContent = `${len}/30`;
+      counter.className = len >= 30 ? 'char-counter over' : 'char-counter under';
+    }
+
     function openSpicyGuide() {
       document.getElementById('spicy-guide-overlay').classList.add('active');
     }
