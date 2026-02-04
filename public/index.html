@@ -691,12 +691,6 @@
       font-weight: 700;
     }
 
-    .restaurant-card .menus {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 8px;
-    }
-
     .restaurant-card .safety-badge {
       display: inline-block;
       padding: 4px 10px;
@@ -3556,7 +3550,7 @@
           address,
           lat: lat ? parseFloat(lat) : 0,
           lng: lng ? parseFloat(lng) : 0,
-          category: '매운맛'
+          category: null
         });
 
         // 2. 리뷰 등록
@@ -4322,7 +4316,6 @@
               <h3>${r.name}</h3>
               <span class="avg-level level-${avgLevel}">평균 Lv.${avgLevel}</span>
             </div>
-            <div class="menus">${r.category || ''}</div>
             <span class="safety-badge ${statusClass}">${statusText}</span>
           </div>
         `;
@@ -4393,7 +4386,7 @@
 
       // 캐러셀 슬라이드 생성 (카테고리 기본 + 리뷰 사진들)
       const carouselSlides = buildCarouselSlides(categoryConfig, reviewImages);
-      const totalSlides = 1 + reviewImages.length;  // 카테고리 기본 1개 + 리뷰 이미지들
+      const totalSlides = reviewImages.length > 0 ? reviewImages.length : 1;
 
       document.getElementById('modal-title').textContent = restaurant.name;
       document.getElementById('modal-body').innerHTML = `
@@ -4662,27 +4655,21 @@
 
     // 캐러셀 슬라이드 HTML 생성
     function buildCarouselSlides(categoryConfig, reviewImages) {
-      const slides = [];
-
-      // 첫 번째 슬라이드: 카테고리 기본 이미지
-      slides.push(`
-        <div class="carousel-slide">
-          <div class="carousel-slide-placeholder ${categoryConfig.className}">
-            <span>${categoryConfig.emoji}</span>
-          </div>
-        </div>
-      `);
-
-      // 리뷰 이미지들
-      reviewImages.forEach(imgUrl => {
-        slides.push(`
+      if (reviewImages.length === 0) {
+        return `
           <div class="carousel-slide">
-            <img src="${imgUrl}" alt="음식 사진">
+            <div class="carousel-slide-placeholder ${categoryConfig.className}">
+              <span>${categoryConfig.emoji}</span>
+            </div>
           </div>
-        `);
-      });
+        `;
+      }
 
-      return slides.join('');
+      return reviewImages.map(imgUrl => `
+        <div class="carousel-slide">
+          <img src="${imgUrl}" alt="음식 사진">
+        </div>
+      `).join('');
     }
 
     // 캐러셀 이동
