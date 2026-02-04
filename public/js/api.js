@@ -18,6 +18,9 @@ function initSupabase() {
   return supabaseClient;
 }
 
+// 포인트 설정 (현재 0원 - 추후 변경 가능)
+const POINTS_REWARD = 0;
+
 // API 객체 - Supabase 직접 연동
 const API = {
   // Auth APIs
@@ -639,25 +642,27 @@ const API = {
         throw new Error('이미 처리된 리뷰입니다');
       }
 
-      const POINTS = 500;
-
-      // 리뷰 승인
+      // 리뷰 승인 + 포인트 지급
       await sb
         .from('reviews')
-        .update({ status: 'approved', points_given: POINTS })
+        .update({ status: 'approved', points_given: POINTS_REWARD })
         .eq('id', id);
 
-      // 포인트 지급
-      const { data: user } = await sb
-        .from('users')
-        .select('points')
-        .eq('id', review.user_id)
-        .single();
+      // 포인트 지급 (현재 0원 - POINTS_REWARD 값 변경으로 활성화)
+      if (POINTS_REWARD > 0) {
+        const { data: userData } = await sb
+          .from('users')
+          .select('points')
+          .eq('id', review.user_id)
+          .single();
 
-      await sb
-        .from('users')
-        .update({ points: (user?.points || 0) + POINTS })
-        .eq('id', review.user_id);
+        if (userData) {
+          await sb
+            .from('users')
+            .update({ points: (userData.points || 0) + POINTS_REWARD })
+            .eq('id', review.user_id);
+        }
+      }
 
       // 맛집 평균 재계산
       const { data: reviewStats } = await sb
@@ -674,7 +679,12 @@ const API = {
           .eq('id', review.restaurant_id);
       }
 
-      return { success: true, message: `승인 완료. 사용자에게 ${POINTS}P 적립` };
+      return {
+        success: true,
+        message: POINTS_REWARD > 0
+          ? `승인 완료 (${POINTS_REWARD}P 지급)`
+          : '승인 완료'
+      };
     },
 
     async reject(id, reason) {

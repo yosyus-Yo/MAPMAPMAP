@@ -263,13 +263,13 @@
                   </div>
                   <div class="action-buttons">
                     <button class="btn btn-reject" onclick="rejectReview('${r.id}')">반려</button>
-                    <button class="btn btn-approve" onclick="approveReview('${r.id}')">승인 (+500P)</button>
+                    <button class="btn btn-approve" onclick="approveReview('${r.id}')">승인</button>
                   </div>
                 ` : r.status === 'approved' ? `
                   <div style="text-align: center; color: #4CAF50; padding: 20px;">
                     <div style="font-size: 32px; margin-bottom: 8px;">✅</div>
                     <div style="font-weight: 600;">승인 완료</div>
-                    <div style="font-size: 13px; color: #888; margin-top: 4px;">+${r.points_given || 500}P 지급됨</div>
+                    <div style="font-size: 13px; color: #888; margin-top: 4px;">승인됨</div>
                   </div>
                 ` : `
                   <div style="text-align: center; color: #f44336; padding: 20px;">
@@ -286,7 +286,7 @@
     }
 
     async function approveReview(id) {
-      if (!confirm('이 제보를 승인하시겠습니까?\n\n• 지도에 데이터가 노출됩니다\n• 유저에게 500P가 지급됩니다')) return;
+      if (!confirm('이 제보를 승인하시겠습니까?\n\n• 지도에 데이터가 노출됩니다')) return;
 
       try {
         const result = await API.admin.approve(id);

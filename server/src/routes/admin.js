@@ -5,6 +5,9 @@ const { supabase } = require('../config/database');
 
 const router = express.Router();
 
+// 포인트 설정 (현재 0원 - 추후 변경 가능)
+const POINTS_REWARD = 0;
+
 // Admin auth middleware
 const requireAdmin = (req, res, next) => {
   if (!req.session.userId) {
@@ -144,25 +147,26 @@ router.put('/reviews/:id/approve', requireAdmin, async (req, res) => {
       });
     }
 
-    const POINTS = 500;
-
-    // Update review status
+    // 리뷰 승인 + 포인트 지급
     await supabase
       .from('reviews')
-      .update({ status: 'approved', points_given: POINTS })
+      .update({ status: 'approved', points_given: POINTS_REWARD })
       .eq('id', req.params.id);
 
-    // Add points to user
+    // 사용자 정보 조회
     const { data: user } = await supabase
       .from('users')
-      .select('points, is_beta_tester')
+      .select('is_beta_tester, points')
       .eq('id', review.user_id)
       .single();
 
-    await supabase
-      .from('users')
-      .update({ points: (user?.points || 0) + POINTS })
-      .eq('id', review.user_id);
+    // 포인트 지급 (현재 0원 - POINTS_REWARD 값 변경으로 활성화)
+    if (POINTS_REWARD > 0 && user) {
+      await supabase
+        .from('users')
+        .update({ points: (user.points || 0) + POINTS_REWARD })
+        .eq('id', review.user_id);
+    }
 
     // Recalculate restaurant average
     const { data: reviewStats } = await supabase
@@ -211,7 +215,9 @@ router.put('/reviews/:id/approve', requireAdmin, async (req, res) => {
     res.json({
       success: true,
       review: updatedReview,
-      message: `승인 완료. 사용자에게 ${POINTS}P 적립${rewardCreated ? ' + 리워드 달성!' : ''}`
+      message: POINTS_REWARD > 0
+        ? `승인 완료 (${POINTS_REWARD}P 지급)${rewardCreated ? ' + 리워드 달성!' : ''}`
+        : `승인 완료${rewardCreated ? ' + 리워드 달성!' : ''}`
     });
   } catch (error) {
     console.error('Approve review error:', error);
