@@ -1838,6 +1838,7 @@
       gap: 8px;
       flex-wrap: wrap;
       align-items: flex-start;
+      justify-content: flex-start;
     }
 
 
@@ -2579,6 +2580,10 @@
       flex-wrap: wrap;
     }
 
+    .multi-image-preview:empty {
+      display: none;
+    }
+
     .multi-image-item {
       position: relative;
       width: 70px;
@@ -3001,7 +3006,8 @@
         </div>
         <div class="form-group">
           <label>전화번호</label>
-          <input type="tel" id="onboarding-signup-phone" placeholder="리워드를 받기 위해서는 정확하게 입력하셔야 합니다" maxlength="13" required>
+          <input type="tel" id="onboarding-signup-phone" placeholder="리워드를 받기 위해서는 정확하게 입력하셔야 합니다" maxlength="13"
+            required>
         </div>
         <div class="form-group">
           <label>나의 맵레벨은?</label>
@@ -3181,7 +3187,8 @@
           <div class="auth-form-group">
             <label>🔍 가게 검색 *</label>
             <div class="search-input-row">
-              <input type="text" id="report-search" placeholder="가게 이름으로 검색하세요" onkeypress="if(event.key==='Enter'){event.preventDefault(); searchPlace();}">
+              <input type="text" id="report-search" placeholder="가게 이름으로 검색하세요"
+                onkeypress="if(event.key==='Enter'){event.preventDefault(); searchPlace();}">
               <button type="button" class="search-btn" onclick="searchPlace()">검색</button>
             </div>
             <!-- 검색 결과 리스트 -->
@@ -3204,10 +3211,11 @@
           </div>
           <div class="auth-form-group">
             <label>드신 메뉴 *</label>
-            <input type="text" id="report-menu" placeholder="사장님이 설정한 맵기레벨도 적어주세요!" required>
+            <input type="text" id="report-menu" placeholder="ex) 엽기떡볶이 오리지널" required>
           </div>
           <div class="auth-form-group">
-            <label>맵기 평가 * <button type="button" class="spicy-guide-btn" onclick="openSpicyGuide()">평가 기준</button></label>
+            <label>맵기 평가 * <button type="button" class="spicy-guide-btn" onclick="openSpicyGuide()">평가
+                기준</button></label>
             <div class="level-buttons" id="report-level-buttons">
               <button type="button" class="level-btn" data-level="0" onclick="selectReportLevel(0)">0</button>
               <button type="button" class="level-btn" data-level="1" onclick="selectReportLevel(1)">1</button>
@@ -3246,7 +3254,8 @@
           </div>
           <div class="auth-form-group">
             <label>한줄평 *</label>
-            <input type="text" id="report-comment" placeholder="맛은 어땠나요? (30자 이상)" oninput="updateCharCounter('report-comment', 'report-comment-counter')">
+            <input type="text" id="report-comment" placeholder="맛은 어땠나요? (30자 이상)"
+              oninput="updateCharCounter('report-comment', 'report-comment-counter')">
             <div class="char-counter under" id="report-comment-counter">0/30</div>
           </div>
           <button type="submit" class="auth-submit">제보하기</button>
@@ -3422,7 +3431,8 @@
         </div>
         <div class="form-row">
           <label>한줄평 *</label>
-          <input type="text" id="modal-text" placeholder="맛은 어땠나요? (30자 이상)" oninput="updateCharCounter('modal-text', 'modal-text-counter')">
+          <input type="text" id="modal-text" placeholder="맛은 어땠나요? (30자 이상)"
+            oninput="updateCharCounter('modal-text', 'modal-text-counter')">
           <div class="char-counter under" id="modal-text-counter">0/30</div>
         </div>
         <button class="submit-btn" id="review-submit-btn" onclick="submitModalReview()">리뷰 등록</button>
@@ -5287,7 +5297,7 @@
       resultsDiv.innerHTML = '<div class="place-search-no-result">🔍 검색 중...</div>';
 
       // Kakao Places API 검색
-      placesService.keywordSearch(keyword, function(result, status) {
+      placesService.keywordSearch(keyword, function (result, status) {
         if (status === kakao.maps.services.Status.OK) {
           displaySearchResults(result);
         } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
