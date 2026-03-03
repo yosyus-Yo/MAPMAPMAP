@@ -428,6 +428,93 @@
       cursor: not-allowed;
     }
 
+    /* ========== 환영 딤 오버레이 ========== */
+    .welcome-dim-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 10001;
+      justify-content: center;
+      align-items: center;
+      animation: welcomeFadeIn 0.3s ease;
+    }
+
+    .welcome-dim-overlay.active {
+      display: flex;
+    }
+
+    @keyframes welcomeFadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .welcome-buttons {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 0 20px;
+    }
+
+    .welcome-btn {
+      padding: 18px 36px;
+      border: none;
+      border-radius: 16px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      min-width: 180px;
+      text-align: center;
+    }
+
+    .welcome-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .welcome-btn:active {
+      transform: translateY(0);
+    }
+
+    .welcome-btn.view-reviews {
+      background: white;
+      color: #c5171e;
+      border: 2px solid #c5171e;
+    }
+
+    .welcome-btn.view-reviews:hover {
+      background: #fff5f2;
+    }
+
+    .welcome-btn.write-review {
+      background: linear-gradient(135deg, #c5171e 0%, #ff6b35 100%);
+      color: white;
+    }
+
+    .welcome-btn.write-review:hover {
+      background: linear-gradient(135deg, #d41920 0%, #ff7d4d 100%);
+    }
+
+    @media (max-width: 480px) {
+      .welcome-btn {
+        padding: 16px 28px;
+        font-size: 15px;
+        min-width: 150px;
+      }
+    }
+
     /* ========== 메인 컨테이너 ========== */
     #main-container {
       display: none;
@@ -639,8 +726,8 @@
       height: 500px;
     }
 
-    /* 맛집 리스트 */
-    .restaurant-section {
+    /* 리뷰 피드 */
+    .review-feed-section {
       background: white;
       border-radius: 16px;
       padding: 20px;
@@ -648,15 +735,134 @@
       margin-bottom: 20px;
     }
 
-    .restaurant-section h2 {
-      font-size: 18px;
+    .review-feed-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
     }
 
-    .restaurant-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    .review-feed-header h2 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .review-feed-filter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .review-feed-list {
+      display: flex;
+      flex-direction: column;
       gap: 16px;
+    }
+
+    .review-feed-card {
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.2s;
+    }
+
+    .review-feed-card:hover {
+      border-color: #ffccc0;
+      box-shadow: 0 4px 12px rgba(255, 69, 0, 0.1);
+    }
+
+    .review-feed-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+
+    .review-feed-restaurant {
+      font-size: 16px;
+      font-weight: 700;
+      color: #333;
+      cursor: pointer;
+    }
+
+    .review-feed-restaurant:hover {
+      color: #c5171e;
+    }
+
+    .review-feed-level {
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .review-feed-menu {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .review-feed-comment {
+      font-size: 14px;
+      color: #333;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .review-feed-images {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      margin-bottom: 12px;
+      padding-bottom: 4px;
+    }
+
+    .review-feed-images img {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 8px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+
+    .review-feed-images img:hover {
+      transform: scale(1.05);
+    }
+
+    .review-feed-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .review-feed-author {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .review-feed-author-level {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .review-feed-images img {
+        width: 100px;
+        height: 100px;
+      }
     }
 
     .restaurant-card {
@@ -2754,16 +2960,14 @@
         height: 400px;
       }
 
-      .restaurant-list {
-        grid-template-columns: 1fr;
-      }
+
 
       .legend {
         flex-direction: column;
         gap: 10px;
       }
 
-      /* 맛집 제보하기 모달 - 이미지 업로드 모바일 반응형 */
+      /* 리뷰 작성하기 모달 - 이미지 업로드 모바일 반응형 */
       /* .image-upload-row {
         flex-direction: column;
         gap: 16px;
@@ -3064,6 +3268,17 @@
 
   <!-- 메인 컨테이너 -->
   <div id="main-container">
+    <!-- 환영 딤 오버레이 -->
+    <div class="welcome-dim-overlay" id="welcome-dim-overlay">
+      <div class="welcome-buttons">
+        <button class="welcome-btn view-reviews" onclick="closeWelcomeOverlay()">
+          📖 리뷰 보러가기
+        </button>
+        <button class="welcome-btn write-review" onclick="closeWelcomeAndOpenReview()">
+          ✍️ 리뷰 작성하기
+        </button>
+      </div>
+    </div>
     <div class="main-content">
       <!-- 지도 -->
       <div class="map-section">
@@ -3074,7 +3289,7 @@
               📍 내 위치로
             </button>
             <button class="report-btn" onclick="openReportModal()">
-              🔥 맛집 제보하기
+              🔥 리뷰 작성하기
             </button>
             <div class="toggle-row">
               <span class="toggle-label">내 레벨 이하만 보기</span>
@@ -3111,10 +3326,19 @@
         </div>
       </div>
 
-      <!-- 맛집 리스트 -->
-      <div class="restaurant-section">
-        <h2>🍜 맛집 리스트</h2>
-        <div class="restaurant-list" id="restaurant-list"></div>
+      <!-- 리뷰 피드 -->
+      <div class="review-feed-section">
+        <div class="review-feed-header">
+          <h2>📝 최신 리뷰</h2>
+          <div class="review-feed-filter">
+            <span>내 맵레벨 리뷰만</span>
+            <label class="switch">
+              <input type="checkbox" id="review-level-filter">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="review-feed-list" id="review-feed-list"></div>
       </div>
     </div>
 
@@ -3175,7 +3399,7 @@
   <div class="modal-overlay" id="report-modal-overlay">
     <div class="modal auth-modal">
       <div class="modal-header">
-        <h2>🔥 맛집 제보하기</h2>
+        <h2>🔥 리뷰 작성하기</h2>
         <button class="modal-close" onclick="closeReportModal()">×</button>
       </div>
       <div class="modal-body">
@@ -4181,10 +4405,29 @@
       }
     }
 
+    // ========== 환영 딤 오버레이 ==========
+    function showWelcomeOverlay() {
+      if (sessionStorage.getItem('welcomeOverlayDismissed')) return;
+      document.getElementById('welcome-dim-overlay').classList.add('active');
+    }
+
+    function closeWelcomeOverlay() {
+      sessionStorage.setItem('welcomeOverlayDismissed', 'true');
+      document.getElementById('welcome-dim-overlay').classList.remove('active');
+    }
+
+    function closeWelcomeAndOpenReview() {
+      closeWelcomeOverlay();
+      openReportModal();
+    }
+
     // ========== 메인 화면 ==========
     async function showMain() {
       document.getElementById('onboarding').style.display = 'none';
       document.getElementById('main-container').style.display = 'block';
+
+      // 환영 딤 오버레이 표시
+      showWelcomeOverlay();
 
       // 헤더 유저 정보
       AppState.setUser(currentUser);
@@ -4204,11 +4447,14 @@
       }
 
       initMap();
-      renderRestaurantList();
+      loadReviewFeed();
 
       document.getElementById('safety-filter').addEventListener('change', () => {
         updateMarkers();
-        renderRestaurantList();
+      });
+
+      document.getElementById('review-level-filter').addEventListener('change', () => {
+        renderReviewFeed();
       });
     }
 
@@ -4220,7 +4466,7 @@
         AppState.restaurants = restaurants;
         // 지도 마커 및 리스트 업데이트
         if (typeof updateMarkers === 'function') updateMarkers();
-        if (typeof renderRestaurantList === 'function') renderRestaurantList();
+        if (typeof loadReviewFeed === 'function') loadReviewFeed();
         console.log('✅ 맛집 목록 새로고침 완료');
       } catch (error) {
         console.error('맛집 새로고침 실패:', error);
@@ -4406,36 +4652,75 @@
       return 'danger';
     }
 
-    // ========== 맛집 리스트 ==========
-    function renderRestaurantList() {
-      const safetyFilter = document.getElementById('safety-filter').checked;
-      const listEl = document.getElementById('restaurant-list');
+    // ========== 리뷰 피드 ==========
+    let allApprovedReviews = [];
+
+    async function loadReviewFeed() {
+      try {
+        const result = await API.reviews.listApproved();
+        allApprovedReviews = result.reviews || [];
+        renderReviewFeed();
+      } catch (error) {
+        console.error('리뷰 피드 로드 실패:', error);
+        allApprovedReviews = [];
+        renderReviewFeed();
+      }
+    }
+
+    function renderReviewFeed() {
+      const levelFilter = document.getElementById('review-level-filter').checked;
+      const listEl = document.getElementById('review-feed-list');
       const userLevel = currentUser?.spicy_level ?? 3;
 
-      const filteredRestaurants = safetyFilter
-        ? restaurants.filter(r => Math.round(r.avg_level) <= userLevel)
-        : restaurants;
+      const filteredReviews = levelFilter
+        ? allApprovedReviews.filter(r => r.user_level === userLevel)
+        : allApprovedReviews;
 
-      if (filteredRestaurants.length === 0) {
-        listEl.innerHTML = '<div class="no-review">맛집이 없습니다. 새로운 맛집을 등록해보세요!</div>';
+      if (filteredReviews.length === 0) {
+        listEl.innerHTML = '<div class="no-review" style="text-align:center;padding:40px 20px;color:#999;">아직 리뷰가 없습니다. 첫 리뷰를 작성해보세요! 🔥</div>';
         return;
       }
 
-      listEl.innerHTML = filteredRestaurants.map(r => {
-        const avgLevel = Math.round(r.avg_level) || 0;
-        const status = getStatus(avgLevel);
-        let statusText, statusClass;
-        if (status === 'safe') { statusText = '✅ Safe'; statusClass = 'safe'; }
-        else if (status === 'warning') { statusText = '⚠️ Warning'; statusClass = 'warning'; }
-        else { statusText = '🔥 Danger'; statusClass = 'danger'; }
+      listEl.innerHTML = filteredReviews.map(r => {
+        const levelInfo = AppState.getLevelInfo(r.spicy_level);
+        const authorLevelInfo = AppState.getLevelInfo(r.user_level);
+        const date = new Date(r.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
+
+        // 음식 이미지 파싱
+        let foodImageUrls = [];
+        if (r.food_image_url) {
+          try {
+            const parsed = JSON.parse(r.food_image_url);
+            foodImageUrls = Array.isArray(parsed) ? parsed : [r.food_image_url];
+          } catch {
+            foodImageUrls = [r.food_image_url];
+          }
+        }
+
+        const imagesHtml = foodImageUrls.length > 0 ? `
+          <div class="review-feed-images">
+            ${foodImageUrls.map((url, idx) => `<img src="${url}" alt="음식 사진 ${idx + 1}" onclick="openImageViewer('${url}', event)">`).join('')}
+          </div>
+        ` : '';
 
         return `
-          <div class="restaurant-card" onclick="openRestaurantModal('${r.id}')">
-            <div class="restaurant-card-header">
-              <h3>${r.name}</h3>
-              <span class="avg-level level-${avgLevel}">평균 Lv.${avgLevel}</span>
+          <div class="review-feed-card">
+            <div class="review-feed-card-top">
+              <span class="review-feed-restaurant" onclick="openRestaurantModal('${r.restaurant_id}')">
+                🏪 ${r.restaurant_name || '알 수 없는 맛집'}
+              </span>
+              <span class="review-feed-level level-${r.spicy_level}">맵기 Lv.${r.spicy_level} ${levelInfo.emoji}</span>
             </div>
-            <span class="safety-badge ${statusClass}">${statusText}</span>
+            <div class="review-feed-menu">🍽️ ${r.menu_name}</div>
+            ${r.comment ? `<div class="review-feed-comment">${r.comment}</div>` : ''}
+            ${imagesHtml}
+            <div class="review-feed-meta">
+              <div class="review-feed-author">
+                <span>${r.user_nickname || '익명'}</span>
+                <span class="review-feed-author-level level-${r.user_level}">Lv.${r.user_level} ${authorLevelInfo.emoji}</span>
+              </div>
+              <span>${date}</span>
+            </div>
           </div>
         `;
       }).join('');

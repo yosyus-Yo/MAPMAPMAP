@@ -461,6 +461,30 @@ const API = {
       };
     },
 
+    // 승인된 전체 리뷰 조회 (공개용, 최신순)
+    async listApproved() {
+      const sb = initSupabase();
+
+      const { data: reviews, error } = await sb
+        .from('reviews')
+        .select('*, users (nickname, spicy_level), restaurants (name)')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformed = reviews.map(r => ({
+        ...r,
+        user_nickname: r.users?.nickname,
+        user_level: r.users?.spicy_level,
+        restaurant_name: r.restaurants?.name,
+        users: undefined,
+        restaurants: undefined
+      }));
+
+      return { success: true, reviews: transformed };
+    },
+
     async myList() {
       const sb = initSupabase();
       const { data: { user: authUser } } = await sb.auth.getUser();
