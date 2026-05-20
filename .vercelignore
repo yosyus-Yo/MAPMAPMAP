@@ -33,3 +33,7 @@ supabase-add-phone.sql
 .DS_Store
 node_modules/
 *.log
+
+# v1 백업 파일 — 배포 제외 (2026-05-20)
+*.bak
+public/index-v1.html.bak
