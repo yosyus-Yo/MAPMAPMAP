@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>맵맵맵 — Linear Blaze (7-view SPA)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;590;700&display=swap" rel="stylesheet">
+  <style>
+    /* ====================================================
+       Linear Blaze SPA — mapmadmap 7-view 통합
+       원본 기능 매핑 (api.js):
+       1. onboarding — API.auth.signup/login
+       2. level-setup — API.auth.setSpicyLevel
+       3. map (홈) — API.restaurants.list + 카카오맵
+       4. detail — API.restaurants.get + API.favorites
+       5. review — API.reviews.create (FormData)
+       6. mypage — API.reviews.myList + myStats (베타리워드)
+       7. admin — API.admin.getReviews/approve/reject
+       ==================================================== */
+    :root {
+      --bg: #fafaf7;
+      --panel: #ffffff;
+      --surface: #f5f2ee;
+      --surface-2: #ebe6df;
+      --text: #1a1a1a;
+      --text-2: #3f3f3f;
+      --text-3: #6e6e6e;
+      --text-4: #9a9a9a;
+      --border: rgba(0,0,0,0.08);
+      --border-2: rgba(0,0,0,0.12);
+      --spice: #c5171e;
+      --spice-2: #ff6b35;
+      --gradient: linear-gradient(135deg, #c5171e 0%, #ff6b35 100%);
+      --gradient-bright: linear-gradient(135deg, #ff6b35 0%, #fbbf24 100%);
+      --spice-soft: rgba(255,107,53,0.08);
+      --spice-glow: 0 0 24px rgba(255,107,53,0.35);
+      --spice-glow-strong: 0 0 32px rgba(197,23,30,0.4);
+      --success: #2e7d32;
+      --warning: #d97706;
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 14px;
+      --nav-w: 72px;
+      --nav-h-mobile: 64px;
+      --top-h: 56px;
+      --sidebar-w: 360px;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-feature-settings: "cv01", "ss03";
+      background: var(--bg);
+      color: var(--text);
+      font-weight: 510;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    button { font-family: inherit; cursor: pointer; border: none; }
+    a { color: inherit; text-decoration: none; }
+    input, textarea, select { font-family: inherit; font-feature-settings: inherit; }
+
+    /* ============== 좌측 사이드 Nav (데스크톱/태블릿) ============== */
+    .side-nav {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: var(--nav-w);
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
+      z-index: 200;
+      box-shadow: var(--shadow-sm);
+    }
+    .nav-logo {
+      width: 44px; height: 44px;
+      border-radius: 11px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(197,23,30,0.3);
+      margin-bottom: 16px;
+      animation: pulse-glow 3s ease-in-out infinite;
+      padding: 6px;
+    }
+    .nav-logo img { width: 100%; height: 100%; display: block; }
+    @keyframes pulse-glow {
+      0%,100% { box-shadow: 0 4px 12px rgba(197,23,30,0.3); }
+      50% { box-shadow: 0 4px 20px rgba(255,107,53,0.6); }
+    }
+    .nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      width: 100%;
+      padding: 0 8px;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 10px 4px;
+      border-radius: var(--r-md);
+      color: var(--text-3);
+      transition: all 0.15s;
+      background: none;
+      width: 100%;
+      position: relative;
+    }
+    .nav-item:hover {
+      background: var(--surface);
+      color: var(--text);
+    }
+    .nav-item.active {
+      background: var(--gradient);
+      color: white;
+      box-shadow: 0 4px 12px rgba(197,23,30,0.25);
+    }
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: -8px; top: 50%;
+      transform: translateY(-50%);
+      width: 3px; height: 60%;
+      background: var(--spice);
+      border-radius: 0 3px 3px 0;
+    }
+    .nav-icon { font-size: 20px; line-height: 1; }
+    .nav-label { font-size: 9px; font-weight: 590; letter-spacing: -0.02em; }
+
+    .nav-bottom {
+      width: 100%;
+      padding: 0 8px;
+    }
+    .nav-bottom .user-chip {
+      width: 100%;
+      padding: 8px 4px;
+      border-radius: var(--r-md);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .nav-bottom .user-chip:hover { background: var(--surface-2); }
+    .nav-bottom .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--gradient);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-bottom .lvl-mini {
+      font-size: 9px;
+      font-weight: 700;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ============== Main 영역 ============== */
+    .main {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: var(--nav-w);
+      overflow: hidden;
+    }
+    .view {
+      display: none;
+      width: 100%; height: 100%;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    /* ============== 공통 컴포넌트 ============== */
+    .btn {
+      padding: 9px 16px;
+      border-radius: var(--r-sm);
+      font-weight: 590;
+      font-size: 13px;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .btn-primary {
+      background: var(--gradient);
+      color: white;
+      box-shadow: 0 2px 8px rgba(197,23,30,0.25);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(197,23,30,0.35), var(--spice-glow); }
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--surface-2); }
+    .btn-block { display: block; width: 100%; padding: 12px; font-size: 14px; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 590;
+      margin-bottom: 6px;
+      color: var(--text-2);
+      letter-spacing: -0.01em;
+    }
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-2);
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      background: var(--panel);
+      transition: all 0.15s;
+      color: var(--text);
+      font-family: inherit;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: var(--spice-2);
+      box-shadow: 0 0 0 3px rgba(255,107,53,0.1);
+    }
+    textarea.form-input { resize: vertical; min-height: 80px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .pill-grad { background: var(--gradient); color: white; }
+    .pill-soft { background: var(--spice-soft); color: var(--spice); }
+    .pill-mute { background: var(--surface); color: var(--text-3); }
+    .tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 590;
+      font-family: 'Berkeley Mono', ui-monospace, monospace;
+    }
+    .tag-s0 { background: #f3f4f6; color: #6b7280; }
+    .tag-s1 { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #78350f; }
+    .tag-s2 { background: linear-gradient(135deg, #fed7aa, #fb923c); color: white; }
+    .tag-s3 { background: var(--gradient); color: white; }
+    .tag-s4 { background: linear-gradient(135deg, #c5171e, #7c2d12); color: white; }
+    .tag-s5 { background: linear-gradient(135deg, #1f2937, #c5171e); color: #fef3c7; }
+
+    /* ============== VIEW 1: 온보딩 ============== */
+    .onboarding {
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(255,107,53,0.08), transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(197,23,30,0.06), transparent 40%),
+        var(--bg);
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .ob-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--panel);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      padding: 32px 28px;
+      border: 1px solid var(--border);
+    }
+    .ob-brand { text-align: center; margin-bottom: 24px; }
+    .ob-brand .logo {
+      width: 72px; height: 72px;
+      margin: 0 auto 12px;
+      border-radius: 18px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(197,23,30,0.3), var(--spice-glow);
+      padding: 12px;
+      border: 2px solid var(--spice-soft);
+    }
+    .ob-brand .logo img { width: 100%; height: 100%; display: block; }
+    .ob-brand h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .ob-brand h1 span {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .ob-brand p { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+    .ob-tabs {
+      display: flex;
+      background: var(--surface);
+      border-radius: var(--r-md);
+      padding: 3px;
+      margin-bottom: 18px;
+    }
+    .ob-tab {
+      flex: 1;
+      padding: 8px;
+      background: transparent;
+      border-radius: 8px;
+      font-weight: 590;
+      font-size: 13px;
+      color: var(--text-3);
+      transition: all 0.15s;
+    }
+    .ob-tab.active { background: var(--panel); color: var(--text); box-shadow: var(--shadow-sm); }
+    .ob-divider {
+      display: flex;
+      align-items: center;
+      margin: 16px 0 12px;
+      color: var(--text-4);
+      font-size: 11px;
+    }
+    .ob-divider::before, .ob-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .ob-divider span { padding: 0 10px; }
+    .social-btns { display: flex; flex-direction: column; gap: 6px; }
+    .social-btn {
+      padding: 10px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: var(--r-sm);
+      font-weight: 590;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .social-btn:hover { border-color: var(--spice-2); background: var(--spice-soft); }
+
+    /* ============== VIEW 2: 맵레벨 설정 ============== */
+    .level-setup {
+      width: 100%; height: 100%;
+      overflow-y: auto;
+      padding: 32px 24px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,107,53,0.06), transparent 40%),
+        var(--bg);
+    }
+    .ls-container { max-width: 720px; margin: 0 auto; }
+    .ls-hero { text-align: center; margin-bottom: 28px; }
+    .ls-hero .emoji-row { font-size: 36px; letter-spacing: 4px; margin-bottom: 12px; }
+    .ls-hero h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+    .ls-hero h1 .accent {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .ls-hero p { font-size: 13px; color: var(--text-3); }
+    .level-grid { display: grid; gap: 8px; margin-bottom: 24px; }
+    .level-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--panel);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .level-option:hover {
+      border-color: var(--spice-2);
+      transform: translateX(2px);
+    }
+    .level-option.selected {
+      border-color: var(--spice);
+      background: var(--spice-soft);
+      box-shadow: var(--spice-glow);
+    }
+    .level-option .icon-box {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+    .level-option.selected .icon-box { background: var(--gradient); }
+    .level-option .info { flex: 1; min-width: 0; }
+    .level-option .info .name { font-size: 14px; font-weight: 700; }
+    .level-option .info .desc { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .level-option .check {
+      width: 22px; height: 22px;
+      border: 2px solid var(--border-2);
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      opacity: 0;
+    }
+    .level-option.selected .check {
+      background: var(--gradient);
+      border-color: var(--spice);
+      opacity: 1;
+    }
+    .ls-actions { display: flex; gap: 8px; }
+    .ls-actions .btn { flex: 1; padding: 12px; }
+
+    /* ============== VIEW 3: 메인 지도 ============== */
+    .map-view-page { width: 100%; height: 100%; position: relative; }
+    .map-layout {
+      width: 100%; height: 100%;
+      display: grid;
+      grid-template-columns: 1fr var(--sidebar-w);
+    }
+    .map-stage {
+      position: relative;
+      background: linear-gradient(180deg, #fff8f0 0%, #fff2e8 100%);
+      overflow: hidden;
+    }
+    .map-stage::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.025) 0, rgba(0,0,0,0.025) 1px, transparent 1px, transparent 70px),
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.025) 0, rgba(0,0,0,0.025) 1px, transparent 1px, transparent 70px);
+    }
+    .map-stage::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 25% 30%, rgba(255,107,53,0.1) 0%, transparent 35%),
+        radial-gradient(circle at 70% 65%, rgba(197,23,30,0.08) 0%, transparent 40%);
+      pointer-events: none;
+    }
+    .road {
+      position: absolute;
+      background: white;
+      border-top: 1px solid #e5d5b8;
+      border-bottom: 1px solid #e5d5b8;
+    }
+    .road.h1 { top: 28%; left: -10%; width: 120%; height: 16px; transform: rotate(-1.5deg); }
+    .road.h2 { top: 65%; left: -10%; width: 120%; height: 22px; transform: rotate(1deg); }
+    .road.v1 { top: -10%; left: 28%; width: 12px; height: 120%; transform: rotate(2deg); }
+    .road.v2 { top: -10%; left: 70%; width: 18px; height: 120%; transform: rotate(-3deg); }
+
+    .ember {
+      position: absolute;
+      width: 5px; height: 5px;
+      background: var(--spice-2);
+      border-radius: 50%;
+      box-shadow: 0 0 12px var(--spice-2);
+      animation: float 6s ease-in-out infinite;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .ember.e1 { top: 18%; left: 14%; animation-delay: 0s; }
+    .ember.e2 { top: 48%; left: 84%; animation-delay: 1s; background: var(--spice); box-shadow: 0 0 12px var(--spice); }
+    .ember.e3 { top: 72%; left: 32%; animation-delay: 2s; }
+    .ember.e4 { top: 28%; left: 78%; animation-delay: 3s; background: #fbbf24; box-shadow: 0 0 12px #fbbf24; }
+    .ember.e5 { top: 62%; left: 10%; animation-delay: 4s; }
+    @keyframes float {
+      0%,100% { transform: translateY(0) scale(1); opacity: 0.3; }
+      50% { transform: translateY(-30px) scale(1.2); opacity: 0.7; }
+    }
+
+    .pin {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      animation: dropIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+      z-index: 5;
+    }
+    .pin .dot {
+      width: 14px; height: 14px;
+      background: var(--gradient);
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(255,107,53,0.18), var(--spice-glow);
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    .pin.lvl-low .dot { background: var(--gradient-bright); box-shadow: 0 0 0 4px rgba(251,191,36,0.18), 0 0 24px rgba(251,191,36,0.4); }
+    .pin.lvl-extreme .dot { background: linear-gradient(135deg, #1a1a1a, #c5171e); box-shadow: 0 0 0 4px rgba(0,0,0,0.15), 0 0 32px rgba(197,23,30,0.5); }
+    .pin .lbl {
+      position: absolute;
+      top: -34px; left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1.5px solid var(--border-2);
+      padding: 4px 10px;
+      border-radius: var(--r-sm);
+      font-size: 11px;
+      font-family: 'Berkeley Mono', ui-monospace, monospace;
+      white-space: nowrap;
+      box-shadow: var(--shadow-md);
+      font-weight: 590;
+    }
+    .pin.lvl-extreme .lbl { background: linear-gradient(135deg, #1a1a1a, #c5171e); color: white; border-color: transparent; }
+    .pin .lbl::after {
+      content: '';
+      position: absolute;
+      bottom: -5px; left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid white;
+    }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+    @keyframes dropIn { from { opacity: 0; transform: translate(-50%, -30%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+
+    /* Map overlays */
+    .mini-stats {
+      position: absolute;
+      top: 16px; left: 16px;
+      z-index: 10;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 12px 14px;
+      display: flex;
+      gap: 20px;
+      font-family: 'Berkeley Mono', ui-monospace, monospace;
+      box-shadow: var(--shadow-md);
+    }
+    .mini-stats .item .label { font-size: 10px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+    .mini-stats .item .value { font-size: 13px; font-weight: 590; }
+    .mini-stats .item .value.spice {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 700;
+    }
+    .filter-bar {
+      position: absolute;
+      top: 16px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px;
+      display: flex;
+      gap: 2px;
+      box-shadow: var(--shadow-md);
+      max-width: calc(100% - 460px);
+      overflow-x: auto;
+    }
+    .filter-pill {
+      padding: 5px 12px;
+      background: transparent;
+      color: var(--text-3);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 590;
+      flex-shrink: 0;
+    }
+    .filter-pill.active { background: var(--gradient); color: white; box-shadow: var(--spice-glow); }
+    .filter-pill:not(.active):hover { background: var(--surface); color: var(--text); }
+    .map-ctrl {
+      position: absolute;
+      bottom: 16px; left: 16px;
+      z-index: 10;
+      display: flex;
+      gap: 6px;
+    }
+    .map-ctrl .btn-c {
+      width: 34px; height: 34px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: var(--shadow-sm);
+    }
+    .map-ctrl .btn-c:hover { border-color: var(--spice-2); color: var(--spice); }
+    .spice-banner {
+      position: absolute;
+      bottom: 80px; left: 16px;
+      z-index: 10;
+      background: var(--gradient);
+      color: white;
+      padding: 12px 18px;
+      border-radius: var(--r-md);
+      box-shadow: 0 8px 32px rgba(197,23,30,0.35), var(--spice-glow);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 320px;
+    }
+    .spice-banner .ico { font-size: 24px; }
+    .spice-banner .text .top { font-size: 10px; opacity: 0.9; font-weight: 510; text-transform: uppercase; letter-spacing: 0.05em; }
+    .spice-banner .text .bot { font-size: 13px; font-weight: 700; margin-top: 2px; }
+
+    /* Sidebar (지도 view 전용) */
+    .map-sidebar {
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .sb-head {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+    .sb-head::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0;
+      width: 50px; height: 2px;
+      background: var(--gradient);
+    }
+    .sb-head h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .sb-head h2 .ico { font-size: 14px; animation: flame 2s ease-in-out infinite; }
+    @keyframes flame { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+    .sb-head .count { font-size: 10px; color: var(--text-3); font-family: 'Berkeley Mono', ui-monospace, monospace; }
+
+    .sb-tabs {
+      display: flex;
+      gap: 2px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .sb-tab {
+      padding: 5px 10px;
+      border-radius: var(--r-sm);
+      font-size: 11px;
+      font-weight: 590;
+      color: var(--text-3);
+      background: transparent;
+      flex-shrink: 0;
+    }
+    .sb-tab.active { background: var(--gradient); color: white; }
+
+    .sb-row {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .sb-row:hover { background: var(--surface); }
+    .sb-row.selected {
+      background: linear-gradient(90deg, rgba(255,107,53,0.1), transparent);
+      padding-left: 15px;
+    }
+    .sb-row.selected::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 8px; bottom: 8px;
+      width: 3px;
+      background: var(--gradient);
+      border-radius: 0 3px 3px 0;
+    }
+    .sb-row .top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .sb-row .name { font-size: 13px; font-weight: 590; display: flex; align-items: center; gap: 4px; }
+    .sb-row .rank {
+      font-size: 10px;
+      font-family: 'Berkeley Mono', ui-monospace, monospace;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: var(--surface);
+      color: var(--text-4);
+    }
+    .sb-row.top-3 .rank { background: var(--gradient); color: white; }
+    .sb-row .meta { font-size: 11px; color: var(--text-3); margin-bottom: 6px; font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .sb-row .row { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    .level-bar { display: flex; gap: 2px; }
+    .level-bar span { width: 5px; height: 12px; background: var(--surface-2); border-radius: 1px; }
+    .level-bar span.fill-1 { background: #fbbf24; }
+    .level-bar span.fill-2 { background: var(--spice-2); }
+    .level-bar span.fill-3 { background: var(--spice); box-shadow: 0 0 4px rgba(197,23,30,0.4); }
+    .level-bar span.fill-5 { background: linear-gradient(180deg, var(--text), var(--spice)); }
+    .sb-row .price, .sb-row .star { font-size: 11px; font-family: 'Berkeley Mono', ui-monospace, monospace; color: var(--text-2); }
+
+    .sb-footer {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      background: var(--gradient);
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sb-footer .ico { font-size: 22px; }
+    .sb-footer .text .top { font-size: 10px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.05em; }
+    .sb-footer .text .bot { font-size: 12px; font-weight: 700; }
+
+    /* ============== VIEW 4: 맛집 상세 (지도 + 우측 시트) ============== */
+    .detail-view { width: 100%; height: 100%; position: relative; }
+    .detail-sheet {
+      position: absolute;
+      top: 16px; right: 16px;
+      bottom: 16px;
+      width: 420px;
+      background: var(--panel);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .dt-hero {
+      height: 160px;
+      background: var(--gradient);
+      position: relative;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .dt-hero::after {
+      content: '🍜';
+      position: absolute;
+      right: -20px; bottom: -20px;
+      font-size: 180px;
+      opacity: 0.18;
+    }
+    .dt-back, .dt-fav {
+      position: absolute;
+      top: 14px;
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      backdrop-filter: blur(8px);
+      font-size: 15px;
+    }
+    .dt-back { left: 14px; background: rgba(0,0,0,0.4); color: white; }
+    .dt-fav { right: 14px; background: rgba(255,255,255,0.9); color: var(--spice); }
+    .dt-title { position: absolute; bottom: 16px; left: 18px; right: 18px; color: white; }
+    .dt-title h1 { font-size: 22px; font-weight: 700; margin-bottom: 2px; letter-spacing: -0.5px; }
+    .dt-title p { font-size: 12px; opacity: 0.95; font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .dt-body { flex: 1; overflow-y: auto; padding: 18px; }
+    .dt-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+    .stat-box {
+      background: var(--surface);
+      padding: 10px;
+      border-radius: var(--r-sm);
+      text-align: center;
+    }
+    .stat-box .v { font-size: 14px; font-weight: 700; color: var(--spice); font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .stat-box .l { font-size: 10px; color: var(--text-3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .dt-section { margin-bottom: 18px; }
+    .dt-section h4 {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-3);
+    }
+    .menu-list { display: grid; gap: 4px; }
+    .menu-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--surface);
+      border-radius: var(--r-sm);
+      font-size: 12px;
+    }
+    .menu-row .name { font-weight: 590; }
+    .menu-row .price { font-weight: 700; color: var(--spice); font-family: 'Berkeley Mono', ui-monospace, monospace; }
+
+    .review-item {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      margin-bottom: 8px;
+    }
+    .review-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .review-user { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 590; }
+    .review-user .ava {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--gradient);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .review-date { font-size: 10px; color: var(--text-4); font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .review-text { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+    .review-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 6px; }
+    .review-photo {
+      aspect-ratio: 1;
+      background: var(--surface);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .dt-footer {
+      padding: 12px 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .dt-footer .btn { flex: 1; }
+
+    /* ============== VIEW 5: 리뷰 작성 ============== */
+    .review-view {
+      width: 100%; height: 100%;
+      overflow-y: auto;
+      padding: 32px 24px;
+      background: var(--bg);
+    }
+    .rv-container { max-width: 720px; margin: 0 auto; }
+    .rv-header { margin-bottom: 24px; }
+    .rv-header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.6px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .rv-header h1 .accent {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .rv-header p { font-size: 13px; color: var(--text-3); }
+    .rv-section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .rv-section h3 {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: -0.2px;
+    }
+    .rv-section h3 .num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--gradient);
+      color: white;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    .photo-uploader {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 6px;
+    }
+    .photo-slot {
+      aspect-ratio: 1;
+      background: var(--surface);
+      border: 1.5px dashed var(--border-2);
+      border-radius: var(--r-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--text-3);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .photo-slot:hover { border-color: var(--spice); color: var(--spice); }
+    .photo-slot.filled {
+      background: var(--gradient);
+      border: none;
+      color: white;
+      font-size: 28px;
+    }
+    .photo-slot .pic { font-size: 24px; }
+    .photo-slot .lbl { font-size: 10px; font-weight: 590; }
+    .level-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+    .level-pick {
+      flex: 1;
+      min-width: 64px;
+      padding: 12px 8px;
+      background: var(--surface);
+      border: 1.5px solid transparent;
+      border-radius: var(--r-sm);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .level-pick:hover { background: var(--surface-2); }
+    .level-pick.selected {
+      border-color: var(--spice);
+      background: var(--spice-soft);
+      box-shadow: 0 0 0 3px rgba(255,107,53,0.1);
+    }
+    .level-pick .emoji { font-size: 22px; }
+    .level-pick .lab { font-size: 10px; font-weight: 700; margin-top: 4px; }
+    .receipt-zone {
+      border: 1.5px dashed var(--border-2);
+      border-radius: var(--r-md);
+      padding: 18px;
+      text-align: center;
+      background: var(--surface);
+      color: var(--text-3);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .receipt-zone:hover { border-color: var(--spice); color: var(--spice); background: var(--spice-soft); }
+    .receipt-zone .icon { font-size: 30px; margin-bottom: 6px; }
+    .receipt-zone .label { font-size: 13px; font-weight: 700; }
+    .receipt-zone .hint { font-size: 10px; margin-top: 2px; font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .rv-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .rv-actions .btn { flex: 1; padding: 12px; }
+
+    /* ============== VIEW 6: 마이페이지 ============== */
+    .mypage-view { width: 100%; height: 100%; overflow-y: auto; background: var(--bg); }
+    .mp-hero {
+      background: var(--gradient);
+      color: white;
+      padding: 28px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .mp-hero::after {
+      content: '🌶';
+      position: absolute;
+      right: -10px; top: -10px;
+      font-size: 110px;
+      opacity: 0.18;
+    }
+    .mp-inner {
+      max-width: 980px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+    }
+    .mp-avatar {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      backdrop-filter: blur(8px);
+      font-size: 24px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+    }
+    .mp-profile h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .mp-profile p { font-size: 12px; opacity: 0.95; margin-bottom: 6px; font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .mp-profile .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .mp-profile .badges .b {
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(8px);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .mp-stats {
+      max-width: 980px;
+      margin: -22px auto 0;
+      padding: 0 24px 16px;
+      position: relative;
+    }
+    .mp-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      background: var(--panel);
+      padding: 14px;
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+    }
+    .mp-stat { text-align: center; padding: 8px 4px; }
+    .mp-stat .v { font-size: 20px; font-weight: 700; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .mp-stat .l { font-size: 10px; color: var(--text-3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .mp-body { max-width: 980px; margin: 0 auto; padding: 12px 24px 40px; }
+    .mp-tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--panel);
+      padding: 3px;
+      border-radius: var(--r-md);
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+    .mp-tab {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      font-weight: 590;
+      font-size: 12px;
+      color: var(--text-3);
+      background: transparent;
+      transition: all 0.15s;
+    }
+    .mp-tab.active { background: var(--gradient); color: white; box-shadow: 0 2px 6px rgba(197,23,30,0.25); }
+    .mp-review-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+    .mp-review-card .head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .mp-review-card .head h4 { font-size: 14px; font-weight: 700; }
+    .mp-review-card .head .date { font-size: 10px; color: var(--text-3); font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .mp-review-card .body { font-size: 12px; color: var(--text-2); line-height: 1.5; margin: 6px 0; }
+    .mp-review-card .meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-3); font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .mp-review-card .status { padding: 2px 7px; border-radius: 4px; font-weight: 700; }
+    .status-approved { background: #dcfce7; color: var(--success); }
+    .status-pending { background: #fef3c7; color: var(--warning); }
+
+    /* ============== VIEW 7: 관리자 대시보드 ============== */
+    .admin-view { width: 100%; height: 100%; overflow-y: auto; background: var(--bg); }
+    .admin-head {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .admin-head h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .admin-head p { font-size: 11px; color: var(--text-3); font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .admin-stats {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 18px 24px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .ad-stat {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .ad-stat .label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .ad-stat .value { font-size: 24px; font-weight: 700; font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .ad-stat .delta { font-size: 10px; margin-top: 2px; font-family: 'Berkeley Mono', ui-monospace, monospace; color: var(--success); }
+    .ad-stat.accent { background: var(--gradient); color: white; border-color: transparent; }
+    .ad-stat.accent .label, .ad-stat.accent .delta { opacity: 0.9; color: rgba(255,255,255,0.9); }
+    .admin-body {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 40px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 12px;
+    }
+    .ad-section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .ad-section .head {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ad-section .head h3 { font-size: 13px; font-weight: 700; }
+    .ad-section .head .badge { padding: 2px 7px; border-radius: 4px; background: var(--gradient); color: white; font-size: 10px; font-weight: 700; }
+    .pending-row {
+      display: grid;
+      grid-template-columns: 50px 1fr 90px 100px;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .pending-row:last-child { border-bottom: none; }
+    .pending-thumb {
+      width: 44px; height: 44px;
+      border-radius: var(--r-sm);
+      background: var(--gradient);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .pending-info .name { font-weight: 700; margin-bottom: 2px; }
+    .pending-info .meta { font-size: 10px; color: var(--text-3); font-family: 'Berkeley Mono', ui-monospace, monospace; }
+    .pending-actions { display: flex; gap: 4px; }
+    .btn-tiny { padding: 5px 9px; font-size: 10px; border-radius: 4px; font-weight: 700; }
+    .btn-approve { background: var(--success); color: white; }
+    .btn-reject { background: var(--surface-2); color: var(--text-2); }
+    .activity-list { padding: 6px 16px; }
+    .activity-item {
+      display: flex;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+    }
+    .activity-item:last-child { border: none; }
+    .activity-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--spice-soft);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .activity-text .what { font-weight: 590; }
+    .activity-text .when { color: var(--text-4); font-size: 10px; font-family: 'Berkeley Mono', ui-monospace, monospace; }
+
+    /* ====================================================
+       반응형 — 3 breakpoints
+       ≥1280: 풀 데스크톱
+       900–1279: 태블릿 (사이드바 살짝 좁힘)
+       <900: 모바일 (하단 nav, 사이드바 시트)
+       <600: 작은 모바일
+       ==================================================== */
+
+    /* 태블릿 */
+    @media (max-width: 1279px) {
+      :root { --sidebar-w: 320px; }
+      .filter-bar { max-width: calc(100% - 380px); }
+      .detail-sheet { width: 380px; }
+      .admin-body { grid-template-columns: 1fr; }
+      .admin-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* 모바일 (<900) */
+    @media (max-width: 899px) {
+      :root { --nav-w: 0px; }
+      body { overflow: auto; }
+
+      /* 사이드 nav → 하단 탭바 */
+      .side-nav {
+        top: auto;
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        height: var(--nav-h-mobile);
+        flex-direction: row;
+        padding: 6px 4px;
+        padding-bottom: max(6px, env(safe-area-inset-bottom));
+        border-right: none;
+        border-top: 1px solid var(--border);
+      }
+      .nav-logo { display: none; }
+      .nav-list {
+        flex-direction: row;
+        flex: 1;
+        padding: 0;
+        gap: 0;
+        justify-content: space-around;
+      }
+      .nav-bottom { display: none; }
+      .nav-item { padding: 4px 6px; flex-direction: column; }
+      .nav-item.active::before { display: none; }
+      .nav-icon { font-size: 18px; }
+      .nav-label { font-size: 9px; }
+
+      .main { left: 0; bottom: var(--nav-h-mobile); }
+
+      /* 지도 view */
+      .map-layout { grid-template-columns: 1fr; }
+      .map-sidebar {
+        position: absolute;
+        bottom: 0;
+        left: 0; right: 0;
+        height: 50vh;
+        max-height: 50vh;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -8px 32px rgba(0,0,0,0.12);
+        z-index: 30;
+      }
+      .map-sidebar::before {
+        content: '';
+        position: absolute;
+        top: 8px; left: 50%;
+        transform: translateX(-50%);
+        width: 36px; height: 4px;
+        background: var(--surface-2);
+        border-radius: 2px;
+      }
+      .mini-stats { gap: 14px; padding: 10px 12px; }
+      .mini-stats .item .value { font-size: 12px; }
+      .filter-bar { max-width: calc(100% - 32px); top: 12px; }
+      .map-ctrl { bottom: calc(50vh + 12px); }
+      .spice-banner { bottom: calc(50vh + 70px); max-width: calc(100% - 32px); }
+
+      /* 상세 sheet → 풀 모달 */
+      .detail-sheet {
+        top: 0; right: 0; bottom: 0; left: 0;
+        width: 100%;
+        border-radius: 0;
+        border: none;
+      }
+
+      /* 마이페이지 */
+      .mp-hero { padding: 24px 18px; }
+      .mp-avatar { width: 52px; height: 52px; font-size: 22px; }
+      .mp-profile h1 { font-size: 18px; }
+      .mp-stats { padding: 0 18px 14px; }
+      .mp-stats-grid { grid-template-columns: repeat(2, 1fr); padding: 12px; }
+      .mp-stat .v { font-size: 18px; }
+      .mp-body { padding: 12px 18px 80px; }
+
+      /* 관리자 */
+      .admin-stats { grid-template-columns: 1fr 1fr; padding: 14px 18px; }
+      .admin-body { padding: 0 18px 40px; }
+      .pending-row {
+        grid-template-columns: 50px 1fr;
+        gap: 10px;
+      }
+      .pending-row .pending-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+        margin-top: 4px;
+      }
+      .pending-row > .stat { display: none; }
+
+      /* 리뷰 작성 */
+      .review-view { padding: 24px 16px 80px; }
+      .rv-section { padding: 14px 16px; }
+      .level-pick { min-width: 0; padding: 10px 4px; }
+      .level-pick .emoji { font-size: 18px; }
+
+      /* 레벨 설정 */
+      .level-setup { padding: 24px 16px 80px; }
+      .ls-hero h1 { font-size: 20px; }
+      .level-option { padding: 12px 14px; gap: 10px; }
+      .level-option .icon-box { width: 40px; height: 40px; font-size: 22px; }
+
+      /* 온보딩 */
+      .ob-card { padding: 24px 20px; }
+    }
+
+    /* 작은 모바일 (<600) */
+    @media (max-width: 599px) {
+      .mini-stats { display: none; }
+      .filter-bar { padding: 3px; }
+      .filter-pill { padding: 4px 9px; font-size: 10px; }
+      .mp-hero-inner { gap: 10px; }
+      .photo-uploader { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 좌측/하단 Navigation (7-view 통합) -->
+  <nav class="side-nav">
+    <div class="nav-logo"><img src="logo.svg" alt="맵맵맵"></div>
+    <div class="nav-list">
+      <button class="nav-item" data-view="onboarding"><span class="nav-icon">👤</span><span class="nav-label">로그인</span></button>
+      <button class="nav-item" data-view="level-setup"><span class="nav-icon">🌶</span><span class="nav-label">맵레벨</span></button>
+      <button class="nav-item active" data-view="map"><span class="nav-icon">🗺</span><span class="nav-label">지도</span></button>
+      <button class="nav-item" data-view="detail"><span class="nav-icon">🍜</span><span class="nav-label">맛집</span></button>
+      <button class="nav-item" data-view="review"><span class="nav-icon">✍</span><span class="nav-label">제보</span></button>
+      <button class="nav-item" data-view="mypage"><span class="nav-icon">📋</span><span class="nav-label">마이</span></button>
+      <button class="nav-item" data-view="admin"><span class="nav-icon">🛡</span><span class="nav-label">관리자</span></button>
+    </div>
+    <div class="nav-bottom">
+      <div class="user-chip" data-view="mypage">
+        <div class="avatar">맵</div>
+        <div class="lvl-mini">Lv.3 🔥</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ====== VIEW 1: 온보딩 ====== -->
+    <section class="view" data-view="onboarding">
+      <div class="onboarding">
+        <div class="ob-card">
+          <div class="ob-brand">
+            <div class="logo"><img src="logo.svg" alt="맵맵맵"></div>
+            <h1>맵<span>맵맵</span></h1>
+            <p>매운맛 실패 없는 맛집 지도</p>
+          </div>
+          <div class="ob-tabs">
+            <button class="ob-tab active" id="tab-login">로그인</button>
+            <button class="ob-tab" id="tab-signup">회원가입</button>
+          </div>
+          <form id="form-login">
+            <div class="form-group"><label>이메일</label><input type="email" class="form-input" placeholder="example@email.com" value="inhiyu@gmail.com"></div>
+            <div class="form-group"><label>비밀번호</label><input type="password" class="form-input" value="••••••••"></div>
+            <button type="button" class="btn btn-primary btn-block">🌶 로그인</button>
+            <div class="ob-divider"><span>또는</span></div>
+            <div class="social-btns">
+              <button type="button" class="social-btn">💬 카카오로 시작하기</button>
+              <button type="button" class="social-btn">🟢 네이버로 시작하기</button>
+            </div>
+          </form>
+          <form id="form-signup" style="display:none">
+            <div class="form-group"><label>이메일</label><input type="email" class="form-input" placeholder="example@email.com"></div>
+            <div class="form-group"><label>비밀번호 (8자 이상)</label><input type="password" class="form-input"></div>
+            <div class="form-group"><label>닉네임</label><input type="text" class="form-input" maxlength="10"></div>
+            <button type="button" class="btn btn-primary btn-block">🌶 가입하기</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 2: 맵레벨 설정 ====== -->
+    <section class="view" data-view="level-setup">
+      <div class="level-setup">
+        <div class="ls-container">
+          <div class="ls-hero">
+            <div class="emoji-row">🐥 👼 🌶 🔥 💣 💀</div>
+            <h1>당신의 <span class="accent">매운맛 레벨</span>은?</h1>
+            <p>레벨에 맞는 맛집을 찾아드립니다 · 언제든 변경 가능</p>
+          </div>
+          <div class="level-grid">
+            <div class="level-option"><div class="icon-box">🐥</div><div class="info"><div class="name">Lv.0 맵찔이</div><div class="desc">진라면 순한맛도 매움 · 케찹이 좋아요</div></div><div class="check">✅</div></div>
+            <div class="level-option"><div class="icon-box">👼</div><div class="info"><div class="name">Lv.1 맵초보</div><div class="desc">신라면 정도는 가능 · 콧물 나요</div></div><div class="check">✅</div></div>
+            <div class="level-option"><div class="icon-box">🌶</div><div class="info"><div class="name">Lv.2 맵보통</div><div class="desc">열라면 즐겨먹음 · 한국인 평균</div></div><div class="check">✅</div></div>
+            <div class="level-option selected"><div class="icon-box">🔥</div><div class="info"><div class="name">Lv.3 맵니아</div><div class="desc">불닭, 엽떡 오리지널 맛있게 먹음</div></div><div class="check">✅</div></div>
+            <div class="level-option"><div class="icon-box">💣</div><div class="info"><div class="name">Lv.4 맵고수</div><div class="desc">엽떡 매운맛으로 스트레스 풀어요</div></div><div class="check">✅</div></div>
+            <div class="level-option"><div class="icon-box">💀</div><div class="info"><div class="name">Lv.5 맵친자</div><div class="desc">핵불닭, 디진다돈까스 · 고통을 즐김</div></div><div class="check">✅</div></div>
+          </div>
+          <div class="ls-actions">
+            <button class="btn btn-ghost">나중에</button>
+            <button class="btn btn-primary">설정 완료 →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 3: 메인 지도 ====== -->
+    <section class="view active" data-view="map">
+      <div class="map-view-page">
+        <div class="map-layout">
+          <div class="map-stage">
+            <div class="ember e1"></div><div class="ember e2"></div><div class="ember e3"></div>
+            <div class="ember e4"></div><div class="ember e5"></div>
+            <div class="road h1"></div><div class="road h2"></div>
+            <div class="road v1"></div><div class="road v2"></div>
+
+            <div class="mini-stats">
+              <div class="item"><div class="label">Restaurants</div><div class="value">32</div></div>
+              <div class="item"><div class="label">Avg lvl</div><div class="value spice">3.2 🔥</div></div>
+              <div class="item"><div class="label">Verified</div><div class="value">248</div></div>
+              <div class="item"><div class="label">Match</div><div class="value" style="color:var(--success)">96.7%</div></div>
+            </div>
+
+            <div class="filter-bar">
+              <button class="filter-pill active">All 🌶</button>
+              <button class="filter-pill">Lv.0</button>
+              <button class="filter-pill">Lv.1</button>
+              <button class="filter-pill">Lv.2</button>
+              <button class="filter-pill">Lv.3</button>
+              <button class="filter-pill">Lv.4</button>
+              <button class="filter-pill">Lv.5 💀</button>
+            </div>
+
+            <div class="pin" style="top: 32%; left: 28%"><div class="dot"></div><div class="lbl">9,000 · Lv.3 🔥</div></div>
+            <div class="pin lvl-extreme" style="top: 42%; left: 50%"><div class="dot"></div><div class="lbl">13,000 · Lv.5 💀</div></div>
+            <div class="pin" style="top: 50%; left: 38%"><div class="dot"></div><div class="lbl">15,000 · Lv.4 💣</div></div>
+            <div class="pin lvl-low" style="top: 58%; left: 60%"><div class="dot"></div><div class="lbl">8,500 · Lv.2 🌶</div></div>
+            <div class="pin lvl-low" style="top: 68%; left: 48%"><div class="dot"></div><div class="lbl">6,500 · Lv.1 👼</div></div>
+            <div class="pin" style="top: 38%; left: 72%"><div class="dot"></div><div class="lbl">11,000 · Lv.3 🔥</div></div>
+            <div class="pin lvl-low" style="top: 70%; left: 28%"><div class="dot"></div><div class="lbl">7,000 · Lv.0 🐥</div></div>
+
+            <div class="spice-banner">
+              <div class="ico">🔥</div>
+              <div class="text"><div class="top">이번 주 매운맛 1위</div><div class="bot">불맛탱탱 · ❤ 4.8 · 248 인증</div></div>
+            </div>
+
+            <div class="map-ctrl">
+              <button class="btn-c">+</button>
+              <button class="btn-c">−</button>
+              <button class="btn-c">📍</button>
+            </div>
+          </div>
+
+          <aside class="map-sidebar">
+            <div class="sb-head">
+              <h2><span class="ico">🔥</span> 매운맛 랭킹</h2>
+              <span class="count">32 · sorted by spice</span>
+            </div>
+            <div class="sb-tabs">
+              <button class="sb-tab active">전체</button>
+              <button class="sb-tab">내 레벨</button>
+              <button class="sb-tab">신규</button>
+              <button class="sb-tab">찜</button>
+            </div>
+            <div class="sb-list">
+              <div class="sb-row selected top-3">
+                <div class="top"><div class="name">불맛탱탱 짬뽕집 🔥</div><div class="rank">#1</div></div>
+                <div class="meta">짬뽕 · 종로구 · ID 0x4f2a</div>
+                <div class="row">
+                  <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span class="fill-3"></span><span></span><span></span></div>
+                  <span class="price">9,000원</span>
+                  <span class="star">❤ 4.8 · 248</span>
+                </div>
+              </div>
+              <div class="sb-row top-3">
+                <div class="top"><div class="name">디진다 돈까스 💀</div><div class="rank">#2</div></div>
+                <div class="meta">돈까스 · 중구 · ID 0x7c91</div>
+                <div class="row">
+                  <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span class="fill-3"></span><span class="fill-3"></span><span class="fill-5"></span></div>
+                  <span class="price">13,000원</span>
+                  <span class="star">❤ 4.7 · 192</span>
+                </div>
+              </div>
+              <div class="sb-row top-3">
+                <div class="top"><div class="name">엽기 떡볶이 본점 💣</div><div class="rank">#3</div></div>
+                <div class="meta">떡볶이 · 영등포 · ID 0xa2b1</div>
+                <div class="row">
+                  <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span class="fill-3"></span><span class="fill-3"></span><span></span></div>
+                  <span class="price">15,000원</span>
+                  <span class="star">❤ 4.6 · 167</span>
+                </div>
+              </div>
+              <div class="sb-row">
+                <div class="top"><div class="name">청양 칼국수</div><div class="rank">#4</div></div>
+                <div class="meta">칼국수 · 마포구 · ID 0xd34e</div>
+                <div class="row">
+                  <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span></span><span></span><span></span></div>
+                  <span class="price">8,500원</span>
+                  <span class="star">❤ 4.5 · 134</span>
+                </div>
+              </div>
+              <div class="sb-row">
+                <div class="top"><div class="name">진라면 순한 분식</div><div class="rank">#5</div></div>
+                <div class="meta">분식 · 종로구 · ID 0x8f72</div>
+                <div class="row">
+                  <div class="level-bar"><span class="fill-1"></span><span></span><span></span><span></span><span></span></div>
+                  <span class="price">6,500원</span>
+                  <span class="star">❤ 4.4 · 88</span>
+                </div>
+              </div>
+              <div class="sb-row">
+                <div class="top"><div class="name">불닭 마차 🔥</div><div class="rank">#6</div></div>
+                <div class="meta">닭갈비 · 강남구 · ID 0x3ae5</div>
+                <div class="row">
+                  <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span class="fill-3"></span><span></span><span></span></div>
+                  <span class="price">12,000원</span>
+                  <span class="star">❤ 4.2 · 65</span>
+                </div>
+              </div>
+            </div>
+            <div class="sb-footer">
+              <div class="ico">❤</div>
+              <div class="text"><div class="top">베타 리워드</div><div class="bot">3건 인증 시 +500P</div></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 4: 맛집 상세 ====== -->
+    <section class="view" data-view="detail">
+      <div class="detail-view">
+        <!-- 배경 지도 (재사용) -->
+        <div class="map-stage">
+          <div class="ember e1"></div><div class="ember e3"></div>
+          <div class="road h1"></div><div class="road h2"></div>
+          <div class="road v1"></div><div class="road v2"></div>
+          <div class="pin" style="top:42%; left:30%"><div class="dot"></div><div class="lbl">9,000 · Lv.3</div></div>
+        </div>
+        <aside class="detail-sheet">
+          <div class="dt-hero">
+            <button class="dt-back">←</button>
+            <button class="dt-fav">♡</button>
+            <div class="dt-title">
+              <h1>불맛탱탱 짬뽕집 🔥</h1>
+              <p>서울 종로구 · 짬뽕 · ID 0x4f2a</p>
+            </div>
+          </div>
+          <div class="dt-body">
+            <div class="dt-stats">
+              <div class="stat-box"><div class="v">❤ 4.8</div><div class="l">평점</div></div>
+              <div class="stat-box"><div class="v">Lv.3 🔥</div><div class="l">평균 맵기</div></div>
+              <div class="stat-box"><div class="v">248</div><div class="l">인증 리뷰</div></div>
+            </div>
+            <div class="dt-section">
+              <h4>🥢 대표 메뉴</h4>
+              <div class="menu-list">
+                <div class="menu-row"><span class="name">불맛 짬뽕</span><span class="price">9,000원</span></div>
+                <div class="menu-row"><span class="name">매운 짜장면</span><span class="price">8,000원</span></div>
+                <div class="menu-row"><span class="name">탕수육 (소)</span><span class="price">15,000원</span></div>
+              </div>
+            </div>
+            <div class="dt-section">
+              <h4>📝 최근 리뷰</h4>
+              <div class="review-item">
+                <div class="review-head">
+                  <div class="review-user"><div class="ava">김</div>김매운</div>
+                  <span class="review-date">2일 전</span>
+                </div>
+                <div class="review-text">진짜 매운데 자꾸 생각나는 맛. Lv.3인 저한테 딱 맞았어요. 사장님이 친절하게 매운 정도 조절도 가능해요!</div>
+                <div class="review-photos"><div class="review-photo">🍜</div><div class="review-photo">🌶</div><div class="review-photo">🧾</div></div>
+              </div>
+              <div class="review-item">
+                <div class="review-head">
+                  <div class="review-user"><div class="ava">이</div>이불맛</div>
+                  <span class="review-date">1주 전</span>
+                </div>
+                <div class="review-text">매운맛 깔끔하고 깊이 있음. 영수증 인증 받고 포인트도 쏠쏠 👍</div>
+              </div>
+            </div>
+          </div>
+          <div class="dt-footer">
+            <button class="btn btn-ghost">길찾기</button>
+            <button class="btn btn-primary">🌶 리뷰 작성</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 5: 리뷰 작성 ====== -->
+    <section class="view" data-view="review">
+      <div class="review-view">
+        <div class="rv-container">
+          <div class="rv-header">
+            <h1><span class="accent">🌶 매운맛 인증</span></h1>
+            <p>방문한 가게의 매운맛 정보를 공유하고 포인트를 받으세요</p>
+          </div>
+
+          <div class="rv-section">
+            <h3><span class="num">1</span> 가게 정보</h3>
+            <div class="form-group"><label>가게 이름</label><input type="text" class="form-input" value="불맛탱탱 짬뽕집"></div>
+            <div class="form-group"><label>주문한 메뉴</label><input type="text" class="form-input" value="불맛 짬뽕"></div>
+            <div class="form-group"><label>가격 (원)</label><input type="number" class="form-input" value="9000"></div>
+          </div>
+
+          <div class="rv-section">
+            <h3><span class="num">2</span> 매운맛 평가</h3>
+            <div class="level-selector">
+              <div class="level-pick"><div class="emoji">🐥</div><div class="lab">Lv.0</div></div>
+              <div class="level-pick"><div class="emoji">👼</div><div class="lab">Lv.1</div></div>
+              <div class="level-pick"><div class="emoji">🌶</div><div class="lab">Lv.2</div></div>
+              <div class="level-pick selected"><div class="emoji">🔥</div><div class="lab">Lv.3</div></div>
+              <div class="level-pick"><div class="emoji">💣</div><div class="lab">Lv.4</div></div>
+              <div class="level-pick"><div class="emoji">💀</div><div class="lab">Lv.5</div></div>
+            </div>
+          </div>
+
+          <div class="rv-section">
+            <h3><span class="num">3</span> 리뷰 작성</h3>
+            <div class="form-group">
+              <textarea class="form-input" placeholder="이 가게의 매운맛 후기를 자유롭게 작성해주세요!">진짜 매운데 자꾸 생각나는 맛. Lv.3인 저한테 딱 맞았어요. 사장님이 친절하게 매운 정도 조절도 가능해요!</textarea>
+            </div>
+          </div>
+
+          <div class="rv-section">
+            <h3><span class="num">4</span> 음식 사진 (1~5장)</h3>
+            <div class="photo-uploader">
+              <div class="photo-slot filled">🍜</div>
+              <div class="photo-slot filled">🌶</div>
+              <div class="photo-slot"><div class="pic">📷</div><div class="lbl">사진 추가</div></div>
+              <div class="photo-slot"><div class="pic">📷</div><div class="lbl">사진 추가</div></div>
+            </div>
+          </div>
+
+          <div class="rv-section">
+            <h3><span class="num">5</span> 영수증 인증 <span class="pill pill-grad" style="margin-left:6px;">+50P</span></h3>
+            <div class="receipt-zone">
+              <div class="icon">🧾</div>
+              <div class="label">영수증을 업로드하면 +50 포인트!</div>
+              <div class="hint">JPG, PNG · 최대 5MB</div>
+            </div>
+          </div>
+
+          <div class="rv-actions">
+            <button class="btn btn-ghost">취소</button>
+            <button class="btn btn-primary">제보하고 포인트 받기 ❤</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 6: 마이페이지 ====== -->
+    <section class="view" data-view="mypage">
+      <div class="mypage-view">
+        <div class="mp-hero">
+          <div class="mp-inner">
+            <div class="mp-avatar">맵</div>
+            <div class="mp-profile">
+              <h1>맵친자 김매운 🔥</h1>
+              <p>가입 2025-01-15 · 인증 24회</p>
+              <div class="badges">
+                <span class="b">Lv.3 맵니아 🔥</span>
+                <span class="b">❤ 우수 제보자</span>
+                <span class="b">❤ 베타테스터</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mp-stats">
+          <div class="mp-stats-grid">
+            <div class="mp-stat"><div class="v">24</div><div class="l">작성한 리뷰</div></div>
+            <div class="mp-stat"><div class="v">12</div><div class="l">찜한 가게</div></div>
+            <div class="mp-stat"><div class="v">1,820</div><div class="l">누적 포인트</div></div>
+            <div class="mp-stat"><div class="v">98%</div><div class="l">승인률</div></div>
+          </div>
+        </div>
+
+        <div class="mp-body">
+          <div class="mp-tabs">
+            <button class="mp-tab active">내 리뷰</button>
+            <button class="mp-tab">찜한 곳</button>
+            <button class="mp-tab">포인트</button>
+            <button class="mp-tab">설정</button>
+          </div>
+
+          <div class="mp-review-card">
+            <div class="head">
+              <div><h4>불맛탱탱 짬뽕집 🔥</h4><span class="tag tag-s3" style="margin-top:4px;">Lv.3 맵니아</span></div>
+              <span class="date">2일 전</span>
+            </div>
+            <div class="body">진짜 매운데 자꾸 생각나는 맛. Lv.3인 저한테 딱 맞았어요. 사장님이 친절하게 매운 정도 조절도 가능해요!</div>
+            <div class="meta">
+              <span>🍜 불맛 짬뽕 · 9,000원</span>
+              <span class="status status-approved">✅ 승인 · +60P</span>
+            </div>
+          </div>
+          <div class="mp-review-card">
+            <div class="head">
+              <div><h4>디진다 돈까스 💀</h4><span class="tag tag-s5" style="margin-top:4px;">Lv.5 맵친자</span></div>
+              <span class="date">5일 전</span>
+            </div>
+            <div class="body">이건 진짜 도전... 한 입 먹고 후회. 근데 자꾸 생각나는 맛. 영수증 인증으로 +50P 추가!</div>
+            <div class="meta">
+              <span>🍜 핵불닭 돈까스 · 13,000원</span>
+              <span class="status status-approved">✅ 승인 · +60P</span>
+            </div>
+          </div>
+          <div class="mp-review-card">
+            <div class="head">
+              <div><h4>청양 칼국수</h4><span class="tag tag-s2" style="margin-top:4px;">Lv.2 맵보통</span></div>
+              <span class="date">어제</span>
+            </div>
+            <div class="body">청양고추 듬뿍 들어간 칼국수. 가성비 최고. Lv.2 정도라 부담 없이 먹기 좋아요.</div>
+            <div class="meta">
+              <span>🍜 청양 칼국수 · 8,500원</span>
+              <span class="status status-pending">⏳ 승인 대기</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 7: 관리자 대시보드 ====== -->
+    <section class="view" data-view="admin">
+      <div class="admin-view">
+        <header class="admin-head">
+          <div>
+            <h1>🛡 관리자 대시보드</h1>
+            <p>리뷰 품질 관리 · 마지막 업데이트 방금 전</p>
+          </div>
+          <button class="btn btn-primary">📊 리포트</button>
+        </header>
+
+        <div class="admin-stats">
+          <div class="ad-stat accent">
+            <div class="label">승인 대기</div>
+            <div class="value">12</div>
+            <div class="delta">↑ 어제보다 +3</div>
+          </div>
+          <div class="ad-stat">
+            <div class="label">이번 달 신규</div>
+            <div class="value">348</div>
+            <div class="delta">↑ 12% MoM</div>
+          </div>
+          <div class="ad-stat">
+            <div class="label">활성 사용자</div>
+            <div class="value">1,247</div>
+            <div class="delta">↑ 8% WoW</div>
+          </div>
+          <div class="ad-stat">
+            <div class="label">반려율</div>
+            <div class="value">3.2%</div>
+            <div class="delta" style="color:var(--success)">↓ 1.1%p</div>
+          </div>
+        </div>
+
+        <div class="admin-body">
+          <div class="ad-section">
+            <div class="head"><h3>⏳ 승인 대기 리뷰</h3><span class="badge">12 건</span></div>
+            <div class="pending-row">
+              <div class="pending-thumb">🍜</div>
+              <div class="pending-info">
+                <div class="name">청양 칼국수 — 김매운</div>
+                <div class="meta">Lv.2 · 영수증 ✅ · 5분 전</div>
+              </div>
+              <div class="stat"><span class="tag tag-s2">Lv.2</span></div>
+              <div class="pending-actions">
+                <button class="btn-tiny btn-approve">승인</button>
+                <button class="btn-tiny btn-reject">반려</button>
+              </div>
+            </div>
+            <div class="pending-row">
+              <div class="pending-thumb">🍜</div>
+              <div class="pending-info">
+                <div class="name">디진다 돈까스 — 박불맛</div>
+                <div class="meta">Lv.5 · 영수증 ✅ · 22분 전</div>
+              </div>
+              <div class="stat"><span class="tag tag-s5">Lv.5</span></div>
+              <div class="pending-actions">
+                <button class="btn-tiny btn-approve">승인</button>
+                <button class="btn-tiny btn-reject">반려</button>
+              </div>
+            </div>
+            <div class="pending-row">
+              <div class="pending-thumb">🌶</div>
+              <div class="pending-info">
+                <div class="name">엽기 떡볶이 — 이매콤</div>
+                <div class="meta">Lv.4 · 영수증 ✗ · 1시간 전</div>
+              </div>
+              <div class="stat"><span class="tag tag-s4">Lv.4</span></div>
+              <div class="pending-actions">
+                <button class="btn-tiny btn-approve">승인</button>
+                <button class="btn-tiny btn-reject">반려</button>
+              </div>
+            </div>
+            <div class="pending-row">
+              <div class="pending-thumb">🍜</div>
+              <div class="pending-info">
+                <div class="name">불닭 마차 — 최맵찔이</div>
+                <div class="meta">Lv.3 · 영수증 ✅ · 2시간 전</div>
+              </div>
+              <div class="stat"><span class="tag tag-s3">Lv.3</span></div>
+              <div class="pending-actions">
+                <button class="btn-tiny btn-approve">승인</button>
+                <button class="btn-tiny btn-reject">반려</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ad-section">
+            <div class="head"><h3>📊 최근 활동</h3></div>
+            <div class="activity-list">
+              <div class="activity-item"><div class="activity-icon">✅</div><div class="activity-text"><div class="what">"불맛탱탱" 리뷰 승인</div><div class="when">방금 전 · admin</div></div></div>
+              <div class="activity-item"><div class="activity-icon">❌</div><div class="activity-text"><div class="what">중복 리뷰 1건 반려</div><div class="when">10분 전 · admin</div></div></div>
+              <div class="activity-item"><div class="activity-icon">📝</div><div class="activity-text"><div class="what">신규 리뷰 5건 도착</div><div class="when">25분 전 · system</div></div></div>
+              <div class="activity-item"><div class="activity-icon">👤</div><div class="activity-text"><div class="what">신규 가입 12명</div><div class="when">1시간 전 · system</div></div></div>
+              <div class="activity-item"><div class="activity-icon">🔥</div><div class="activity-text"><div class="what">"불맛탱탱" 1위 등극</div><div class="when">3시간 전 · system</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // View routing
+    const navItems = document.querySelectorAll('.nav-item, .user-chip[data-view]');
+    const views = document.querySelectorAll('.view');
+    function showView(name) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === name));
+      views.forEach(v => v.classList.toggle('active', v.dataset.view === name));
+      try { history.replaceState(null, '', `#${name}`); } catch(e) {}
+    }
+    navItems.forEach(n => n.addEventListener('click', () => showView(n.dataset.view)));
+    const initial = location.hash.replace('#','') || 'map';
+    if ([...views].some(v => v.dataset.view === initial)) showView(initial);
+
+    // Onboarding tabs
+    document.getElementById('tab-login')?.addEventListener('click', () => {
+      document.getElementById('tab-login').classList.add('active');
+      document.getElementById('tab-signup').classList.remove('active');
+      document.getElementById('form-login').style.display = '';
+      document.getElementById('form-signup').style.display = 'none';
+    });
+    document.getElementById('tab-signup')?.addEventListener('click', () => {
+      document.getElementById('tab-signup').classList.add('active');
+      document.getElementById('tab-login').classList.remove('active');
+      document.getElementById('form-signup').style.display = '';
+      document.getElementById('form-login').style.display = 'none';
+    });
+
+    // Level option toggle
+    document.querySelectorAll('.level-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.level-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+      });
+    });
+    document.querySelectorAll('.level-pick').forEach(p => {
+      p.addEventListener('click', () => {
+        document.querySelectorAll('.level-pick').forEach(x => x.classList.remove('selected'));
+        p.classList.add('selected');
+      });
+    });
+
+    // Filter pills (지도)
+    document.querySelectorAll('.filter-bar .filter-pill').forEach(p => {
+      p.addEventListener('click', () => p.classList.toggle('active'));
+    });
+
+    // Tab groups (mp-tabs / sb-tabs)
+    document.querySelectorAll('.mp-tabs').forEach(group => {
+      group.querySelectorAll('.mp-tab').forEach(t => t.addEventListener('click', () => {
+        group.querySelectorAll('.mp-tab').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+      }));
+    });
+    document.querySelectorAll('.sb-tabs').forEach(group => {
+      group.querySelectorAll('.sb-tab').forEach(t => t.addEventListener('click', () => {
+        group.querySelectorAll('.sb-tab').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+      }));
+    });
+
+    // Detail back
+    document.querySelector('.dt-back')?.addEventListener('click', () => showView('map'));
+    // Sidebar row click → detail
+    document.querySelectorAll('.sb-row').forEach(r => r.addEventListener('click', () => showView('detail')));
+
+    console.log('🌶 mapmapmap Linear-Blaze SPA — 7 views ready. Hash routing 활성.');
+  </script>
+</body>
+</html>

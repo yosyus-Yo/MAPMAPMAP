@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>맵맵맵 — Airbnb Style (50/50 split)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Airbnb — 50/50 split (좌 카드 / 우 풀높이 지도) */
+    :root {
+      --rausch: #ff385c;
+      --rausch-deep: #e00b41;
+      --text: #222222;
+      --text-2: #6a6a6a;
+      --text-3: #a8a8a8;
+      --bg: #ffffff;
+      --bg-soft: #f7f7f7;
+      --border: #ebebeb;
+      --shadow-card: rgba(0,0,0,0.02) 0 0 0 1px, rgba(0,0,0,0.04) 0 2px 6px, rgba(0,0,0,0.1) 0 4px 8px;
+      --shadow-md: 0 8px 28px rgba(0,0,0,0.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      color: var(--text);
+      letter-spacing: -0.18px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* === Header === */
+    .header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 70px;
+    }
+    .logo { font-size: 22px; font-weight: 700; color: var(--rausch); letter-spacing: -0.4px; }
+    .search {
+      display: flex;
+      align-items: center;
+      padding: 6px 6px 6px 20px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+    }
+    .search:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.16); }
+    .search .item { padding: 6px 16px; font-size: 14px; font-weight: 600; border-right: 1px solid var(--border); }
+    .search .item:last-of-type { border-right: none; }
+    .search .item .label { font-size: 12px; color: var(--text-3); display: block; }
+    .search .icon-btn { width: 32px; height: 32px; background: var(--rausch); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .menu-btn { padding: 8px 12px 8px 16px; border: 1px solid var(--border); border-radius: 999px; background: white; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .avatar { width: 30px; height: 30px; background: var(--text-2); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+
+    /* === Categories bar === */
+    .cats {
+      position: fixed;
+      top: 70px; left: 0; right: 0;
+      z-index: 99;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 32px;
+      display: flex;
+      gap: 24px;
+      overflow-x: auto;
+      height: 76px;
+    }
+    .cat { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; cursor: pointer; color: var(--text-2); border-bottom: 2px solid transparent; flex-shrink: 0; min-width: 56px; }
+    .cat .icon { font-size: 22px; }
+    .cat .label { font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .cat.active { color: var(--text); border-bottom-color: var(--text); }
+    .cat:hover:not(.active) { color: var(--text); }
+
+    /* === Main split === */
+    .main {
+      position: fixed;
+      top: 146px; left: 0; right: 0; bottom: 0;
+      display: grid;
+      grid-template-columns: 60% 40%;
+    }
+
+    /* Left: 카드 그리드 (스크롤) */
+    .listings {
+      overflow-y: auto;
+      padding: 24px 32px 80px;
+    }
+    .listings h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .listings .meta { font-size: 13px; color: var(--text-2); margin-bottom: 20px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px 16px;
+    }
+    .card { cursor: pointer; transition: transform 0.2s; }
+    .card:hover { transform: translateY(-2px); }
+    .card .photo {
+      aspect-ratio: 1 / 1;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .card .photo.s0 { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+    .card .photo.s1 { background: linear-gradient(135deg, #d1fae5, #86efac); }
+    .card .photo.s2 { background: linear-gradient(135deg, #fed7aa, #fb923c); }
+    .card .photo.s3 { background: linear-gradient(135deg, #fecaca, #f87171); }
+    .card .photo.s4 { background: linear-gradient(135deg, #fca5a5, #dc2626); }
+    .card .photo.s5 { background: linear-gradient(135deg, #7c2d12, #1a1a1a); }
+    .card .badge {
+      position: absolute;
+      top: 10px; left: 10px;
+      background: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .card .heart {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 28px; height: 28px;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .card .row1 { display: flex; justify-content: space-between; gap: 8px; }
+    .card .name { font-size: 14px; font-weight: 600; }
+    .card .rating { font-size: 13px; font-weight: 500; flex-shrink: 0; }
+    .card .meta-l { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+    .card .price { margin-top: 6px; font-size: 13px; }
+    .card .price b { font-weight: 600; }
+
+    /* Right: 풀높이 지도 */
+    .map-pane {
+      position: relative;
+      background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 60px),
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.03) 0, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 60px),
+        radial-gradient(circle at 30% 35%, #d4e4d4, transparent 25%),
+        radial-gradient(circle at 70% 60%, #d4e0e8, transparent 30%),
+        linear-gradient(180deg, #f5f0e6 0%, #ebe7d8 100%);
+      border-left: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .map-pane .road {
+      position: absolute;
+      background: white;
+      border-top: 1px solid #d8d4c8;
+      border-bottom: 1px solid #d8d4c8;
+    }
+    .map-pane .road.h1 { top: 28%; left: -10%; width: 120%; height: 18px; transform: rotate(-1.5deg); }
+    .map-pane .road.h2 { top: 65%; left: -10%; width: 120%; height: 24px; transform: rotate(1deg); }
+    .map-pane .road.v1 { top: -10%; left: 28%; width: 14px; height: 120%; transform: rotate(2deg); }
+    .map-pane .road.v2 { top: -10%; left: 70%; width: 20px; height: 120%; transform: rotate(-3deg); }
+    .map-pane .river { position: absolute; top: 48%; left: -5%; width: 110%; height: 50px; background: linear-gradient(180deg, #c8d8e8, #b0c8de); transform: rotate(-2deg); opacity: 0.8; }
+
+    /* 마커 — Airbnb 스타일 (가격 pill) */
+    .pin {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      animation: drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    }
+    .pin .body {
+      padding: 6px 12px;
+      background: white;
+      color: var(--text);
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.16);
+      white-space: nowrap;
+      border: 1.5px solid white;
+      transition: all 0.15s;
+    }
+    .pin:hover .body { transform: scale(1.1); border-color: var(--text); }
+    .pin.active .body { background: var(--text); color: white; transform: scale(1.1); }
+    .pin .body .heart-mini { color: var(--rausch); margin-right: 3px; }
+    @keyframes drop { from { transform: translate(-50%, -70%); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
+
+    /* Map controls */
+    .map-controls {
+      position: absolute;
+      top: 16px; right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .ctrl {
+      width: 36px; height: 36px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: var(--shadow-md);
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .ctrl:hover { background: var(--bg-soft); }
+
+    /* Map filter top */
+    .map-filter {
+      position: absolute;
+      top: 16px; left: 16px;
+      background: white;
+      padding: 8px 16px;
+      border-radius: 24px;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .map-filter input { width: 36px; height: 20px; appearance: none; background: var(--text-3); border-radius: 999px; position: relative; cursor: pointer; }
+    .map-filter input:checked { background: var(--rausch); }
+    .map-filter input::before { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: transform 0.2s; }
+    .map-filter input:checked::before { transform: translateX(16px); }
+
+    @media (max-width: 1100px) {
+      .main { grid-template-columns: 1fr; }
+      .map-pane { display: none; }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    }
+    @media (max-width: 700px) {
+      .header { padding: 12px 16px; }
+      .search { display: none; }
+      .listings { padding: 16px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">🌶 mapmapmap</div>
+    <div class="search">
+      <div class="item"><div class="label">위치</div><div>종로구</div></div>
+      <div class="item"><div class="label">맵 레벨</div><div>Lv.3 맵니아</div></div>
+      <div class="item"><div class="label">메뉴</div><div>전체</div></div>
+      <div class="icon-btn">🔍</div>
+    </div>
+    <button class="menu-btn">≡ <div class="avatar">맵</div></button>
+  </header>
+
+  <div class="cats">
+    <div class="cat active"><span class="icon">🍴</span><span class="label">전체</span></div>
+    <div class="cat"><span class="icon">🍜</span><span class="label">국물/면</span></div>
+    <div class="cat"><span class="icon">🌶️</span><span class="label">떡볶이</span></div>
+    <div class="cat"><span class="icon">🍗</span><span class="label">치킨</span></div>
+    <div class="cat"><span class="icon">🥩</span><span class="label">고기</span></div>
+    <div class="cat"><span class="icon">🍙</span><span class="label">분식</span></div>
+    <div class="cat"><span class="icon">🍲</span><span class="label">전골</span></div>
+    <div class="cat"><span class="icon">🥘</span><span class="label">아시안</span></div>
+    <div class="cat"><span class="icon">🥡</span><span class="label">중식</span></div>
+    <div class="cat"><span class="icon">🍝</span><span class="label">양식</span></div>
+  </div>
+
+  <div class="main">
+    <div class="listings">
+      <h2>서울 종로구 32곳의 매운맛 맛집</h2>
+      <div class="meta">⭐ 평균 4.5 · 평균 9,500원 · 마지막 업데이트 방금 전</div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="photo s3"><span class="badge">★ 1위</span><button class="heart">♡</button>🍜</div>
+          <div class="row1"><div class="name">불맛탱탱 짬뽕집</div><div class="rating">⭐ 4.8</div></div>
+          <div class="meta-l">종로구 · 짬뽕 · Lv.3</div>
+          <div class="price"><b>9,000원</b> · 인증 248</div>
+        </div>
+        <div class="card">
+          <div class="photo s5"><span class="badge">⚠ 고통</span><button class="heart">♡</button>🥩</div>
+          <div class="row1"><div class="name">디진다 돈까스</div><div class="rating">⭐ 4.7</div></div>
+          <div class="meta-l">중구 · 돈까스 · Lv.5</div>
+          <div class="price"><b>13,000원</b> · 인증 192</div>
+        </div>
+        <div class="card">
+          <div class="photo s4"><button class="heart">♡</button>🌶️</div>
+          <div class="row1"><div class="name">엽기 떡볶이 본점</div><div class="rating">⭐ 4.6</div></div>
+          <div class="meta-l">영등포 · 떡볶이 · Lv.4</div>
+          <div class="price"><b>15,000원</b> · 인증 167</div>
+        </div>
+        <div class="card">
+          <div class="photo s2"><button class="heart">♡</button>🍲</div>
+          <div class="row1"><div class="name">청양 칼국수</div><div class="rating">⭐ 4.5</div></div>
+          <div class="meta-l">마포구 · 칼국수 · Lv.2</div>
+          <div class="price"><b>8,500원</b> · 인증 134</div>
+        </div>
+        <div class="card">
+          <div class="photo s1"><span class="badge">신규</span><button class="heart">♡</button>🍙</div>
+          <div class="row1"><div class="name">진라면 순한 분식</div><div class="rating">⭐ 4.4</div></div>
+          <div class="meta-l">종로구 · 분식 · Lv.1</div>
+          <div class="price"><b>6,500원</b> · 인증 88</div>
+        </div>
+        <div class="card">
+          <div class="photo s3"><button class="heart">♡</button>🍗</div>
+          <div class="row1"><div class="name">불닭 마차</div><div class="rating">⭐ 4.2</div></div>
+          <div class="meta-l">강남구 · 닭갈비 · Lv.3</div>
+          <div class="price"><b>12,000원</b> · 인증 65</div>
+        </div>
+        <div class="card">
+          <div class="photo s4"><button class="heart">♡</button>🍖</div>
+          <div class="row1"><div class="name">매운갈비찜의 전설</div><div class="rating">⭐ 4.1</div></div>
+          <div class="meta-l">성동구 · 갈비찜 · Lv.4</div>
+          <div class="price"><b>18,000원</b> · 인증 54</div>
+        </div>
+        <div class="card">
+          <div class="photo s2"><button class="heart">♡</button>🥡</div>
+          <div class="row1"><div class="name">매콤이 짜장</div><div class="rating">⭐ 4.0</div></div>
+          <div class="meta-l">서대문 · 중식 · Lv.2</div>
+          <div class="price"><b>7,500원</b> · 인증 47</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="map-pane">
+      <div class="road h1"></div>
+      <div class="road h2"></div>
+      <div class="river"></div>
+      <div class="road v1"></div>
+      <div class="road v2"></div>
+
+      <div class="map-filter">
+        <span>지도 이동 시 검색</span>
+        <input type="checkbox" checked>
+      </div>
+
+      <div class="map-controls">
+        <button class="ctrl">+</button>
+        <button class="ctrl">−</button>
+        <button class="ctrl">📍</button>
+      </div>
+
+      <div class="pin active" style="top:30%; left:30%"><div class="body"><span class="heart-mini">♥</span>9,000</div></div>
+      <div class="pin" style="top:40%; left:50%"><div class="body">13,000</div></div>
+      <div class="pin" style="top:48%; left:38%"><div class="body">15,000</div></div>
+      <div class="pin" style="top:58%; left:62%"><div class="body">8,500</div></div>
+      <div class="pin" style="top:68%; left:48%"><div class="body">7,000</div></div>
+      <div class="pin" style="top:52%; left:75%"><div class="body">11,000</div></div>
+      <div class="pin" style="top:35%; left:68%"><div class="body">6,500</div></div>
+      <div class="pin" style="top:75%; left:40%"><div class="body">18,000</div></div>
+    </div>
+  </div>
+</body>
+</html>

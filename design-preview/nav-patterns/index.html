@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>맵맵맵 — 12개 네비게이션 패턴</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;590;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafaf7;--text:#1a1a1a;--text-2:#3a3a3a;--text-3:#6e6e6e;--text-4:#9a9a9a;
+    --border:rgba(0,0,0,.08);--surface:#f5f2ee;
+    --spice:#c5171e;--spice-2:#ff6b35;--gradient:linear-gradient(135deg,#c5171e 0%,#ff6b35 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:'Inter','Pretendard Variable','Pretendard',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+
+  /* HEADER */
+  header{padding:14px 24px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;flex-shrink:0;z-index:100}
+  header .logo{display:flex;align-items:center;gap:10px}
+  header .logo img{width:36px;height:36px}
+  header .logo .txt{font-size:16px;font-weight:800;letter-spacing:-0.5px}
+  header .logo .sub{font-size:11px;color:var(--text-3);font-weight:590}
+  header .meta{margin-left:auto;font-size:11px;color:var(--text-4);font-family:monospace;display:flex;gap:14px;align-items:center}
+  header .meta .dot{width:6px;height:6px;border-radius:50%;background:var(--gradient);animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* MAIN */
+  main{flex:1;display:flex;min-height:0}
+
+  /* SIDEBAR */
+  .sidebar{width:280px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);overflow-y:auto;padding:18px 0}
+  .sidebar h2{font-size:11px;font-weight:800;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;padding:0 20px;margin-bottom:10px}
+  .sidebar ul{list-style:none}
+  .sidebar li{padding:11px 18px;cursor:pointer;border-left:3px solid transparent;transition:all .15s;display:flex;align-items:center;gap:12px}
+  .sidebar li:hover{background:var(--surface)}
+  .sidebar li.active{background:var(--surface);border-left-color:var(--spice);box-shadow:inset 0 0 0 1px rgba(255,107,53,.1)}
+  .sidebar li .num{width:28px;height:28px;border-radius:6px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text-3);font-family:monospace;flex-shrink:0;transition:all .15s}
+  .sidebar li.active .num{background:var(--gradient);color:#fff}
+  .sidebar li .info{flex:1;min-width:0}
+  .sidebar li .nm{font-size:13px;font-weight:700;color:var(--text)}
+  .sidebar li .ds{font-size:10px;color:var(--text-3);margin-top:1px;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sidebar li.active .nm{color:var(--spice)}
+
+  .sidebar .summary{padding:18px 20px;margin-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);line-height:1.6}
+  .sidebar .summary b{color:var(--text)}
+
+  /* PREVIEW */
+  .preview{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+  .preview-bar{padding:10px 18px;background:#fff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+  .preview-bar .nav-info{display:flex;align-items:center;gap:10px}
+  .preview-bar .num{padding:3px 8px;background:var(--gradient);color:#fff;border-radius:4px;font-size:11px;font-weight:700;font-family:monospace}
+  .preview-bar .nm{font-size:14px;font-weight:700}
+  .preview-bar .pros{font-size:11px;color:var(--text-3);margin-left:8px}
+  .preview-bar .actions{display:flex;gap:6px}
+  .preview-bar button{padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:5px;font-family:inherit;font-size:11px;font-weight:590;cursor:pointer;color:var(--text-2);transition:all .15s}
+  .preview-bar button:hover{border-color:var(--spice-2);color:var(--spice)}
+  .preview-bar button.fullscreen{background:var(--gradient);color:#fff;border:none;box-shadow:0 1px 4px rgba(197,23,30,.25)}
+
+  .frame-wrap{flex:1;background:repeating-linear-gradient(45deg,#f5f2ee 0,#f5f2ee 8px,#fafaf7 8px,#fafaf7 16px);padding:14px;min-height:0;display:flex;align-items:center;justify-content:center}
+  iframe{width:100%;height:100%;background:#fff;border:none;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.08)}
+
+  @media(max-width:900px){
+    .sidebar{position:fixed;top:0;left:-280px;height:100vh;z-index:200;transition:left .25s;box-shadow:4px 0 20px rgba(0,0,0,.1)}
+    .sidebar.show{left:0}
+    .menu-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:14px;font-weight:700}
+  }
+  @media(min-width:901px){
+    .menu-btn{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('show')">☰</button>
+  <div class="logo">
+    <img src="../variants/logo.svg" alt="맵맵맵">
+    <div>
+      <div class="txt">맵맵맵 <span style="color:var(--spice)">·</span> Nav Patterns</div>
+      <div class="sub">Modern web navigation 12 patterns</div>
+    </div>
+  </div>
+  <div class="meta">
+    <span class="dot"></span>
+    <span>12 patterns · 2026</span>
+  </div>
+</header>
+
+<main>
+  <aside class="sidebar">
+    <h2>네비게이션 패턴</h2>
+    <ul id="navList"></ul>
+    <div class="summary">
+      <b>💡 사용 가이드</b><br>
+      좌측 패턴을 클릭하여 우측에서 미리보기. 각 패턴은 mapmadmap (매운맛 맛집 지도) 컨텍스트로 만들어졌습니다.
+      <br><br>
+      <b>전체화면 보기</b>는 우측 상단 ↗ 버튼을 누르세요.
+    </div>
+  </aside>
+
+  <section class="preview">
+    <div class="preview-bar">
+      <div class="nav-info">
+        <span class="num" id="curNum">01</span>
+        <span class="nm" id="curName">Command Palette</span>
+        <span class="pros" id="curPros">— ⌘K, 키보드 우선, 파워 유저</span>
+      </div>
+      <div class="actions">
+        <button onclick="prev()">← 이전</button>
+        <button onclick="next()">다음 →</button>
+        <button class="fullscreen" onclick="openFull()">↗ 전체화면</button>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <iframe id="frame" src="01-command-palette.html"></iframe>
+    </div>
+  </section>
+</main>
+
+<script>
+  const patterns = [
+    {file:'01-command-palette.html', name:'Command Palette', pros:'⌘K, 키보드 우선, 파워 유저 친화', desc:'Linear/Raycast 스타일'},
+    {file:'02-bottom-sheet.html', name:'Bottom Sheet', pros:'풀스크린 지도 + 드래그 시트', desc:'네이버지도 모바일 패턴'},
+    {file:'03-fab-speed-dial.html', name:'FAB Speed Dial', pros:'단일 FAB → 방사형 액션', desc:'Material Design 패턴'},
+    {file:'04-hamburger-overlay.html', name:'Hamburger Overlay', pros:'풀스크린 오버레이, 큰 타이포', desc:'Stripe/Vercel 마케팅 사이트'},
+    {file:'05-side-rail.html', name:'Side Rail', pros:'호버 시 확장되는 사이드바', desc:'Linear/Notion 스타일'},
+    {file:'06-tab-bar.html', name:'Bottom Tab Bar', pros:'iOS/Android 표준', desc:'네이티브 앱 친화적'},
+    {file:'07-floating-pill.html', name:'Floating Pill', pros:'떠있는 캡슐 메뉴', desc:'Apple Music/Vercel'},
+    {file:'08-slide-over.html', name:'Slide-over Panel', pros:'우측에서 슬라이드 패널', desc:'Linear 이슈 디테일'},
+    {file:'09-ask-ai.html', name:'Ask AI', pros:'자연어 검색이 곧 메뉴', desc:'Notion AI/Algolia'},
+    {file:'10-story-carousel.html', name:'Story Carousel', pros:'상단 가로 스크롤 큐레이션', desc:'Instagram/Pinterest'},
+    {file:'11-gesture.html', name:'Gesture-based', pros:'스와이프/드래그 카드', desc:'Tinder/TikTok'},
+    {file:'12-contextual-toolbar.html', name:'Contextual Toolbar', pros:'선택 시 떠오르는 툴바', desc:'Notion/Figma'},
+  ];
+
+  let cur = 0;
+  const list = document.getElementById('navList');
+  patterns.forEach((p, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<div class="num">${String(i+1).padStart(2,'0')}</div><div class="info"><div class="nm">${p.name}</div><div class="ds">${p.desc}</div></div>`;
+    li.onclick = () => select(i);
+    list.appendChild(li);
+  });
+
+  function select(i){
+    cur = i;
+    const p = patterns[i];
+    document.getElementById('frame').src = p.file;
+    document.getElementById('curNum').textContent = String(i+1).padStart(2,'0');
+    document.getElementById('curName').textContent = p.name;
+    document.getElementById('curPros').textContent = '— ' + p.pros;
+    document.querySelectorAll('.sidebar li').forEach((li, idx) => li.classList.toggle('active', idx === i));
+    if (window.innerWidth < 900) document.querySelector('.sidebar').classList.remove('show');
+  }
+  function prev(){ select((cur - 1 + patterns.length) % patterns.length); }
+  function next(){ select((cur + 1) % patterns.length); }
+  function openFull(){ window.open(patterns[cur].file, '_blank'); }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') prev();
+    if (e.key === 'ArrowRight') next();
+  });
+  select(0);
+</script>
+</body></html>

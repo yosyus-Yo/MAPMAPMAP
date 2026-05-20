@@ -76,7 +76,7 @@
       document.body.classList.toggle('no-nav', noNav);
       // URL path 갱신 (2026-05-20: hash → pathname clean URL).
       // alias 입력 시에도 사용자가 입력한 alias 그대로 유지 (예: /godmap).
-      // <base href="/v2/"> 영향 회피 위해 명시적 절대 경로 사용.
+      // 2026-05-20: v2 → 루트 마이그레이션 후 절대 경로 사용 유지 (clean URL).
       try { history.replaceState(null, '', `/${name}`); } catch(e) {}
     }
 

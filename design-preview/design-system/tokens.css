@@ -1,0 +1,88 @@
+/* ============================================================
+   맵맵맵 디자인 토큰 v1
+   사용: <link rel="stylesheet" href="design-system/tokens.css">
+   ============================================================ */
+
+:root {
+  /* ───────── 매운맛 스파이스 스케일 (시그니처) ───────── */
+  --spice-0: #C8C8C8;
+  --spice-1: #FCD34D;
+  --spice-2: #FB923C;
+  --spice-3: #EF4444;
+  --spice-4: #B91C1C;
+  --spice-5: #1F0606;
+
+  /* ───────── 브랜드 ───────── */
+  --brand-red:    #C5171E;
+  --brand-orange: #FF6B35;
+  --brand-gradient: linear-gradient(135deg, #C5171E 0%, #FF6B35 100%);
+  --brand-glow:     0 0 24px rgba(255, 107, 53, 0.35);
+  --brand-glow-strong: 0 0 32px rgba(197, 23, 30, 0.4);
+
+  /* ───────── 중립 ───────── */
+  --bg:        #FAFAF7;
+  --surface:   #F5F2EE;
+  --surface-2: #EBE6DF;
+  --panel:     #FFFFFF;
+  --text:      #1A1A1A;
+  --text-2:    #3F3F3F;
+  --text-3:    #6E6E6E;
+  --text-4:    #9A9A9A;
+  --border:    rgba(0,0,0,0.08);
+  --border-2:  rgba(0,0,0,0.12);
+
+  /* ───────── 시멘틱 ───────── */
+  --success: #2E7D32;
+  --warning: #D97706;
+  --danger:  #C5171E;
+
+  /* ───────── 사용자 상대 위험도 (마커 배경) ───────── */
+  --risk-safe:    #DCFCE7;  /* 사용자 Lv ≥ 가게 Lv */
+  --risk-watch:   #FEF3C7;  /* 사용자 Lv = 가게 Lv - 1 */
+  --risk-warn:    #FED7AA;  /* 사용자 Lv = 가게 Lv - 2 */
+  --risk-danger:  #FECACA;  /* 사용자 Lv ≤ 가게 Lv - 3 */
+
+  /* ───────── 타이포 ───────── */
+  --font-sans: 'Pretendard Variable', 'Pretendard', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Berkeley Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+  --text-display:  32px;
+  --text-h1:       22px;
+  --text-h2:       16px;
+  --text-body:     14px;
+  --text-meta:     12px;
+  --text-caption:  11px;
+  --text-tiny:      9px;
+
+  /* ───────── 스페이싱 (4 grid) ───────── */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-14: 56px;
+  --sp-20: 80px;
+
+  /* ───────── 라운드 ───────── */
+  --r-sm:   6px;
+  --r-md:  10px;
+  --r-lg:  14px;
+  --r-xl:  18px;
+  --r-pill: 999px;
+
+  /* ───────── 그림자 ───────── */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  --shadow-xl: 0 16px 56px rgba(0,0,0,0.16);
+
+  /* ───────── 애니메이션 ───────── */
+  --easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --easing-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 0.15s;
+  --duration-base: 0.25s;
+  --duration-slow: 0.35s;
+}

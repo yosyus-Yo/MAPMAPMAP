@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>04. Hamburger Overlay · 맵맵맵</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#fafaf7;--text:#1a1a1a;--text-3:#6e6e6e;--border:rgba(0,0,0,.08);
+    --spice:#c5171e;--spice-2:#ff6b35;--gradient:linear-gradient(135deg,#c5171e,#ff6b35);}
+  *{margin:0;padding:0;box-sizing:border-box} html,body{height:100%;overflow:hidden}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+  .nav{position:fixed;top:0;left:0;right:0;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;z-index:200;background:#fff;border-bottom:1px solid var(--border)}
+  .brand{font-size:20px;font-weight:900;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .demo-help{font-size:11px;color:var(--text-3)}
+  .ham{width:42px;height:42px;background:#1a1a1a;border:none;color:#fff;border-radius:8px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;padding:0;transition:all .25s}
+  .ham span{display:block;width:18px;height:2px;background:#fff;border-radius:2px;transition:all .3s}
+  .ham.open{background:var(--gradient);transform:rotate(90deg)}
+  .ham.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+  .ham.open span:nth-child(2){opacity:0}
+  .ham.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+  .stage{position:fixed;inset:60px 0 0 0;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 24px}
+  .stage h1{font-size:48px;font-weight:900;letter-spacing:-1.5px;margin-bottom:12px}
+  .stage h1 .accent{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .stage p{font-size:15px;color:var(--text-3);max-width:480px;margin:0 auto;line-height:1.6}
+  .arrow{margin-top:32px;font-size:30px}
+
+  /* Full Overlay */
+  .overlay{position:fixed;inset:0;background:#1a1a1a;color:#fff;z-index:150;display:flex;flex-direction:column;justify-content:center;padding:80px 60px;clip-path:circle(0% at calc(100% - 42px) 42px);transition:clip-path .6s cubic-bezier(.86,0,.07,1)}
+  .overlay.open{clip-path:circle(150% at calc(100% - 42px) 42px)}
+  .overlay::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 30%, rgba(197,23,30,.2), transparent 50%),radial-gradient(circle at 70% 80%, rgba(255,107,53,.15), transparent 60%)}
+  .menu{position:relative;display:flex;flex-direction:column;gap:14px}
+  .menu-item{font-size:64px;font-weight:900;letter-spacing:-2px;color:#fff;text-decoration:none;cursor:pointer;line-height:1.1;transition:all .2s;display:inline-block;width:fit-content;opacity:0;transform:translateY(40px)}
+  .overlay.open .menu-item{opacity:1;transform:translateY(0);transition:all .6s cubic-bezier(.16,1,.3,1)}
+  .overlay.open .menu-item:nth-child(1){transition-delay:.3s}
+  .overlay.open .menu-item:nth-child(2){transition-delay:.4s}
+  .overlay.open .menu-item:nth-child(3){transition-delay:.5s}
+  .overlay.open .menu-item:nth-child(4){transition-delay:.6s}
+  .overlay.open .menu-item:nth-child(5){transition-delay:.7s}
+  .menu-item:hover{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;transform:translateX(20px)}
+  .meta{position:absolute;bottom:60px;left:60px;font-size:13px;color:#9a9a9a}
+  @media(max-width:600px){
+    .menu-item{font-size:40px}
+    .overlay{padding:80px 28px}
+    .stage h1{font-size:32px}
+  }
+</style>
+</head><body>
+<div class="nav">
+  <div class="brand">🌶 mapmapmap</div>
+  <div style="display:flex;gap:12px;align-items:center">
+    <span class="demo-help">04. Hamburger Overlay · Apple · Stripe</span>
+    <button class="ham" id="ham" onclick="toggle()"><span></span><span></span><span></span></button>
+  </div>
+</div>
+
+<div class="stage">
+  <div>
+    <h1>메뉴는 <span class="accent">콘텐츠</span>다</h1>
+    <p>버튼이 작아도 메뉴는 화면을 가득 채웁니다. 큰 타이포그래피로 메뉴 자체가 시각적 경험.</p>
+    <div class="arrow">↗</div>
+  </div>
+</div>
+
+<div class="overlay" id="ov">
+  <div class="menu">
+    <a class="menu-item" href="#" onclick="closeMenu()">🗺 지도</a>
+    <a class="menu-item" href="#" onclick="closeMenu()">🔥 매운맛 랭킹</a>
+    <a class="menu-item" href="#" onclick="closeMenu()">✍ 매운맛 인증</a>
+    <a class="menu-item" href="#" onclick="closeMenu()">📋 마이페이지</a>
+    <a class="menu-item" href="#" onclick="closeMenu()">🛡 관리자</a>
+  </div>
+  <div class="meta">매운맛 실패 없는 맛집 지도 · 종로구 32곳</div>
+</div>
+
+<script>
+  function toggle(){ document.getElementById('ov').classList.toggle('open'); document.getElementById('ham').classList.toggle('open'); }
+  function closeMenu(){ setTimeout(toggle, 200); }
+</script>
+</body></html>

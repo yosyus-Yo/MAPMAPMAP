@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>10. Story / Horizontal Carousel · 맵맵맵</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;590;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#fafaf7;--text:#1a1a1a;--text-3:#6e6e6e;--border:rgba(0,0,0,.08);--surface:#f5f2ee;
+    --spice:#c5171e;--spice-2:#ff6b35;--gradient:linear-gradient(135deg,#c5171e,#ff6b35);}
+  *{margin:0;padding:0;box-sizing:border-box} body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh}
+  .demo-bar{padding:12px 20px;background:#fff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+  .demo-bar h1{font-size:13px;font-weight:700} .demo-bar .help{font-size:11px;color:var(--text-3)}
+
+  /* Top Story Carousel (Instagram-style) */
+  .stories{padding:18px 16px;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;display:flex;gap:14px;scroll-snap-type:x mandatory;scroll-padding:16px}
+  .stories::-webkit-scrollbar{display:none}
+  .story{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;scroll-snap-align:start}
+  .story .ring{width:64px;height:64px;border-radius:50%;padding:3px;background:var(--gradient);position:relative;transition:transform .15s}
+  .story:hover .ring{transform:scale(1.05)}
+  .story.viewed .ring{background:#ddd}
+  .story .ring::before{content:'';position:absolute;inset:3px;background:#fff;border-radius:50%}
+  .story .ring .em{position:absolute;inset:5px;background:var(--surface);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px}
+  .story .lbl{font-size:10px;font-weight:590;color:var(--text-3);max-width:64px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* Category Carousel below */
+  .cats{padding:14px 16px;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;display:flex;gap:8px;scroll-snap-type:x mandatory}
+  .cats::-webkit-scrollbar{display:none}
+  .cat{flex-shrink:0;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:590;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s}
+  .cat:hover{border-color:var(--spice-2)}
+  .cat.active{background:var(--gradient);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(197,23,30,.3)}
+
+  /* Content */
+  .content{padding:24px 16px;max-width:760px;margin:0 auto}
+  .content h2{font-size:20px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+  .content .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+  .item{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:all .15s}
+  .item:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.06)}
+  .item .em{width:48px;height:48px;border-radius:10px;background:var(--gradient);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:8px}
+  .item .nm{font-size:13px;font-weight:700} .item .mt{font-size:11px;color:var(--text-3);margin-top:2px} .item .pr{font-size:12px;font-weight:700;color:var(--spice);margin-top:6px;font-family:monospace}
+
+  .info{margin-top:32px;padding:16px;background:rgba(255,107,53,.08);border-radius:12px;font-size:13px;color:var(--text-3);line-height:1.6}
+  .info strong{color:var(--text)}
+
+  /* Story Modal */
+  .modal{position:fixed;inset:0;background:#000;display:none;z-index:200;flex-direction:column;align-items:center;justify-content:center;color:#fff}
+  .modal.show{display:flex}
+  .modal .progress{position:absolute;top:16px;left:16px;right:16px;height:3px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden}
+  .modal .progress .fill{height:100%;background:#fff;width:0;animation:fill 4s linear forwards}
+  @keyframes fill{to{width:100%}}
+  .modal .close{position:absolute;top:32px;right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:18px;cursor:pointer}
+  .modal-content{text-align:center;padding:24px}
+  .modal-content .em{font-size:120px;margin-bottom:16px}
+  .modal-content h3{font-size:24px;font-weight:700;margin-bottom:8px}
+  .modal-content p{font-size:14px;opacity:.8}
+</style>
+</head><body>
+<div class="demo-bar"><h1>10. Story / Horizontal Carousel</h1><span class="help">대표: Instagram · Pinterest · 카카오</span></div>
+
+<!-- Top Stories -->
+<div class="stories">
+  <div class="story" onclick="openStory('🔥', '이번 주 매운맛 1위', '불맛탱탱 짬뽕집')">
+    <div class="ring"><div class="em">🔥</div></div>
+    <div class="lbl">1위</div>
+  </div>
+  <div class="story" onclick="openStory('💀', '신규 도전 메뉴', '디진다 돈까스')">
+    <div class="ring"><div class="em">💀</div></div>
+    <div class="lbl">신규</div>
+  </div>
+  <div class="story" onclick="openStory('🎁', '베타 리워드', '3건 인증 시 +500P')">
+    <div class="ring"><div class="em">❤</div></div>
+    <div class="lbl">리워드</div>
+  </div>
+  <div class="story viewed" onclick="openStory('🌶', '맵 레벨 변경', '나의 레벨')">
+    <div class="ring"><div class="em">🌶</div></div>
+    <div class="lbl">레벨</div>
+  </div>
+  <div class="story viewed" onclick="openStory('📍', '내 동네 핫플', '종로구 32곳')">
+    <div class="ring"><div class="em">📍</div></div>
+    <div class="lbl">내 동네</div>
+  </div>
+  <div class="story" onclick="openStory('💣', '도전 챌린지', 'Lv.4+ 7곳')">
+    <div class="ring"><div class="em">💣</div></div>
+    <div class="lbl">챌린지</div>
+  </div>
+  <div class="story" onclick="openStory('✍', '인증 가이드', '영수증 +50P')">
+    <div class="ring"><div class="em">✍</div></div>
+    <div class="lbl">가이드</div>
+  </div>
+</div>
+
+<!-- Category Carousel -->
+<div class="cats">
+  <div class="cat active">🌶 전체</div>
+  <div class="cat" onclick="select(this)">🍜 면류</div>
+  <div class="cat" onclick="select(this)">🍚 분식/한식</div>
+  <div class="cat" onclick="select(this)">🍝 양식</div>
+  <div class="cat" onclick="select(this)">🍣 일식</div>
+  <div class="cat" onclick="select(this)">🥢 중식</div>
+  <div class="cat" onclick="select(this)">🐥 Lv.0-1</div>
+  <div class="cat" onclick="select(this)">🌶 Lv.2-3</div>
+  <div class="cat" onclick="select(this)">💣 Lv.4-5</div>
+</div>
+
+<div class="content">
+  <h2>🍜 종로구 32곳</h2>
+  <div class="grid">
+    <div class="item"><div class="em">🍜</div><div class="nm">불맛탱탱 짬뽕집 🔥</div><div class="mt">★ 4.8 · Lv.3</div><div class="pr">9,000원</div></div>
+    <div class="item"><div class="em">🍜</div><div class="nm">디진다 돈까스 💀</div><div class="mt">★ 4.7 · Lv.5</div><div class="pr">13,000원</div></div>
+    <div class="item"><div class="em">🍜</div><div class="nm">엽기 떡볶이 💣</div><div class="mt">★ 4.6 · Lv.4</div><div class="pr">15,000원</div></div>
+    <div class="item"><div class="em">🍚</div><div class="nm">청양 칼국수</div><div class="mt">★ 4.5 · Lv.2</div><div class="pr">8,500원</div></div>
+    <div class="item"><div class="em">🍚</div><div class="nm">진라면 순한 분식</div><div class="mt">★ 4.4 · Lv.1</div><div class="pr">6,500원</div></div>
+    <div class="item"><div class="em">🍜</div><div class="nm">불닭 마차 🔥</div><div class="mt">★ 4.2 · Lv.3</div><div class="pr">12,000원</div></div>
+  </div>
+  <div class="info">
+    <strong>💡 인스타그램 스토리 패턴</strong><br>
+    상단의 원형 캐러셀은 일시적인 이벤트/큐레이션 (랭킹/리워드/챌린지 등)에 적합. 본문 위쪽의 카테고리 칩은 영구 필터.
+  </div>
+</div>
+
+<div class="modal" id="modal" onclick="closeStory()">
+  <div class="progress"><div class="fill"></div></div>
+  <button class="close">✕</button>
+  <div class="modal-content">
+    <div class="em" id="stEm"></div>
+    <h3 id="stTitle"></h3>
+    <p id="stDesc"></p>
+  </div>
+</div>
+
+<script>
+  function openStory(em, title, desc){
+    document.getElementById('stEm').textContent = em;
+    document.getElementById('stTitle').textContent = title;
+    document.getElementById('stDesc').textContent = desc;
+    document.getElementById('modal').classList.add('show');
+    setTimeout(closeStory, 4000);
+  }
+  function closeStory(){ document.getElementById('modal').classList.remove('show'); }
+  function select(el){ document.querySelectorAll('.cat').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
+</script>
+</body></html>

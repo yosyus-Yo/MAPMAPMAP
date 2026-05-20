@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>맵맵맵 — 디자인 변형 8종 비교</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gradient: linear-gradient(135deg, #c5171e 0%, #ff6b35 100%);
+      --spice: #c5171e;
+      --spice-2: #ff6b35;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      background: #fafafa;
+      color: #222;
+      padding: 40px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 32px; }
+    header h1 {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+    header h1 .spice {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { color: #666; font-size: 15px; }
+
+    /* Section */
+    .section-title {
+      font-size: 18px;
+      font-weight: 900;
+      margin: 32px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.5px;
+    }
+    .section-title .badge {
+      padding: 3px 10px;
+      background: var(--gradient);
+      color: white;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .section-title.original .badge { background: #f0f0f0; color: #666; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 0;
+      overflow: hidden;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      position: relative;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+    .card.spicy {
+      box-shadow: 0 2px 16px rgba(197,23,30,0.08);
+      border: 1px solid rgba(255,107,53,0.15);
+    }
+    .card.spicy:hover { box-shadow: 0 8px 32px rgba(197,23,30,0.2); }
+    .card.spicy .corner-tag {
+      position: absolute;
+      top: 12px; right: 12px;
+      background: var(--gradient);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      z-index: 5;
+      box-shadow: 0 2px 6px rgba(197,23,30,0.3);
+    }
+    .preview {
+      height: 280px;
+      position: relative;
+      overflow: hidden;
+    }
+    .preview iframe {
+      width: 200%;
+      height: 200%;
+      border: 0;
+      transform: scale(0.5);
+      transform-origin: 0 0;
+      pointer-events: none;
+    }
+    .card-body { padding: 20px 24px 24px; }
+    .card-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      background: #f0f0f0;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .card.spicy .card-tag {
+      background: rgba(197,23,30,0.1);
+      color: var(--spice);
+    }
+    .card h2 { font-size: 20px; font-weight: 900; margin-bottom: 6px; letter-spacing: -0.5px; }
+    .card .desc { font-size: 14px; color: #666; line-height: 1.5; margin-bottom: 12px; }
+    .card .meta {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #888;
+      flex-wrap: wrap;
+    }
+    .card .meta span::before { content: '•'; margin-right: 6px; color: #ccc; }
+    .card .meta span:first-child::before { content: ''; margin: 0; }
+
+    .note {
+      max-width: 800px;
+      margin: 0 auto 24px;
+      background: #fffbe6;
+      border: 1px solid #fde68a;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 14px;
+      color: #92400e;
+      line-height: 1.5;
+    }
+    .note.spicy {
+      background: linear-gradient(135deg, rgba(255,107,53,0.05), rgba(197,23,30,0.05));
+      border-color: rgba(255,107,53,0.3);
+      color: var(--spice);
+    }
+
+    footer {
+      margin-top: 48px;
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+    }
+
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr; }
+      .preview { height: 200px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌶️ mapmapmap <span class="spice">디자인 변형</span></h1>
+      <p>8가지 디자인 톤을 비교 — 클릭해서 풀 페이지로 열기</p>
+    </header>
+
+    <div class="note spicy">
+      🌶️ <strong>매운맛 색감 버전 (Spicy)</strong> — 원본 디자인 컬러(#c5171e → #ff6b35 그라디언트)를 적용해 매운맛 정체성을 강조한 변형. 각 디자인 시스템의 레이아웃은 유지하면서 액센트 컬러만 매운맛으로 교체.
+    </div>
+
+    <!-- 🔥 BLAZE — 추천 -->
+    <h2 class="section-title">🔥 블레이즈 (Linear-Light + Uber-Spicy 융합) <span class="badge">⭐ 추천</span></h2>
+
+    <a href="linear-blaze.html" class="card spicy" target="_blank" style="grid-column: 1 / -1; display: block;">
+      <div class="corner-tag">🔥 BLAZE</div>
+      <div class="preview" style="height: 360px;"><iframe src="linear-blaze.html" loading="lazy"></iframe></div>
+      <div class="card-body">
+        <span class="card-tag">LINEAR-LIGHT × UBER-SPICY</span>
+        <h2>밝은 데이터 분석 + 매운맛 임팩트</h2>
+        <p class="desc">linear-light의 깔끔한 밝은 베이지 베이스에 uber-spicy의 매운맛 요소를 합침: 떠다니는 불씨, 글로우 마커, 매운맛 배너, 펄싱 로고, 그라디언트 텍스트. <strong>"분석하면서도 매운맛이 살아 숨쉬는"</strong> 톤.</p>
+        <div class="meta">
+          <span>밝은 베이지 베이스</span>
+          <span>매운맛 글로우</span>
+          <span>떠다니는 불씨</span>
+          <span>그라디언트 액센트</span>
+          <span>모노스페이스 데이터</span>
+        </div>
+      </div>
+    </a>
+
+    <!-- Spicy 버전 -->
+    <h2 class="section-title">🌶️ 매운맛 강조 버전 <span class="badge">SPICY</span></h2>
+
+    <div class="grid">
+      <a href="uber-spicy.html" class="card spicy" target="_blank">
+        <div class="corner-tag">🌶 SPICY</div>
+        <div class="preview"><iframe src="uber-spicy.html" loading="lazy"></iframe></div>
+        <div class="card-body">
+          <span class="card-tag">UBER + 매운맛</span>
+          <h2>불꽃 다크 + 그라디언트</h2>
+          <p class="desc">검정 베이스에 매운맛 그라디언트 마커/CTA. 떠다니는 불씨, 글로우 효과로 "매운맛 인증" 컨셉을 극대화.</p>
+          <div class="meta">
+            <span>다크 + #c5171e→#ff6b35</span>
+            <span>그라디언트 핀</span>
+            <span>임팩트 ↑</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="airbnb-spicy.html" class="card spicy" target="_blank">
+        <div class="corner-tag">🌶 SPICY</div>
+        <div class="preview"><iframe src="airbnb-spicy.html" loading="lazy"></iframe></div>
+        <div class="card-body">
+          <span class="card-tag">AIRBNB + 매운맛</span>
+          <h2>따뜻한 매운맛 큐레이션</h2>
+          <p class="desc">Rausch Red 대신 매운맛 그라디언트. 카드 사진이 레벨별로 노랑→주황→빨강→검정으로 진해짐. 친근하면서 매운맛이 살아있음.</p>
+          <div class="meta">
+            <span>화이트 + 그라디언트</span>
+            <span>레벨별 사진 톤</span>
+            <span>가장 추천 👍</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="linear-light.html" class="card spicy" target="_blank">
+        <div class="corner-tag">🌶 SPICY</div>
+        <div class="preview"><iframe src="linear-light.html" loading="lazy"></iframe></div>
+        <div class="card-body">
+          <span class="card-tag">LINEAR LIGHT + 매운맛</span>
+          <h2>밝은 데이터 + 매운맛</h2>
+          <p class="desc">기존 다크 Linear를 밝은 톤으로 전환. 인디고 액센트를 매운맛 그라디언트로 교체. 깔끔한 분석 + 매운맛 아이덴티티.</p>
+          <div class="meta">
+            <span>밝은 베이지 베이스</span>
+            <span>그라디언트 액센트</span>
+            <span>모노스페이스</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="notion-spicy.html" class="card spicy" target="_blank">
+        <div class="corner-tag">🌶 SPICY</div>
+        <div class="preview"><iframe src="notion-spicy.html" loading="lazy"></iframe></div>
+        <div class="card-body">
+          <span class="card-tag">NOTION + 매운맛</span>
+          <h2>매운맛 노트장</h2>
+          <p class="desc">Notion Blue 대신 매운맛 그라디언트. 레벨 pill이 노랑→주황→빨강→검정 그라디언트로 직관적. 친근한 노트 톤 유지.</p>
+          <div class="meta">
+            <span>워밍 화이트</span>
+            <span>레벨 pill 그라디언트</span>
+            <span>친근함</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- 원본 디자인 시스템 버전 -->
+    <h2 class="section-title original">🎨 원본 디자인 시스템 톤 <span class="badge">ORIGINAL</span></h2>
+
+    <div class="grid">
+      <a href="uber.html" class="card" target="_blank">
+        <div class="preview"><iframe src="uber.html" loading="lazy"></iframe></div>
+        <div class="card-body">
+          <span class="card-tag">UBER</span>
+          <h2>회색 미니멀 + 검정 핀</h2>
+          <p class="desc">회색 풀스크린 지도 + 검정 가격 핀, 매운맛은 빨강 도트 액센트만. 도시적이고 자신감 있는 톤.</p>
+          <div class="meta">
+            <span>회색/검정 + 빨강 점</span>
+            <span>풀스크린 지도</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="airbnb.html" class="card" target="_blank">
+        <div class="preview"><iframe src="airbnb.html" loading="lazy"></iframe></div>
+        <div class="card-body">
+          <span class="card-tag">AIRBNB</span>
+          <h2>Rausch Red + 50/50 split</h2>
+          <p class="desc">Airbnb 시그니처 핑크-레드(#ff385c). 좌측 카드 그리드 + 우측 풀높이 지도, Airbnb 검색 화면 그대로.</p>
+          <div class="meta">
+            <span>Rausch Red</span>
+            <span>50/50 split</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="linear.html" class="card" target="_blank">
+        <div class="preview"><iframe src="linear.html" loading="lazy"></iframe></div>
+        <div class="card-body">
+          <span class="card-tag">LINEAR</span>
+          <h2>다크 + 인디고</h2>
+          <p class="desc">별빛 다크 모드 + 인디고 액센트. 가장 프리미엄/엔지니어링 톤. 데이터 사이드바.</p>
+          <div class="meta">
+            <span>#08090a 다크</span>
+            <span>인디고 액센트</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="notion.html" class="card" target="_blank">
+        <div class="preview"><iframe src="notion.html" loading="lazy"></iframe></div>
+        <div class="card-body">
+          <span class="card-tag">NOTION</span>
+          <h2>워밍 화이트 + Notion Blue</h2>
+          <p class="desc">노션 페이지 안에 큰 임베드 지도 + DB 뷰. 따뜻한 흰색 + 노션 블루(#0075de) 액센트.</p>
+          <div class="meta">
+            <span>워밍 화이트</span>
+            <span>Notion Blue</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="note" style="margin-top:40px;">
+      💡 <strong>매운맛 vs 원본:</strong> Spicy 버전은 모두 동일한 그라디언트(#c5171e → #ff6b35)를 사용해 mapmapmap 브랜드 일관성 ↑. 원본 시스템 톤은 각 회사 고유 컬러로 디자인 학습용. <a href="../index.html" style="color:var(--spice); font-weight:600;">기존 floating SPA(7 view)</a>와도 비교 가능.
+    </div>
+
+    <footer>
+      <p>맵맵맵 디자인 탐색 · Impeccable Design System 활용 · 2026</p>
+    </footer>
+  </div>
+</body>
+</html>

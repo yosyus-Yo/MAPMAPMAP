@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>맵맵맵 — Notion + 매운맛 액센트</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Notion + 매운맛 (노션 블루 → 매운맛 그라디언트) */
+    :root {
+      --bg: #ffffff;
+      --warm-white: #fff8f5;
+      --warm-dark: #31302e;
+      --warm-gray-500: #615d59;
+      --warm-gray-300: #a39e98;
+      --text: rgba(0,0,0,0.95);
+      --spice: #c5171e;
+      --spice-2: #ff6b35;
+      --gradient: linear-gradient(135deg, #c5171e 0%, #ff6b35 100%);
+      --spice-soft: rgba(255,107,53,0.08);
+      --border: rgba(0,0,0,0.1);
+      --border-light: rgba(0,0,0,0.06);
+      --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      letter-spacing: -0.02em;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top nav */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border-light);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--warm-gray-500); }
+    .breadcrumb .ico { font-size: 18px; }
+    .breadcrumb .sep { color: var(--warm-gray-300); }
+    .breadcrumb .current { color: var(--text); font-weight: 500; }
+    .nav-links a { color: var(--warm-gray-500); text-decoration: none; font-size: 13px; padding: 6px 10px; border-radius: 4px; }
+    .nav-links a:hover { background: var(--warm-white); color: var(--text); }
+    .nav-cta {
+      padding: 6px 14px;
+      background: var(--gradient);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(197,23,30,0.25);
+    }
+    .nav-cta:hover { transform: translateY(-1px); }
+
+    /* Page */
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 60px 80px;
+    }
+    .page .icon-row { font-size: 60px; margin-bottom: 14px; }
+    .page h1 {
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+    .page h1 .highlight {
+      background: linear-gradient(180deg, transparent 60%, rgba(255,107,53,0.25) 60%);
+      padding: 0 4px;
+    }
+    .page h1 .spice {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .page .meta { font-size: 14px; color: var(--warm-gray-500); margin-bottom: 32px; }
+    .page .meta b { color: var(--text); font-weight: 600; }
+
+    /* Properties */
+    .props {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 32px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .prop { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .prop .label { color: var(--warm-gray-500); width: 80px; }
+    .prop .v { color: var(--text); font-weight: 500; }
+    .prop .pill {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .prop .pill.spice {
+      background: var(--gradient);
+      color: white;
+    }
+
+    /* Callout */
+    .callout {
+      display: flex;
+      gap: 10px;
+      padding: 14px 16px;
+      background: var(--spice-soft);
+      border-radius: 6px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      align-items: flex-start;
+      border-left: 3px solid;
+      border-image: var(--gradient) 1;
+    }
+    .callout .icon { font-size: 18px; }
+    .callout .text { color: var(--text); line-height: 1.5; }
+    .callout .text strong {
+      font-weight: 700;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* === 큰 임베드 지도 블록 === */
+    .map-block {
+      margin: 32px 0 8px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      position: relative;
+      height: 560px;
+      background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.04) 0, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 60px),
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.04) 0, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 60px),
+        radial-gradient(circle at 30% 35%, #ffd6cc, transparent 25%),
+        radial-gradient(circle at 70% 60%, #fde68a, transparent 30%),
+        linear-gradient(180deg, #fff8f0 0%, #ffe8d8 100%);
+    }
+    .map-block .embed-tag {
+      position: absolute;
+      top: 12px; left: 12px;
+      z-index: 5;
+      background: white;
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--warm-gray-500);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .map-block .map-controls { position: absolute; top: 12px; right: 12px; z-index: 5; display: flex; flex-direction: column; gap: 4px; }
+    .map-block .ctrl {
+      width: 32px; height: 32px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .map-block .ctrl:hover { background: var(--warm-white); color: var(--spice); }
+
+    .map-block .road { position: absolute; background: white; border-top: 1px solid #d8d4c8; border-bottom: 1px solid #d8d4c8; }
+    .map-block .road.h1 { top: 28%; left: -10%; width: 120%; height: 16px; transform: rotate(-1.5deg); }
+    .map-block .road.h2 { top: 65%; left: -10%; width: 120%; height: 22px; transform: rotate(1deg); }
+    .map-block .road.v1 { top: -10%; left: 28%; width: 12px; height: 120%; transform: rotate(2deg); }
+    .map-block .road.v2 { top: -10%; left: 70%; width: 18px; height: 120%; transform: rotate(-3deg); }
+    .map-block .river { position: absolute; top: 48%; left: -5%; width: 110%; height: 50px; background: linear-gradient(180deg, #c8d8e8, #b0c8de); transform: rotate(-2deg); opacity: 0.7; }
+
+    .map-block .pin {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      animation: drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    }
+    .map-block .pin .body {
+      padding: 5px 10px;
+      background: white;
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .map-block .pin.spice .body {
+      background: var(--gradient);
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 4px 12px rgba(197,23,30,0.3);
+    }
+    @keyframes drop { from { transform: translate(-50%, -70%); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
+
+    .caption { font-size: 12px; color: var(--warm-gray-500); margin-bottom: 32px; }
+    .caption .spice { color: var(--spice); font-weight: 600; }
+
+    /* Section */
+    .section-h {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin: 32px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .db-toolbar { display: flex; gap: 4px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .db-tab { padding: 5px 10px; font-size: 13px; font-weight: 500; color: var(--warm-gray-500); background: transparent; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; }
+    .db-tab.active {
+      background: var(--spice-soft);
+      color: var(--spice);
+    }
+
+    .db-row {
+      display: grid;
+      grid-template-columns: 30px 1fr 100px 100px 90px 90px;
+      gap: 12px;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border-light);
+      align-items: center;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .db-row:hover { background: var(--warm-white); }
+    .db-row.head { color: var(--warm-gray-300); font-size: 12px; font-weight: 500; cursor: default; }
+    .row-emoji { font-size: 18px; }
+    .row-name { font-weight: 500; }
+    .row-meta { color: var(--warm-gray-500); font-size: 13px; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .pill-s0 { background: #f3f4f6; color: #6b7280; }
+    .pill-s1 { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #78350f; }
+    .pill-s2 { background: linear-gradient(135deg, #fed7aa, #ff6b35); color: white; }
+    .pill-s3 { background: var(--gradient); color: white; }
+    .pill-s4 { background: linear-gradient(135deg, #c5171e, #7c2d12); color: white; }
+    .pill-s5 { background: linear-gradient(135deg, #1f2937, #c5171e); color: #fef3c7; }
+
+    @media (max-width: 800px) {
+      .page { padding: 32px 20px 60px; }
+      .page h1 { font-size: 32px; letter-spacing: -1px; }
+      .map-block { height: 400px; margin-left: -20px; margin-right: -20px; border-radius: 0; }
+      .db-row { grid-template-columns: 30px 1fr; }
+      .db-row .col-mobile-hidden { display: none; }
+      .db-row.head { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="breadcrumb">
+      <span class="ico">🌶️</span>
+      <span>맵맵맵</span>
+      <span class="sep">/</span>
+      <span>서울</span>
+      <span class="sep">/</span>
+      <span class="current">종로구 매운맛 맛집</span>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <div class="nav-links" style="display: flex; gap: 4px;">
+        <a href="#">공유</a>
+        <a href="#">댓글</a>
+      </div>
+      <button class="nav-cta">+ 매운맛 인증</button>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="icon-row">🌶️</div>
+    <h1>종로구 <span class="highlight"><span class="spice">매운맛</span></span><br>맛집 모음</h1>
+    <p class="meta"><b>김매운</b>이 작성 · 2일 전 업데이트 · 32곳 정리 · 🔥 평균 Lv.3</p>
+
+    <div class="props">
+      <div class="prop"><span class="label">📍 지역</span><span class="v">서울 종로구</span></div>
+      <div class="prop"><span class="label">🌶 내 레벨</span><span class="pill spice">Lv.3 맵니아 🔥</span></div>
+      <div class="prop"><span class="label">📊 등록</span><span class="v">32곳 / 248 인증</span></div>
+      <div class="prop"><span class="label">🔄 업데이트</span><span class="v">방금 전</span></div>
+    </div>
+
+    <div class="callout">
+      <span class="icon">🌶️</span>
+      <div class="text"><strong>오늘의 매운맛 추천:</strong> 당신의 레벨(Lv.3)에 맞는 가게 <strong>3곳</strong>을 지도에 강조했어요. 평균 ⭐4.6 · 모두 영수증 인증 완료.</div>
+    </div>
+
+    <h2 class="section-h">🗺️ 매운맛 지도</h2>
+
+    <div class="map-block">
+      <div class="embed-tag">📍 Google Maps · Embed</div>
+      <div class="map-controls">
+        <button class="ctrl">+</button>
+        <button class="ctrl">−</button>
+        <button class="ctrl">📍</button>
+        <button class="ctrl">⛶</button>
+      </div>
+
+      <div class="road h1"></div>
+      <div class="road h2"></div>
+      <div class="river"></div>
+      <div class="road v1"></div>
+      <div class="road v2"></div>
+
+      <div class="pin spice" style="top:30%; left:30%"><div class="body">🍜 9,000 · Lv.3</div></div>
+      <div class="pin spice" style="top:42%; left:50%"><div class="body">🥩 13,000 · Lv.5</div></div>
+      <div class="pin spice" style="top:48%; left:38%"><div class="body">🌶 15,000 · Lv.4</div></div>
+      <div class="pin" style="top:58%; left:62%"><div class="body">🍲 8,500 · Lv.2</div></div>
+      <div class="pin" style="top:68%; left:48%"><div class="body">🍙 6,500 · Lv.1</div></div>
+      <div class="pin spice" style="top:35%; left:68%"><div class="body">🍗 11,000 · Lv.3</div></div>
+      <div class="pin" style="top:25%; left:60%"><div class="body">🥡 7,000 · Lv.0</div></div>
+      <div class="pin spice" style="top:75%; left:35%"><div class="body">🍖 18,000 · Lv.4</div></div>
+    </div>
+    <div class="caption">📍 <span class="spice">매운맛 그라디언트 핀</span> = 내 레벨(Lv.3) 이상 매운 가게 · 흰 핀 = 안전한 가게</div>
+
+    <h2 class="section-h">📋 데이터베이스</h2>
+    <div class="db-toolbar">
+      <button class="db-tab active">📋 표</button>
+      <button class="db-tab">🃏 카드</button>
+      <button class="db-tab">🗺️ 지도</button>
+      <button class="db-tab">📅 캘린더</button>
+      <button class="db-tab" style="margin-left: auto">+ 필터</button>
+      <button class="db-tab">↕ 정렬</button>
+    </div>
+
+    <div class="db-row head">
+      <div></div>
+      <div>이름</div>
+      <div class="col-mobile-hidden">맵 레벨</div>
+      <div class="col-mobile-hidden">지역</div>
+      <div class="col-mobile-hidden">가격</div>
+      <div class="col-mobile-hidden">평점</div>
+    </div>
+    <div class="db-row">
+      <div class="row-emoji">🍜</div>
+      <div><div class="row-name">불맛탱탱 짬뽕집</div><div class="row-meta">짬뽕</div></div>
+      <div class="col-mobile-hidden"><span class="pill pill-s3">🔥 Lv.3</span></div>
+      <div class="col-mobile-hidden row-meta">종로구</div>
+      <div class="col-mobile-hidden row-meta">9,000원</div>
+      <div class="col-mobile-hidden row-meta">⭐ 4.8</div>
+    </div>
+    <div class="db-row">
+      <div class="row-emoji">🥩</div>
+      <div><div class="row-name">디진다 돈까스</div><div class="row-meta">핵불닭 돈까스</div></div>
+      <div class="col-mobile-hidden"><span class="pill pill-s5">💀 Lv.5</span></div>
+      <div class="col-mobile-hidden row-meta">중구</div>
+      <div class="col-mobile-hidden row-meta">13,000원</div>
+      <div class="col-mobile-hidden row-meta">⭐ 4.7</div>
+    </div>
+    <div class="db-row">
+      <div class="row-emoji">🌶️</div>
+      <div><div class="row-name">엽기 떡볶이 본점</div><div class="row-meta">매운 떡볶이</div></div>
+      <div class="col-mobile-hidden"><span class="pill pill-s4">💣 Lv.4</span></div>
+      <div class="col-mobile-hidden row-meta">영등포구</div>
+      <div class="col-mobile-hidden row-meta">15,000원</div>
+      <div class="col-mobile-hidden row-meta">⭐ 4.6</div>
+    </div>
+    <div class="db-row">
+      <div class="row-emoji">🍲</div>
+      <div><div class="row-name">청양 칼국수</div><div class="row-meta">칼국수</div></div>
+      <div class="col-mobile-hidden"><span class="pill pill-s2">🌶 Lv.2</span></div>
+      <div class="col-mobile-hidden row-meta">마포구</div>
+      <div class="col-mobile-hidden row-meta">8,500원</div>
+      <div class="col-mobile-hidden row-meta">⭐ 4.5</div>
+    </div>
+    <div class="db-row">
+      <div class="row-emoji">🍙</div>
+      <div><div class="row-name">진라면 순한 분식</div><div class="row-meta">라면 / 김밥</div></div>
+      <div class="col-mobile-hidden"><span class="pill pill-s1">👼 Lv.1</span></div>
+      <div class="col-mobile-hidden row-meta">종로구</div>
+      <div class="col-mobile-hidden row-meta">6,500원</div>
+      <div class="col-mobile-hidden row-meta">⭐ 4.4</div>
+    </div>
+    <div class="db-row">
+      <div class="row-emoji">🍗</div>
+      <div><div class="row-name">불닭 마차</div><div class="row-meta">닭갈비</div></div>
+      <div class="col-mobile-hidden"><span class="pill pill-s3">🔥 Lv.3</span></div>
+      <div class="col-mobile-hidden row-meta">강남구</div>
+      <div class="col-mobile-hidden row-meta">12,000원</div>
+      <div class="col-mobile-hidden row-meta">⭐ 4.2</div>
+    </div>
+  </div>
+</body>
+</html>

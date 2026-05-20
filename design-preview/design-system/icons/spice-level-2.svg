@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <title>매운맛 Lv.2 — 매움</title>
+  <defs>
+    <clipPath id="lvl2-clip">
+      <rect x="3" y="13.8" width="18" height="7.2"/>
+    </clipPath>
+  </defs>
+  <circle cx="12" cy="12" r="9" stroke="#FB923C" stroke-width="1.75"/>
+  <circle cx="12" cy="12" r="9" fill="#FB923C" clip-path="url(#lvl2-clip)"/>
+  <path d="M9 5 L9 3 M15 5 L15 3" stroke="#FB923C" stroke-width="2" stroke-linecap="round"/>
+</svg>

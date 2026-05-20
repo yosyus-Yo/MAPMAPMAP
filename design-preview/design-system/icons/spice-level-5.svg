@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <title>매운맛 Lv.5 — 극강 (그을림)</title>
+  <defs>
+    <radialGradient id="lvl5-grad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1F0606"/>
+      <stop offset="60%" stop-color="#7C0F12"/>
+      <stop offset="100%" stop-color="#B91C1C"/>
+    </radialGradient>
+  </defs>
+  <circle cx="12" cy="12" r="9" fill="url(#lvl5-grad)"/>
+  <circle cx="12" cy="12" r="9" stroke="#1F0606" stroke-width="1.75" fill="none"/>
+  <path d="M3 3 L4.5 1.5 M9 3 L9 0 M15 3 L15 0 M19.5 3 L21 1.5" stroke="#1F0606" stroke-width="2" stroke-linecap="round"/>
+</svg>

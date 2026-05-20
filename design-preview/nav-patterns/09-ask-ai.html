@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>09. Ask AI · 맵맵맵</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;590;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#fafaf7;--text:#1a1a1a;--text-3:#6e6e6e;--text-4:#9a9a9a;--border:rgba(0,0,0,.08);--surface:#f5f2ee;
+    --spice:#c5171e;--spice-2:#ff6b35;--gradient:linear-gradient(135deg,#c5171e,#ff6b35);}
+  *{margin:0;padding:0;box-sizing:border-box} body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+  .demo-bar{padding:12px 20px;background:#fff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .demo-bar h1{font-size:13px;font-weight:700} .demo-bar .help{font-size:11px;color:var(--text-3)}
+
+  .stage{max-width:720px;margin:0 auto;padding:60px 24px}
+  .header{text-align:center;margin-bottom:32px}
+  .badge{display:inline-block;padding:4px 12px;background:rgba(255,107,53,.1);color:var(--spice);border-radius:999px;font-size:11px;font-weight:700;margin-bottom:12px}
+  .header h2{font-size:32px;font-weight:700;letter-spacing:-1px;margin-bottom:6px}
+  .header h2 .accent{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .header p{font-size:14px;color:var(--text-3);max-width:480px;margin:0 auto;line-height:1.6}
+
+  .ai-card{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.06);overflow:hidden;margin-bottom:14px}
+  .ai-input{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+  .ai-input .spark{font-size:22px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sparkle 2s ease-in-out infinite}
+  @keyframes sparkle{0%,100%{transform:scale(1)}50%{transform:scale(1.2) rotate(10deg)}}
+  .ai-input input{flex:1;border:none;outline:none;font-family:inherit;font-size:15px;color:var(--text);background:transparent}
+  .ai-input button{padding:8px 14px;background:var(--gradient);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(197,23,30,.3)}
+
+  .examples{padding:14px 20px}
+  .examples-label{font-size:11px;font-weight:700;color:var(--text-4);text-transform:uppercase;margin-bottom:8px;letter-spacing:.06em}
+  .ex-pill{display:inline-block;padding:6px 12px;margin:3px;background:var(--surface);border:1px solid var(--border);border-radius:999px;font-size:12px;cursor:pointer;transition:all .15s}
+  .ex-pill:hover{border-color:var(--spice-2);background:rgba(255,107,53,.08);color:var(--spice)}
+
+  .answer{display:none;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.06);padding:22px;margin-bottom:14px;animation:slideIn .3s}
+  .answer.show{display:block}
+  @keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .ans-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .ans-head .av{width:36px;height:36px;border-radius:10px;background:var(--gradient);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .ans-head .nm{font-weight:700;font-size:14px} .ans-head .mt{font-size:11px;color:var(--text-3);font-family:monospace}
+  .ans-body{font-size:14px;line-height:1.7;color:var(--text)}
+  .ans-body strong{font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .ans-list{margin:12px 0;padding:0;list-style:none}
+  .ans-list li{padding:10px 14px;background:var(--surface);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;gap:10px;font-size:13px}
+  .ans-list .em{font-size:18px}
+  .ans-list .nm{font-weight:590;flex:1}
+  .ans-list .pr{font-size:12px;font-weight:700;color:var(--spice);font-family:monospace}
+  .ans-foot{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+  .ans-foot button{padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;color:var(--text-3)}
+  .ans-foot button:hover{color:var(--text)}
+</style>
+</head><body>
+<div class="demo-bar"><h1>09. Ask AI / Magic Search</h1><span class="help">대표: Notion AI · Algolia Ask AI · Vercel</span></div>
+
+<div class="stage">
+  <div class="header">
+    <span class="badge">✨ AI 검색</span>
+    <h2><span class="accent">물어보세요.</span> 대답해드릴게요</h2>
+    <p>메뉴 트리를 탐색하지 말고, 의도를 자연어로 표현하세요. AI가 가게를 찾고 액션을 수행합니다.</p>
+  </div>
+
+  <div class="ai-card">
+    <div class="ai-input">
+      <span class="spark">✨</span>
+      <input id="q" placeholder="예: 강남에서 매운 거 적당한 곳..." onkeydown="if(event.key==='Enter')ask()">
+      <button onclick="ask()">물어보기</button>
+    </div>
+    <div class="examples">
+      <div class="examples-label">자주 묻는 질문</div>
+      <span class="ex-pill" onclick="qThen('오늘 점심 매운 거 추천해줘')">오늘 점심 매운 거 추천</span>
+      <span class="ex-pill" onclick="qThen('내 레벨에 맞는 가성비 짬뽕')">내 레벨 가성비 짬뽕</span>
+      <span class="ex-pill" onclick="qThen('서울에서 매운맛 1위는?')">매운맛 1위는?</span>
+      <span class="ex-pill" onclick="qThen('Lv.5 도전할 만한 곳')">Lv.5 도전할 곳</span>
+    </div>
+  </div>
+
+  <div class="answer" id="ans">
+    <div class="ans-head">
+      <div class="av">🌶</div>
+      <div><div class="nm">맵맵맵 AI</div><div class="mt" id="ansMeta">생각 중...</div></div>
+    </div>
+    <div class="ans-body" id="ansBody"></div>
+    <div class="ans-foot">
+      <button>👍 도움됐어요</button>
+      <button>👎 아니요</button>
+      <button>🔄 다시</button>
+    </div>
+  </div>
+
+  <p style="text-align:center;color:var(--text-3);font-size:12px;margin-top:24px">위 질문 칩을 눌러 AI 답변을 시연해보세요</p>
+</div>
+
+<script>
+  const responses = {
+    '오늘 점심 매운 거 추천해줘': {
+      meta: '0.8s · 32곳 분석',
+      body: `당신의 레벨(<strong>Lv.3 맵니아 🔥</strong>) 기준 종로구에서 가장 잘 맞는 3곳입니다:`,
+      list: [
+        {em:'🍜', nm:'불맛탱탱 짬뽕집', pr:'9,000원'},
+        {em:'🍜', nm:'불닭 마차', pr:'12,000원'},
+        {em:'🍜', nm:'엽기 떡볶이 본점', pr:'15,000원'}
+      ]
+    },
+    '내 레벨에 맞는 가성비 짬뽕': {
+      meta: '0.6s · 5곳 매칭',
+      body: `Lv.3 짬뽕 중 가성비 순으로:`,
+      list: [
+        {em:'🍜', nm:'불맛탱탱 짬뽕집', pr:'9,000원'}
+      ]
+    },
+    '서울에서 매운맛 1위는?': {
+      meta: '0.5s · 1,247곳 중 1위',
+      body: `<strong>불맛탱탱 짬뽕집 🔥</strong>이 이번 주 1위입니다. 248명이 인증, 평균 ⭐ 4.8.`,
+      list: [{em:'🍜', nm:'불맛탱탱 짬뽕집 (1위)', pr:'9,000원'}]
+    },
+    'Lv.5 도전할 만한 곳': {
+      meta: '0.7s · 8곳 발견',
+      body: `<strong>⚠ 주의</strong> — Lv.3인 당신에게 위험할 수 있어요. 그래도 도전하시려면:`,
+      list: [
+        {em:'🍜', nm:'디진다 돈까스 💀', pr:'13,000원'},
+        {em:'🍜', nm:'핵불닭 마라전골', pr:'17,000원'}
+      ]
+    }
+  };
+
+  function qThen(q){ document.getElementById('q').value = q; ask(); }
+  function ask(){
+    const q = document.getElementById('q').value.trim();
+    if (!q) return;
+    const r = responses[q] || {meta:'0.5s · 일치 없음', body:`"${q}"에 대한 결과를 찾을 수 없어요. 다른 질문을 시도해보세요!`, list:[]};
+    document.getElementById('ans').classList.add('show');
+    document.getElementById('ansMeta').textContent = r.meta;
+    let h = r.body;
+    if (r.list.length) h += '<ul class="ans-list">' + r.list.map(it => `<li><span class="em">${it.em}</span><span class="nm">${it.nm}</span><span class="pr">${it.pr}</span></li>`).join('') + '</ul>';
+    document.getElementById('ansBody').innerHTML = h;
+    setTimeout(() => document.getElementById('ans').scrollIntoView({behavior:'smooth',block:'end'}), 100);
+  }
+</script>
+</body></html>

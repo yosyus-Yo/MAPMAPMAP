@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <title>불꽃 (일반)</title>
+  <path d="M12 22 c-4 0 -7 -3 -7 -7 c0 -3 2 -5 3 -7 c0.5 1 1.5 1.5 2.5 1 c-0.5 -2 0 -5 1.5 -7 c0 2 1.5 3 3 4.5 c2 2 4 4 4 8.5 c0 4 -3 7 -7 7 Z"/>
+  <path d="M12 22 c-2 0 -3 -1.5 -3 -3.5 c0 -1.5 1 -2.5 1.5 -3.5 c0.5 1 1 1 1.5 0.5 c0 -1 0.5 -2 1.5 -2.5 c1 1 2 2 2 4 c0 2 -1.5 5 -3.5 5 Z" fill="currentColor" opacity="0.3" stroke="none"/>
+</svg>

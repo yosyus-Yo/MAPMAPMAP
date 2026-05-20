@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>07. Floating Pill Nav · 맵맵맵</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;590;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#fafaf7;--text:#1a1a1a;--text-3:#6e6e6e;--border:rgba(0,0,0,.08);--surface:#f5f2ee;
+    --spice:#c5171e;--spice-2:#ff6b35;--gradient:linear-gradient(135deg,#c5171e,#ff6b35);}
+  *{margin:0;padding:0;box-sizing:border-box} html,body{height:100%}
+  body{font-family:'Inter',system-ui,sans-serif;background:linear-gradient(180deg,#fff8f0,#fff2e8);color:var(--text);-webkit-font-smoothing:antialiased;overflow-y:auto;min-height:100vh}
+  .demo-bar{position:fixed;top:0;left:0;right:0;padding:12px 20px;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:200}
+  .demo-bar h1{font-size:13px;font-weight:700} .demo-bar .help{font-size:11px;color:var(--text-3)}
+
+  .stage{padding:120px 24px 200px;max-width:900px;margin:0 auto}
+  .stage h2{font-size:36px;font-weight:700;letter-spacing:-1px;margin-bottom:8px;text-align:center}
+  .stage h2 .accent{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .stage p{font-size:15px;color:var(--text-3);text-align:center;max-width:480px;margin:0 auto 48px;line-height:1.6}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.04)}
+  .card h3{font-size:15px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .card .ic{font-size:18px}
+  .card p{font-size:12px;color:var(--text-3);line-height:1.5;text-align:left;margin:0}
+
+  /* Floating Pill */
+  .pill-nav{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(20,20,20,.85);backdrop-filter:blur(20px) saturate(180%);border-radius:999px;padding:6px;display:flex;gap:2px;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:100;border:1px solid rgba(255,255,255,.1)}
+  .pill-item{padding:10px 18px;color:#bbb;background:none;border:none;border-radius:999px;font-family:inherit;font-size:13px;font-weight:590;cursor:pointer;transition:all .25s;display:flex;align-items:center;gap:6px}
+  .pill-item:hover{color:#fff}
+  .pill-item.active{background:var(--gradient);color:#fff;box-shadow:0 2px 8px rgba(197,23,30,.4),0 0 16px rgba(255,107,53,.3)}
+  .pill-item .ic{font-size:14px}
+  .pill-item .lbl-mobile{display:none}
+  @media(max-width:600px){.pill-item .lbl-text{display:none} .pill-item .ic{font-size:18px} .pill-item{padding:10px 14px}}
+</style>
+</head><body>
+<div class="demo-bar"><h1>07. Floating Pill Nav</h1><span class="help">대표: Apple Music · Vercel · Cred</span></div>
+
+<div class="stage">
+  <h2><span class="accent">떠있는</span> 작은 캡슐</h2>
+  <p>화면 하단/상단 가운데에 부유하는 둥근 캡슐 메뉴. 콘텐츠를 가리지 않고 항상 닿는 거리에 있음.</p>
+
+  <div class="grid">
+    <div class="card"><h3><span class="ic">✨</span> 미니멀</h3><p>화면 공간을 거의 차지하지 않으면서 핵심 액션만</p></div>
+    <div class="card"><h3><span class="ic">🌫</span> 백드롭 블러</h3><p>뒤 콘텐츠를 살짝 흐리게 — iOS 분위기</p></div>
+    <div class="card"><h3><span class="ic">📍</span> 컨텍스트 보존</h3><p>메인 콘텐츠 위에 떠있어 시점 잃지 않음</p></div>
+    <div class="card"><h3><span class="ic">📱</span> 모바일 친화</h3><p>엄지 닿는 위치, 캡슐 자체가 큰 터치 영역</p></div>
+  </div>
+</div>
+
+<nav class="pill-nav">
+  <button class="pill-item active" onclick="sel(this)"><span class="ic">🗺</span><span class="lbl-text">지도</span></button>
+  <button class="pill-item" onclick="sel(this)"><span class="ic">🔍</span><span class="lbl-text">검색</span></button>
+  <button class="pill-item" onclick="sel(this)"><span class="ic">✍</span><span class="lbl-text">인증</span></button>
+  <button class="pill-item" onclick="sel(this)"><span class="ic">❤</span><span class="lbl-text">찜</span></button>
+  <button class="pill-item" onclick="sel(this)"><span class="ic">📋</span><span class="lbl-text">마이</span></button>
+</nav>
+
+<script>
+  function sel(el){
+    document.querySelectorAll('.pill-item').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  }
+</script>
+</body></html>

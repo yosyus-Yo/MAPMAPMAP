@@ -1,6 +1,7 @@
 node_modules/
-server/sessions/
-server/uploads/
+server-archive/sessions/
+server-archive/uploads/
+server-archive/node_modules/
 *.db
 .env
 .DS_Store

@@ -1,5 +1,11 @@
 // MapMapMap - Supabase Direct Client (No Backend Required)
 // Supabase SDK는 index.html에서 로드됨
+//
+// Phase 7 (2026-05-18): IIFE로 wrap. 시안 inline script와 변수 충돌 회피.
+// 외부 노출: window.API, window.initSupabase (시안 부트스트랩 호환).
+
+(function() {
+'use strict';
 
 // Supabase 클라이언트 초기화 (환경변수 대신 직접 설정)
 // 주의: ANON KEY는 공개되어도 안전 (RLS로 보호됨)
@@ -335,6 +341,7 @@ const API = {
       const restaurant_lng = formData.get('restaurant_lng');
       const menu_name = formData.get('menu_name');
       const spicy_level = formData.get('spicy_level');
+      const rating = formData.get('rating');  // 2026-05-20: 별점 1-5
       const comment = formData.get('comment');
       const food_images = formData.getAll('food_images');
       const receipt_image = formData.get('receipt_image');
@@ -429,7 +436,8 @@ const API = {
         throw new Error('가게 정보가 필요합니다');
       }
 
-      // 리뷰 저장
+      // 리뷰 저장 (2026-05-20: rating 추가, 1-5 범위)
+      const ratingInt = rating ? parseInt(rating) : null;
       const { data: review, error: reviewError } = await sb
         .from('reviews')
         .insert({
@@ -437,6 +445,7 @@ const API = {
           restaurant_id: finalRestaurantId,
           menu_name,
           spicy_level: parseInt(spicy_level),
+          rating: (ratingInt && ratingInt >= 1 && ratingInt <= 5) ? ratingInt : null,
           food_image_url: JSON.stringify(foodImageUrls),
           receipt_image_url: receiptUrlData.publicUrl,
           comment: comment || null,
@@ -459,30 +468,6 @@ const API = {
         review: { id: review.id, status: 'pending' },
         message: '제보가 접수되었습니다. 검수 후 포인트가 적립됩니다.'
       };
-    },
-
-    // 승인된 전체 리뷰 조회 (공개용, 최신순)
-    async listApproved() {
-      const sb = initSupabase();
-
-      const { data: reviews, error } = await sb
-        .from('reviews')
-        .select('*, users (nickname, spicy_level), restaurants (name)')
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const transformed = reviews.map(r => ({
-        ...r,
-        user_nickname: r.users?.nickname,
-        user_level: r.users?.spicy_level,
-        restaurant_name: r.restaurants?.name,
-        users: undefined,
-        restaurants: undefined
-      }));
-
-      return { success: true, reviews: transformed };
     },
 
     async myList() {
@@ -538,25 +523,69 @@ const API = {
       if (review.status === 'approved') {
         const { data: reviewStats } = await sb
           .from('reviews')
-          .select('spicy_level')
+          .select('spicy_level, rating')
           .eq('restaurant_id', review.restaurant_id)
           .eq('status', 'approved');
 
         if (reviewStats && reviewStats.length > 0) {
           const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+          // 2026-05-20: 자체 별점 시스템 — null 제외 후 평균. 모두 null이면 avg_rating=null
+          const ratingsOnly = reviewStats.filter(r => r.rating !== null && r.rating !== undefined);
+          const avgRating = ratingsOnly.length > 0
+            ? ratingsOnly.reduce((sum, r) => sum + r.rating, 0) / ratingsOnly.length
+            : null;
           await sb
             .from('restaurants')
-            .update({ avg_level: avgLevel, review_count: reviewStats.length })
+            .update({ avg_level: avgLevel, avg_rating: avgRating, review_count: reviewStats.length })
             .eq('id', review.restaurant_id);
         } else {
           await sb
             .from('restaurants')
-            .update({ avg_level: 0, review_count: 0 })
+            .update({ avg_level: 0, avg_rating: null, review_count: 0 })
             .eq('id', review.restaurant_id);
         }
       }
 
       return { success: true, message: '리뷰가 삭제되었습니다' };
+    },
+
+    // 최신 승인된 리뷰 목록 (신버전 우측 사이드바용, 2026-05-18 추가)
+    // status='approved' 리뷰를 created_at 내림차순으로 limit개 반환.
+    // 가게/유저 정보 join, RLS는 approved 리뷰를 모든 사용자에게 SELECT 허용.
+    async recentApproved(limit = 20) {
+      const sb = initSupabase();
+
+      const { data, error } = await sb
+        .from('reviews')
+        .select(`
+          id, menu_name, spicy_level, food_image_url, comment, created_at,
+          users (nickname, spicy_level),
+          restaurants (id, name, address, category, lat, lng)
+        `)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(Math.max(1, Math.min(100, limit | 0 || 20)));
+
+      if (error) throw error;
+
+      const flattened = (data || []).map(r => ({
+        id: r.id,
+        menu_name: r.menu_name,
+        spicy_level: r.spicy_level,
+        food_image_url: r.food_image_url,
+        comment: r.comment,
+        created_at: r.created_at,
+        user_nickname: r.users?.nickname || '익명',
+        user_level: r.users?.spicy_level ?? null,
+        restaurant_id: r.restaurants?.id || null,
+        restaurant_name: r.restaurants?.name || '알 수 없음',
+        restaurant_address: r.restaurants?.address || '',
+        restaurant_category: r.restaurants?.category || null,
+        restaurant_lat: r.restaurants?.lat ?? null,
+        restaurant_lng: r.restaurants?.lng ?? null
+      }));
+
+      return { success: true, reviews: flattened };
     }
   },
 
@@ -688,18 +717,23 @@ const API = {
         }
       }
 
-      // 맛집 평균 재계산
+      // 맛집 평균 재계산 (2026-05-20: rating 추가)
       const { data: reviewStats } = await sb
         .from('reviews')
-        .select('spicy_level')
+        .select('spicy_level, rating')
         .eq('restaurant_id', review.restaurant_id)
         .eq('status', 'approved');
 
       if (reviewStats && reviewStats.length > 0) {
         const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+        // 2026-05-20: 자체 별점 시스템
+        const ratingsOnly = reviewStats.filter(r => r.rating !== null && r.rating !== undefined);
+        const avgRating = ratingsOnly.length > 0
+          ? ratingsOnly.reduce((sum, r) => sum + r.rating, 0) / ratingsOnly.length
+          : null;
         await sb
           .from('restaurants')
-          .update({ avg_level: avgLevel, review_count: reviewStats.length })
+          .update({ avg_level: avgLevel, avg_rating: avgRating, review_count: reviewStats.length })
           .eq('id', review.restaurant_id);
       }
 
@@ -759,20 +793,25 @@ const API = {
       if (review.status === 'approved') {
         const { data: reviewStats } = await sb
           .from('reviews')
-          .select('spicy_level')
+          .select('spicy_level, rating')
           .eq('restaurant_id', review.restaurant_id)
           .eq('status', 'approved');
 
         if (reviewStats && reviewStats.length > 0) {
           const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+          // 2026-05-20: 자체 별점 시스템 — null 제외 후 평균. 모두 null이면 avg_rating=null
+          const ratingsOnly = reviewStats.filter(r => r.rating !== null && r.rating !== undefined);
+          const avgRating = ratingsOnly.length > 0
+            ? ratingsOnly.reduce((sum, r) => sum + r.rating, 0) / ratingsOnly.length
+            : null;
           await sb
             .from('restaurants')
-            .update({ avg_level: avgLevel, review_count: reviewStats.length })
+            .update({ avg_level: avgLevel, avg_rating: avgRating, review_count: reviewStats.length })
             .eq('id', review.restaurant_id);
         } else {
           await sb
             .from('restaurants')
-            .update({ avg_level: 0, review_count: 0 })
+            .update({ avg_level: 0, avg_rating: null, review_count: 0 })
             .eq('id', review.restaurant_id);
         }
       }
@@ -881,6 +920,157 @@ const API = {
       logAccess('remove_favorite', { restaurant_id: restaurantId });
 
       return { success: true, message: '찜 목록에서 제거되었습니다' };
+    }
+  },
+
+  // ============================================
+  // Likes (공감) APIs — 2026-05-19
+  // 각 계정당 리뷰 1개에 1번씩. RLS로 본인만 INSERT/DELETE.
+  // ============================================
+  likes: {
+    // 토글: 이미 좋아요면 취소, 아니면 추가. 반환: {liked: boolean, count: number}
+    async toggle(reviewId) {
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      // 본인이 이미 좋아요 했는지 확인
+      const { data: existing, error: selErr } = await sb
+        .from('review_likes')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .eq('review_id', reviewId)
+        .maybeSingle();
+
+      if (selErr) throw selErr;
+
+      let liked;
+      if (existing) {
+        // 취소
+        const { error } = await sb
+          .from('review_likes')
+          .delete()
+          .eq('id', existing.id);
+        if (error) throw error;
+        liked = false;
+      } else {
+        // 추가
+        const { error } = await sb
+          .from('review_likes')
+          .insert({ user_id: authUser.id, review_id: reviewId });
+        if (error) throw error;
+        liked = true;
+      }
+
+      // 최신 카운트 조회
+      const { count, error: countErr } = await sb
+        .from('review_likes')
+        .select('id', { count: 'exact', head: true })
+        .eq('review_id', reviewId);
+      if (countErr) throw countErr;
+
+      return { success: true, liked, count: count ?? 0 };
+    },
+
+    // 여러 리뷰의 공감 카운트 일괄 조회. 반환: { reviewId: count }
+    async getCountsForReviews(reviewIds) {
+      if (!Array.isArray(reviewIds) || reviewIds.length === 0) {
+        return { success: true, counts: {} };
+      }
+      const sb = initSupabase();
+      const { data, error } = await sb
+        .from('review_likes')
+        .select('review_id')
+        .in('review_id', reviewIds);
+
+      if (error) throw error;
+
+      const counts = {};
+      reviewIds.forEach(id => { counts[id] = 0; });
+      (data || []).forEach(row => {
+        counts[row.review_id] = (counts[row.review_id] || 0) + 1;
+      });
+      return { success: true, counts };
+    },
+
+    // 로그인 사용자가 좋아요한 리뷰 ID 집합 (Set). 비로그인이면 빈 Set.
+    async getMyLikedReviewIds(reviewIds) {
+      if (!Array.isArray(reviewIds) || reviewIds.length === 0) {
+        return { success: true, likedSet: new Set() };
+      }
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+      if (!authUser) {
+        return { success: true, likedSet: new Set() };
+      }
+
+      const { data, error } = await sb
+        .from('review_likes')
+        .select('review_id')
+        .eq('user_id', authUser.id)
+        .in('review_id', reviewIds);
+
+      if (error) throw error;
+      return { success: true, likedSet: new Set((data || []).map(r => r.review_id)) };
+    }
+  },
+
+  // ============================================
+  // Announcements (공지) APIs — 2026-05-19
+  // Singleton row (id=1). 관리자가 admin view에서 편집.
+  // ============================================
+  announcements: {
+    // 현재 공지 조회 (모두 SELECT 가능)
+    async get() {
+      const sb = initSupabase();
+      const { data, error } = await sb
+        .from('announcements')
+        .select('id, title, notice_text, howto_text, is_active, version, updated_at')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return { success: true, announcement: data };
+    },
+
+    // 공지 업데이트 (admin gate가 클라이언트에서 1차 차단, RLS는 인증만 검증)
+    // 호출 시 version 자동 +1로 모든 사용자에게 재표시
+    async update({ title, notice_text, howto_text, is_active }) {
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+      if (!authUser) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      // 현재 version 조회
+      const { data: current, error: selErr } = await sb
+        .from('announcements')
+        .select('version')
+        .eq('id', 1)
+        .maybeSingle();
+      if (selErr) throw selErr;
+
+      const newVersion = (current?.version || 0) + 1;
+
+      const { data, error } = await sb
+        .from('announcements')
+        .update({
+          title: title ?? '',
+          notice_text: notice_text ?? '',
+          howto_text: howto_text ?? '',
+          is_active: !!is_active,
+          version: newVersion,
+          updated_at: new Date().toISOString(),
+          updated_by: authUser.id,
+        })
+        .eq('id', 1)
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+      return { success: true, announcement: data };
     }
   }
 };
@@ -1134,3 +1324,13 @@ document.addEventListener('DOMContentLoaded', () => {
     logPageVisit();
   }, 500);  // Supabase 초기화 완료 대기
 });
+
+// ─── 외부 노출 (IIFE 종료) ───
+// window.API: 신버전 핸들러(app-handlers.js)와 외부 호출 진입점
+// window.initSupabase: 시안 inline script가 supabaseClient 공유 위해 사용 가능 (옵션)
+window.API = API;
+window.initSupabase = initSupabase;
+window.SUPABASE_URL = SUPABASE_URL;
+window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+
+})(); // IIFE end

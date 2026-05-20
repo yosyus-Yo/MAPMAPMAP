@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>맵맵맵 — Linear Light + 매운맛</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;590;700&display=swap" rel="stylesheet">
+  <style>
+    /* Linear LIGHT — 밝은 버전 + 매운맛 색감 */
+    :root {
+      --bg: #fafafa;
+      --panel: #ffffff;
+      --surface: #f5f4f2;
+      --surface-2: #ebe8e4;
+      --text: #1a1a1a;
+      --text-2: #3f3f3f;
+      --text-3: #6e6e6e;
+      --text-4: #9a9a9a;
+      --border: rgba(0,0,0,0.08);
+      --border-2: rgba(0,0,0,0.12);
+      --spice: #c5171e;
+      --spice-2: #ff6b35;
+      --gradient: linear-gradient(135deg, #c5171e 0%, #ff6b35 100%);
+      --spice-soft: rgba(197,23,30,0.08);
+      --success: #2e7d32;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-feature-settings: "cv01", "ss03";
+      background: var(--bg);
+      color: var(--text);
+      font-weight: 510;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top nav */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex; justify-content: space-between; align-items: center;
+      height: 56px;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 590; }
+    .brand-mark {
+      width: 22px; height: 22px;
+      background: var(--gradient);
+      border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+    .nav-links { display: flex; gap: 22px; }
+    .nav-links a { color: var(--text-3); text-decoration: none; font-size: 13px; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-search {
+      width: 280px;
+      padding: 6px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+    }
+    .nav-search::placeholder { color: var(--text-4); }
+    .nav-cta {
+      padding: 6px 14px;
+      background: var(--gradient);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 510;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(197,23,30,0.25);
+    }
+    .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(197,23,30,0.35); }
+
+    /* Layout */
+    .layout {
+      position: fixed;
+      top: 56px; left: 0; right: 0; bottom: 0;
+      display: grid;
+      grid-template-columns: 1fr 360px;
+    }
+
+    /* 풀스크린 라이트 지도 */
+    .map-stage {
+      position: relative;
+      background: #f5f0e6;
+      overflow: hidden;
+    }
+    .map-stage::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 70px),
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.03) 0, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 70px);
+    }
+    .map-stage::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 25% 30%, rgba(255,107,53,0.08) 0%, transparent 30%),
+        radial-gradient(circle at 70% 65%, rgba(197,23,30,0.06) 0%, transparent 35%);
+      pointer-events: none;
+    }
+    .road {
+      position: absolute;
+      background: white;
+      border-top: 1px solid #d8d4c8;
+      border-bottom: 1px solid #d8d4c8;
+    }
+    .road.h1 { top: 28%; left: -10%; width: 120%; height: 16px; transform: rotate(-1.5deg); }
+    .road.h2 { top: 65%; left: -10%; width: 120%; height: 22px; transform: rotate(1deg); }
+    .road.v1 { top: -10%; left: 28%; width: 12px; height: 120%; transform: rotate(2deg); }
+    .road.v2 { top: -10%; left: 70%; width: 18px; height: 120%; transform: rotate(-3deg); }
+    .park { position: absolute; background: #c8d8a8; border-radius: 40% 60% 30% 70%; opacity: 0.5; }
+    .park.p1 { top: 35%; left: 38%; width: 160px; height: 130px; }
+    .park.p2 { top: 70%; left: 12%; width: 100px; height: 90px; }
+
+    /* 마커 — 매운맛 그라디언트 */
+    .pin {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      animation: fadeIn 0.5s backwards;
+      z-index: 5;
+    }
+    .pin .dot {
+      width: 14px; height: 14px;
+      background: var(--gradient);
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(255,107,53,0.2), 0 0 16px rgba(197,23,30,0.4);
+      animation: pulse 2.5s ease-in-out infinite;
+      position: relative;
+      z-index: 2;
+    }
+    .pin.lvl-low .dot { background: linear-gradient(135deg, #fbbf24, #fde68a); box-shadow: 0 0 0 4px rgba(251,191,36,0.2), 0 0 16px rgba(251,191,36,0.4); }
+    .pin.lvl-mid .dot { background: linear-gradient(135deg, #ff6b35, #fbbf24); box-shadow: 0 0 0 4px rgba(255,107,53,0.2), 0 0 16px rgba(255,107,53,0.4); }
+    .pin.lvl-extreme .dot { background: linear-gradient(135deg, #1a1a1a, #c5171e); box-shadow: 0 0 0 4px rgba(0,0,0,0.15), 0 0 16px rgba(197,23,30,0.5); }
+    .pin .lbl {
+      position: absolute;
+      top: -34px; left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid var(--border-2);
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: 'Berkeley Mono', monospace, ui-monospace;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      font-weight: 590;
+    }
+    .pin .lbl::after {
+      content: '';
+      position: absolute;
+      bottom: -5px; left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid white;
+    }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Mini stats */
+    .mini-stats {
+      position: absolute;
+      top: 16px; left: 16px;
+      z-index: 10;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 24px;
+      font-family: 'Berkeley Mono', monospace, ui-monospace;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .mini-stats .item .label { font-size: 10px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+    .mini-stats .item .value { font-size: 14px; color: var(--text); font-weight: 590; }
+    .mini-stats .item .value.spice {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Filter bar */
+    .filter-bar {
+      position: absolute;
+      top: 16px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px;
+      display: flex;
+      gap: 2px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .filter-pill {
+      padding: 6px 14px;
+      background: transparent;
+      border: none;
+      color: var(--text-3);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 510;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .filter-pill.active {
+      background: var(--gradient);
+      color: white;
+      box-shadow: 0 1px 3px rgba(197,23,30,0.3);
+    }
+    .filter-pill:not(.active):hover { background: var(--surface); color: var(--text); }
+
+    /* Map controls */
+    .map-ctrl {
+      position: absolute;
+      bottom: 16px; left: 16px;
+      z-index: 10;
+      display: flex;
+      gap: 6px;
+    }
+    .map-ctrl .btn {
+      width: 32px; height: 32px;
+      background: white;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .map-ctrl .btn:hover { background: var(--surface); }
+
+    /* Right Sidebar */
+    .sidebar {
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .sb-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sb-head h2 { font-size: 14px; font-weight: 590; letter-spacing: -0.2px; }
+    .sb-head .count { font-size: 11px; color: var(--text-3); font-family: 'Berkeley Mono', monospace; }
+
+    .sb-table { padding: 8px 0; }
+    .sb-row {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .sb-row:hover { background: var(--surface); }
+    .sb-row.selected {
+      background: var(--spice-soft);
+      border-left: 3px solid;
+      border-image: var(--gradient) 1;
+      padding-left: 17px;
+    }
+    .sb-row .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .sb-row .name { font-size: 13px; font-weight: 510; color: var(--text); }
+    .sb-row .rank { font-size: 10px; color: var(--text-4); font-family: 'Berkeley Mono', monospace; padding: 2px 6px; background: var(--surface); border-radius: 3px; }
+    .sb-row .meta { font-size: 11px; color: var(--text-3); margin-bottom: 6px; font-family: 'Berkeley Mono', monospace; }
+    .sb-row .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .level-bar { display: flex; gap: 2px; }
+    .level-bar span { width: 5px; height: 12px; background: var(--surface-2); border-radius: 1px; }
+    .level-bar span.fill-1 { background: #fbbf24; }
+    .level-bar span.fill-2 { background: var(--spice-2); }
+    .level-bar span.fill-3 { background: var(--spice); }
+    .level-bar span.fill-5 { background: var(--text); }
+    .sb-row .price { font-size: 11px; color: var(--text-2); font-family: 'Berkeley Mono', monospace; }
+    .sb-row .star { font-size: 11px; color: var(--text-3); font-family: 'Berkeley Mono', monospace; }
+
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+    @media (max-width: 700px) {
+      .nav-search { display: none; }
+      .nav-links { display: none; }
+      .filter-bar { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="brand">
+      <div class="brand-mark">🌶</div>
+      <span>mapmapmap</span>
+      <span style="color: var(--text-4); margin: 0 4px;">/</span>
+      <span style="color: var(--text-3); font-weight: 400;">Seoul · Jongno</span>
+    </div>
+    <div style="display:flex; gap: 12px; align-items: center;">
+      <input class="nav-search" placeholder="⌘K  검색...">
+      <button class="nav-cta">+ 매운맛 인증</button>
+    </div>
+  </nav>
+
+  <div class="layout">
+    <div class="map-stage">
+      <div class="park p1"></div>
+      <div class="park p2"></div>
+      <div class="road h1"></div>
+      <div class="road h2"></div>
+      <div class="road v1"></div>
+      <div class="road v2"></div>
+
+      <div class="mini-stats">
+        <div class="item"><div class="label">Restaurants</div><div class="value">32</div></div>
+        <div class="item"><div class="label">Avg lvl</div><div class="value spice">3.2 🔥</div></div>
+        <div class="item"><div class="label">Verified</div><div class="value">248</div></div>
+        <div class="item"><div class="label">Match</div><div class="value" style="color:var(--success)">96.7%</div></div>
+      </div>
+
+      <div class="filter-bar">
+        <button class="filter-pill active">All</button>
+        <button class="filter-pill">Lv.0</button>
+        <button class="filter-pill">Lv.1</button>
+        <button class="filter-pill">Lv.2</button>
+        <button class="filter-pill">Lv.3</button>
+        <button class="filter-pill">Lv.4</button>
+        <button class="filter-pill">Lv.5</button>
+      </div>
+
+      <div class="map-ctrl">
+        <button class="btn">+</button>
+        <button class="btn">−</button>
+        <button class="btn">📍</button>
+      </div>
+
+      <div class="pin" style="top: 32%; left: 28%"><div class="dot"></div><div class="lbl">9,000 · Lv.3 🔥</div></div>
+      <div class="pin lvl-extreme" style="top: 42%; left: 50%"><div class="dot"></div><div class="lbl">13,000 · Lv.5 💀</div></div>
+      <div class="pin" style="top: 50%; left: 38%"><div class="dot"></div><div class="lbl">15,000 · Lv.4 💣</div></div>
+      <div class="pin lvl-mid" style="top: 58%; left: 60%"><div class="dot"></div><div class="lbl">8,500 · Lv.2 🌶</div></div>
+      <div class="pin lvl-low" style="top: 68%; left: 48%"><div class="dot"></div><div class="lbl">6,500 · Lv.1 👼</div></div>
+      <div class="pin" style="top: 38%; left: 72%"><div class="dot"></div><div class="lbl">11,000 · Lv.3 🔥</div></div>
+      <div class="pin lvl-low" style="top: 70%; left: 28%"><div class="dot"></div><div class="lbl">7,000 · Lv.0 🐥</div></div>
+      <div class="pin" style="top: 25%; left: 60%"><div class="dot"></div><div class="lbl">18,000 · Lv.4 💣</div></div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="sb-head">
+        <h2>🌶 매운맛 랭킹</h2>
+        <span class="count">32 · sorted by spice</span>
+      </div>
+      <div class="sb-table">
+        <div class="sb-row selected">
+          <div class="top"><div class="name">불맛탱탱 짬뽕집</div><div class="rank">#1</div></div>
+          <div class="meta">짬뽕 · 종로구 · ID 0x4f2a</div>
+          <div class="row">
+            <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span class="fill-3"></span><span></span><span></span></div>
+            <span class="price">9,000원</span>
+            <span class="star">★ 4.8 · 248</span>
+          </div>
+        </div>
+        <div class="sb-row">
+          <div class="top"><div class="name">디진다 돈까스 💀</div><div class="rank">#2</div></div>
+          <div class="meta">돈까스 · 중구 · ID 0x7c91</div>
+          <div class="row">
+            <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span class="fill-3"></span><span class="fill-3"></span><span class="fill-5"></span></div>
+            <span class="price">13,000원</span>
+            <span class="star">★ 4.7 · 192</span>
+          </div>
+        </div>
+        <div class="sb-row">
+          <div class="top"><div class="name">엽기 떡볶이 본점</div><div class="rank">#3</div></div>
+          <div class="meta">떡볶이 · 영등포구 · ID 0xa2b1</div>
+          <div class="row">
+            <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span class="fill-3"></span><span class="fill-3"></span><span></span></div>
+            <span class="price">15,000원</span>
+            <span class="star">★ 4.6 · 167</span>
+          </div>
+        </div>
+        <div class="sb-row">
+          <div class="top"><div class="name">청양 칼국수</div><div class="rank">#4</div></div>
+          <div class="meta">칼국수 · 마포구 · ID 0xd34e</div>
+          <div class="row">
+            <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span></span><span></span><span></span></div>
+            <span class="price">8,500원</span>
+            <span class="star">★ 4.5 · 134</span>
+          </div>
+        </div>
+        <div class="sb-row">
+          <div class="top"><div class="name">진라면 순한 분식</div><div class="rank">#5</div></div>
+          <div class="meta">분식 · 종로구 · ID 0x8f72</div>
+          <div class="row">
+            <div class="level-bar"><span class="fill-1"></span><span></span><span></span><span></span><span></span></div>
+            <span class="price">6,500원</span>
+            <span class="star">★ 4.4 · 88</span>
+          </div>
+        </div>
+        <div class="sb-row">
+          <div class="top"><div class="name">불닭 마차</div><div class="rank">#6</div></div>
+          <div class="meta">닭갈비 · 강남구 · ID 0x3ae5</div>
+          <div class="row">
+            <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span class="fill-3"></span><span></span><span></span></div>
+            <span class="price">12,000원</span>
+            <span class="star">★ 4.2 · 65</span>
+          </div>
+        </div>
+        <div class="sb-row">
+          <div class="top"><div class="name">매운갈비찜의 전설</div><div class="rank">#7</div></div>
+          <div class="meta">갈비찜 · 성동구 · ID 0xb812</div>
+          <div class="row">
+            <div class="level-bar"><span class="fill-1"></span><span class="fill-2"></span><span class="fill-3"></span><span class="fill-3"></span><span></span></div>
+            <span class="price">18,000원</span>
+            <span class="star">★ 4.1 · 54</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

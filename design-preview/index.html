@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>맵맵맵 — Design Prototype</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* =====================================================
+       Mockup-only HTML prototype.
+       원본 (public/index.html, mapmapmap-mvp-web.html) 미변경.
+       기존 색감(#c5171e → #ff6b35) 유지, 거지맵 floating UI 패턴 차용.
+       반응형: ≥1280 desktop / 900-1279 tablet / <900 mobile
+       ===================================================== */
+    :root {
+      --primary-red:    #c5171e;
+      --primary-orange: #ff6b35;
+      --gradient: linear-gradient(135deg, #c5171e 0%, #ff6b35 100%);
+      --gradient-soft: linear-gradient(135deg, rgba(197,23,30,.08) 0%, rgba(255,107,53,.08) 100%);
+      --bg-base:    #f5f5f5;
+      --bg-white:   #ffffff;
+      --bg-soft:    #fafafa;
+      --text:       #1a1a1a;
+      --text-mid:   #555;
+      --text-mute:  #888;
+      --border:     #ececec;
+      --safe:       #2e7d32;
+      --warning:    #ef6c00;
+      --danger:     #c62828;
+      --shadow-sm:  0 2px 8px rgba(0,0,0,.08);
+      --shadow-md:  0 4px 16px rgba(0,0,0,.12);
+      --shadow-lg:  0 8px 32px rgba(0,0,0,.16);
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --nav-w: 80px;
+      --nav-h-mobile: 64px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg-base);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    button { font-family: inherit; cursor: pointer; border: none; }
+    a { color: inherit; text-decoration: none; }
+    input, textarea, select { font-family: inherit; }
+
+    /* ============== 좌측 사이드 Navigation ============== */
+    .side-nav {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: var(--nav-w);
+      background: var(--bg-white);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      z-index: 200;
+      box-shadow: var(--shadow-sm);
+    }
+    .nav-logo {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      background: var(--gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 10px rgba(197,23,30,.3);
+      margin-bottom: 20px;
+    }
+    .nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      width: 100%;
+      padding: 0 8px;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 4px;
+      border-radius: 10px;
+      color: var(--text-mute);
+      transition: all 0.15s;
+      background: none;
+      width: 100%;
+    }
+    .nav-item:hover { background: var(--bg-base); color: var(--text); }
+    .nav-item.active {
+      background: var(--gradient);
+      color: white;
+      box-shadow: 0 4px 8px rgba(197,23,30,.25);
+    }
+    .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-label { font-size: 10px; font-weight: 700; }
+    .nav-bottom {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 0 8px;
+      width: 100%;
+    }
+
+    /* ============== Main 영역 ============== */
+    .main {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      left: var(--nav-w);
+      overflow: hidden;
+    }
+    .view {
+      display: none;
+      width: 100%; height: 100%;
+      animation: fadeIn 0.25s ease-out;
+    }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    /* ============== 공통 컴포넌트 ============== */
+    .btn {
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--gradient);
+      color: white;
+      box-shadow: 0 2px 8px rgba(197,23,30,.25);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(197,23,30,.35); }
+    .btn-ghost { background: var(--bg-base); color: var(--text); }
+    .btn-ghost:hover { background: #ebebeb; }
+    .btn-outline { border: 1.5px solid var(--primary-red); color: var(--primary-red); background: white; }
+    .btn-outline:hover { background: var(--gradient-soft); }
+    .btn-block { display: block; width: 100%; padding: 14px; font-size: 15px; }
+
+    .level-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-grad { background: var(--gradient); color: white; }
+    .tag {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      display: inline-block;
+    }
+    .tag.spicy-0 { background: #f0f0f0; color: #555; }
+    .tag.spicy-1 { background: #e8f5e9; color: var(--safe); }
+    .tag.spicy-2 { background: #fff3e0; color: var(--warning); }
+    .tag.spicy-3 { background: #ffebee; color: var(--danger); }
+    .tag.spicy-4 { background: #fce4ec; color: #ad1457; }
+    .tag.spicy-5 { background: #1a1a1a; color: white; }
+    .tag.new { background: #fffbe6; color: #d97706; }
+    .tag.gray { background: var(--bg-base); color: var(--text-mute); }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--text-mid); }
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      background: var(--bg-white);
+      transition: border 0.15s;
+    }
+    .form-input:focus { outline: none; border-color: var(--primary-red); }
+    textarea.form-input { resize: vertical; min-height: 80px; }
+
+    /* ============== VIEW 1: 온보딩 (로그인/회원가입) ============== */
+    .onboarding {
+      display: flex;
+      width: 100%; height: 100%;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(197,23,30,.08), transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(255,107,53,.08), transparent 40%),
+        var(--bg-base);
+    }
+    .onboarding-card {
+      margin: auto;
+      width: 100%;
+      max-width: 440px;
+      background: var(--bg-white);
+      border-radius: 20px;
+      box-shadow: var(--shadow-lg);
+      padding: 40px 32px;
+    }
+    .onboarding-brand { text-align: center; margin-bottom: 28px; }
+    .onboarding-brand .logo {
+      width: 72px; height: 72px;
+      margin: 0 auto 14px;
+      border-radius: 20px;
+      background: var(--gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      box-shadow: 0 8px 20px rgba(197,23,30,.3);
+    }
+    .onboarding-brand h1 {
+      font-size: 24px;
+      font-weight: 900;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .onboarding-brand p { font-size: 13px; color: var(--text-mute); margin-top: 4px; }
+    .onboarding-tabs {
+      display: flex;
+      background: var(--bg-base);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+    .onboarding-tab {
+      flex: 1;
+      padding: 10px;
+      background: transparent;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text-mute);
+      transition: all 0.15s;
+    }
+    .onboarding-tab.active { background: var(--bg-white); color: var(--text); box-shadow: var(--shadow-sm); }
+    .onboarding-divider {
+      display: flex;
+      align-items: center;
+      margin: 20px 0 14px;
+      color: var(--text-mute);
+      font-size: 12px;
+    }
+    .onboarding-divider::before, .onboarding-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .onboarding-divider span { padding: 0 12px; }
+    .social-btns { display: flex; flex-direction: column; gap: 8px; }
+    .social-btn {
+      padding: 12px;
+      border: 1.5px solid var(--border);
+      background: white;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .social-btn:hover { border-color: var(--primary-red); }
+
+    /* ============== VIEW 2: 맵레벨 설정 ============== */
+    .level-setup {
+      width: 100%; height: 100%;
+      overflow-y: auto;
+      padding: 40px 24px;
+      background: var(--bg-base);
+    }
+    .level-container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .level-hero {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .level-hero .emoji-row { font-size: 40px; letter-spacing: 4px; margin-bottom: 12px; }
+    .level-hero h1 { font-size: 26px; font-weight: 900; margin-bottom: 8px; }
+    .level-hero p { font-size: 14px; color: var(--text-mute); }
+    .level-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .level-option {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 20px;
+      background: var(--bg-white);
+      border: 2px solid var(--border);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .level-option:hover { border-color: var(--primary-orange); transform: translateX(4px); }
+    .level-option.selected {
+      border-color: var(--primary-red);
+      background: var(--gradient-soft);
+      box-shadow: 0 4px 12px rgba(197,23,30,.12);
+    }
+    .level-option .icon {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      flex-shrink: 0;
+      background: var(--bg-base);
+    }
+    .level-option.selected .icon {
+      background: var(--gradient);
+    }
+    .level-option .info { flex: 1; }
+    .level-option .info .name { font-size: 15px; font-weight: 900; margin-bottom: 4px; }
+    .level-option .info .desc { font-size: 12px; color: var(--text-mute); }
+    .level-option .check {
+      width: 24px; height: 24px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .level-option.selected .check {
+      background: var(--gradient);
+      border-color: var(--primary-red);
+    }
+    .level-actions { margin-top: 28px; display: flex; gap: 12px; }
+    .level-actions .btn { flex: 1; padding: 14px; }
+
+    /* ============== VIEW 3: 메인 지도 (홈) ============== */
+    .map-view {
+      width: 100%; height: 100%;
+      position: relative;
+    }
+    .map-stage {
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, #e8e8e0 0, #e8e8e0 1px, transparent 1px, transparent 60px),
+        repeating-linear-gradient(90deg, #e8e8e0 0, #e8e8e0 1px, transparent 1px, transparent 60px),
+        radial-gradient(circle at 30% 35%, #d4e4d4 0, transparent 25%),
+        radial-gradient(circle at 70% 60%, #d4e0e8 0, transparent 30%),
+        linear-gradient(180deg, #f0ede4 0%, #ebe7d8 100%);
+      overflow: hidden;
+    }
+    .map-road {
+      position: absolute;
+      background: white;
+      border-top: 1px solid #d8d4c8;
+      border-bottom: 1px solid #d8d4c8;
+    }
+    .map-road.h1 { top: 30%; left: -10%; width: 120%; height: 18px; transform: rotate(-2deg); }
+    .map-road.h2 { top: 65%; left: -10%; width: 120%; height: 24px; transform: rotate(1deg); }
+    .map-road.v1 { top: -10%; left: 25%; width: 14px; height: 120%; transform: rotate(3deg); }
+    .map-road.v2 { top: -10%; left: 70%; width: 20px; height: 120%; transform: rotate(-4deg); }
+    .map-river {
+      position: absolute;
+      top: 45%; left: -5%; width: 110%; height: 60px;
+      background: linear-gradient(180deg, #c8d8e8 0%, #b0c8de 100%);
+      transform: rotate(-3deg);
+      opacity: 0.8;
+    }
+    .map-marker {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      cursor: pointer;
+      animation: dropIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    }
+    .map-marker .pin {
+      padding: 6px 12px;
+      background: white;
+      border-radius: 18px;
+      box-shadow: var(--shadow-md);
+      border: 2px solid var(--primary-red);
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--primary-red);
+      white-space: nowrap;
+      position: relative;
+    }
+    .map-marker .pin::after {
+      content: '';
+      position: absolute;
+      bottom: -8px; left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 8px solid var(--primary-red);
+    }
+    .map-marker .pin .lvl {
+      display: inline-block;
+      width: 18px; height: 18px;
+      line-height: 18px;
+      border-radius: 50%;
+      background: var(--gradient);
+      color: white;
+      font-size: 10px;
+      text-align: center;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .map-marker.danger .pin { border-color: var(--danger); color: var(--danger); }
+    .map-marker.danger .pin::after { border-top-color: var(--danger); }
+    .map-marker.safe .pin { border-color: var(--safe); color: var(--safe); }
+    .map-marker.safe .pin::after { border-top-color: var(--safe); }
+    .map-marker.warning .pin { border-color: var(--warning); color: var(--warning); }
+    .map-marker.warning .pin::after { border-top-color: var(--warning); }
+    .map-marker:hover .pin { transform: translateY(-2px); transition: transform 0.2s; }
+    @keyframes dropIn { from { transform: translate(-50%, -120%); opacity: 0; } to { transform: translate(-50%, -100%); opacity: 1; } }
+
+    /* Floating header (지도 위) */
+    .map-header {
+      position: absolute;
+      top: 16px; left: 16px; right: 16px;
+      z-index: 30;
+      background: var(--bg-white);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-md);
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .map-header .title-block { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .map-header .title-block h2 { font-size: 15px; font-weight: 900; }
+    .map-header .title-block p { font-size: 11px; color: var(--text-mute); }
+    .search-input {
+      flex: 1;
+      max-width: 360px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      background: var(--bg-base);
+      border-radius: 999px;
+      font-size: 13px;
+    }
+    .search-input input { flex: 1; border: none; background: transparent; outline: none; font-size: 13px; }
+
+    /* Floating panel: 좌측 list */
+    .map-panel-left {
+      position: absolute;
+      top: 88px; left: 16px;
+      bottom: 16px;
+      width: 340px;
+      background: var(--bg-white);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-md);
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel-head h3 { font-size: 14px; font-weight: 900; display: flex; align-items: center; gap: 6px; }
+    .panel-head h3 .accent { width: 4px; height: 14px; background: var(--gradient); border-radius: 2px; }
+    .panel-head .count { font-size: 11px; color: var(--text-mute); }
+    .panel-tabs { display: flex; padding: 0 14px; border-bottom: 1px solid var(--border); }
+    .panel-tab {
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-mute);
+      background: transparent;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .panel-tab.active { color: var(--primary-red); border-bottom-color: var(--primary-red); }
+    .panel-list { flex: 1; overflow-y: auto; }
+    .rest-card {
+      display: flex;
+      gap: 10px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .rest-card:hover { background: #fffaf8; }
+    .rest-card .rank { width: 24px; flex-shrink: 0; font-size: 16px; font-weight: 900; color: var(--primary-red); }
+    .rest-card .rank.medal { font-size: 20px; }
+    .rest-card .info { flex: 1; min-width: 0; }
+    .rest-card .name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .rest-card .meta { font-size: 11px; color: var(--text-mute); margin-bottom: 6px; }
+    .rest-card .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .rest-card .stat { flex-shrink: 0; text-align: right; }
+    .rest-card .stat .score { font-size: 12px; font-weight: 900; color: var(--primary-red); }
+    .rest-card .stat .reviews { font-size: 10px; color: var(--text-mute); }
+
+    /* Floating panel: 우측 stack */
+    .map-panel-right {
+      position: absolute;
+      top: 88px; right: 16px;
+      width: 280px;
+      max-height: calc(100% - 100px);
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+    .info-card {
+      background: var(--bg-white);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-md);
+      padding: 14px 16px;
+    }
+    .info-card .card-title {
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill {
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      background: var(--bg-base);
+      color: var(--text-mute);
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pill.active { background: var(--gradient); color: white; box-shadow: 0 2px 6px rgba(197,23,30,.25); }
+    .pill:not(.active):hover { border-color: var(--primary-red); color: var(--primary-red); }
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0 0;
+      border-top: 1px solid var(--border);
+      margin-top: 10px;
+    }
+    .toggle-row label { font-size: 12px; font-weight: 600; }
+    .switch { position: relative; width: 38px; height: 22px; }
+    .switch input { display: none; }
+    .switch .slider { position: absolute; inset: 0; background: #ddd; border-radius: 22px; cursor: pointer; transition: 0.2s; }
+    .switch .slider::before { content: ''; position: absolute; width: 18px; height: 18px; top: 2px; left: 2px; background: white; border-radius: 50%; transition: 0.2s; }
+    .switch input:checked + .slider { background: var(--primary-red); }
+    .switch input:checked + .slider::before { transform: translateX(16px); }
+    .legend-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 11px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-dot.safe { background: var(--safe); }
+    .legend-dot.warning { background: var(--warning); }
+    .legend-dot.danger { background: var(--danger); }
+    .hot-card { background: var(--gradient); color: white; position: relative; overflow: hidden; }
+    .hot-card::after { content: '🔥'; position: absolute; right: -10px; top: -10px; font-size: 60px; opacity: 0.15; }
+    .hot-card .card-title { font-size: 11px; opacity: 0.9; }
+    .hot-card .name { font-size: 17px; font-weight: 900; margin-top: 4px; }
+    .hot-card .meta { font-size: 11px; opacity: 0.9; margin-top: 4px; }
+
+    /* Floating CTA */
+    .map-cta {
+      position: absolute;
+      bottom: 24px; right: 24px;
+      z-index: 35;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .cta-icon {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--bg-white);
+      box-shadow: var(--shadow-md);
+      font-size: 17px;
+      transition: all 0.2s;
+    }
+    .cta-icon:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .cta-main {
+      padding: 12px 20px;
+      border-radius: 999px;
+      background: var(--gradient);
+      color: white;
+      font-weight: 900;
+      font-size: 13px;
+      box-shadow: 0 8px 24px rgba(197,23,30,.35);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .cta-main:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(197,23,30,.45); }
+
+    /* ============== VIEW 4: 맛집 상세 (지도 + 우측 시트) ============== */
+    .detail-view {
+      width: 100%; height: 100%;
+      position: relative;
+    }
+    .detail-sheet {
+      position: absolute;
+      top: 16px; right: 16px;
+      bottom: 16px;
+      width: 420px;
+      background: var(--bg-white);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-lg);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .detail-hero {
+      height: 180px;
+      background: linear-gradient(180deg, #c5171e 0%, #ff6b35 100%);
+      position: relative;
+      flex-shrink: 0;
+    }
+    .detail-hero::after {
+      content: '🍜';
+      position: absolute;
+      right: -20px; bottom: -30px;
+      font-size: 200px;
+      opacity: 0.2;
+    }
+    .detail-back {
+      position: absolute;
+      top: 14px; left: 14px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(0,0,0,.4);
+      color: white;
+      font-size: 16px;
+      backdrop-filter: blur(8px);
+    }
+    .detail-fav {
+      position: absolute;
+      top: 14px; right: 14px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.9);
+      font-size: 16px;
+    }
+    .detail-title {
+      position: absolute;
+      bottom: 16px; left: 18px; right: 18px;
+      color: white;
+    }
+    .detail-title h1 { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+    .detail-title p { font-size: 12px; opacity: 0.9; }
+    .detail-body { flex: 1; overflow-y: auto; padding: 18px; }
+    .detail-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .stat-box {
+      background: var(--bg-base);
+      padding: 12px;
+      border-radius: var(--r-md);
+      text-align: center;
+    }
+    .stat-box .v { font-size: 16px; font-weight: 900; color: var(--primary-red); }
+    .stat-box .l { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+    .detail-section { margin-bottom: 20px; }
+    .detail-section h4 { font-size: 13px; font-weight: 900; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .menu-list { display: grid; gap: 8px; }
+    .menu-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: var(--bg-soft);
+      border-radius: var(--r-sm);
+      font-size: 13px;
+    }
+    .menu-row .name { font-weight: 600; }
+    .menu-row .price { font-weight: 900; color: var(--primary-red); }
+    .review-item {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      margin-bottom: 10px;
+    }
+    .review-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .review-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--gradient);
+      color: white;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+    }
+    .review-date { font-size: 11px; color: var(--text-mute); }
+    .review-text { font-size: 13px; color: var(--text-mid); line-height: 1.5; }
+    .review-photos {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .review-photo {
+      aspect-ratio: 1;
+      background: linear-gradient(135deg, #ffd6cc 0%, #ffb1a0 100%);
+      border-radius: var(--r-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .detail-footer {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .detail-footer .btn { flex: 1; }
+
+    /* ============== VIEW 5: 리뷰 작성 ============== */
+    .review-view {
+      width: 100%; height: 100%;
+      overflow-y: auto;
+      padding: 32px 24px;
+      background: var(--bg-base);
+    }
+    .review-container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .review-header {
+      margin-bottom: 24px;
+    }
+    .review-header h1 { font-size: 22px; font-weight: 900; margin-bottom: 6px; }
+    .review-header p { font-size: 13px; color: var(--text-mute); }
+    .review-section {
+      background: var(--bg-white);
+      border-radius: var(--r-lg);
+      padding: 22px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .review-section h3 {
+      font-size: 14px;
+      font-weight: 900;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .photo-uploader {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+    }
+    .photo-slot {
+      aspect-ratio: 1;
+      background: var(--bg-base);
+      border: 2px dashed var(--border);
+      border-radius: var(--r-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--text-mute);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .photo-slot:hover { border-color: var(--primary-red); color: var(--primary-red); }
+    .photo-slot.filled {
+      background: linear-gradient(135deg, #ffd6cc 0%, #ffb1a0 100%);
+      border-style: solid;
+      border-color: var(--primary-red);
+      color: white;
+      font-size: 32px;
+    }
+    .photo-slot .pic { font-size: 28px; }
+    .photo-slot .lbl { font-size: 11px; font-weight: 700; }
+    .level-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .level-pick {
+      flex: 1;
+      min-width: 80px;
+      padding: 14px 10px;
+      background: var(--bg-base);
+      border: 2px solid transparent;
+      border-radius: var(--r-md);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .level-pick:hover { background: #ebebeb; }
+    .level-pick.selected {
+      border-color: var(--primary-red);
+      background: var(--gradient-soft);
+    }
+    .level-pick .emoji { font-size: 28px; line-height: 1; }
+    .level-pick .lab { font-size: 11px; font-weight: 700; margin-top: 4px; }
+    .receipt-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--r-md);
+      padding: 24px;
+      text-align: center;
+      background: var(--bg-base);
+      color: var(--text-mute);
+    }
+    .receipt-zone .icon { font-size: 36px; margin-bottom: 8px; }
+    .receipt-zone .label { font-size: 13px; font-weight: 700; }
+    .receipt-zone .hint { font-size: 11px; margin-top: 4px; }
+    .review-actions { display: flex; gap: 10px; margin-top: 8px; }
+    .review-actions .btn { flex: 1; padding: 14px; }
+
+    /* ============== VIEW 6: 마이페이지 ============== */
+    .mypage-view {
+      width: 100%; height: 100%;
+      overflow-y: auto;
+      background: var(--bg-base);
+    }
+    .mp-hero {
+      background: var(--gradient);
+      color: white;
+      padding: 32px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .mp-hero::after {
+      content: '🌶️';
+      position: absolute;
+      right: -20px; top: -10px;
+      font-size: 140px;
+      opacity: 0.15;
+    }
+    .mp-hero-inner {
+      max-width: 980px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+    }
+    .mp-avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.25);
+      color: white;
+      font-size: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      backdrop-filter: blur(8px);
+    }
+    .mp-profile h1 { font-size: 22px; font-weight: 900; margin-bottom: 6px; }
+    .mp-profile p { font-size: 13px; opacity: 0.9; margin-bottom: 8px; }
+    .mp-profile .badges { display: flex; gap: 6px; }
+    .mp-profile .badges .level-badge { background: rgba(255,255,255,.2); color: white; backdrop-filter: blur(8px); }
+
+    .mp-stats {
+      max-width: 980px;
+      margin: -28px auto 0;
+      padding: 0 24px 24px;
+      position: relative;
+    }
+    .mp-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      background: var(--bg-white);
+      padding: 16px;
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-md);
+    }
+    .mp-stat {
+      text-align: center;
+      padding: 10px 4px;
+    }
+    .mp-stat .v { font-size: 20px; font-weight: 900; color: var(--primary-red); }
+    .mp-stat .l { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+
+    .mp-body {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px 24px 40px;
+    }
+    .mp-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-white);
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .mp-tab {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text-mute);
+      background: transparent;
+      transition: all 0.15s;
+    }
+    .mp-tab.active { background: var(--gradient); color: white; box-shadow: 0 2px 6px rgba(197,23,30,.25); }
+    .mp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .mp-rest-card {
+      background: var(--bg-white);
+      border-radius: var(--r-lg);
+      padding: 14px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mp-rest-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .mp-rest-thumb {
+      height: 110px;
+      border-radius: var(--r-md);
+      background: linear-gradient(135deg, #ffd6cc 0%, #ffb1a0 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    .mp-rest-card h4 { font-size: 14px; font-weight: 900; margin-bottom: 4px; }
+    .mp-rest-card p { font-size: 11px; color: var(--text-mute); margin-bottom: 8px; }
+
+    .mp-review-card {
+      background: var(--bg-white);
+      border-radius: var(--r-lg);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .mp-review-card .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .mp-review-card .head h4 { font-size: 14px; font-weight: 900; }
+    .mp-review-card .head .date { font-size: 11px; color: var(--text-mute); }
+    .mp-review-card .body { font-size: 13px; color: var(--text-mid); line-height: 1.5; margin-bottom: 8px; }
+    .mp-review-card .meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-mute);
+    }
+    .mp-review-card .status {
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+    .status-approved { background: #e8f5e9; color: var(--safe); }
+    .status-pending { background: #fff3e0; color: var(--warning); }
+
+    /* ============== VIEW 7: 관리자 대시보드 ============== */
+    .admin-view {
+      width: 100%; height: 100%;
+      overflow-y: auto;
+      background: var(--bg-base);
+    }
+    .admin-head {
+      background: var(--bg-white);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .admin-head h1 { font-size: 20px; font-weight: 900; }
+    .admin-head p { font-size: 12px; color: var(--text-mute); }
+    .admin-stats-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .ad-stat-card {
+      background: var(--bg-white);
+      border-radius: var(--r-lg);
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .ad-stat-card .label { font-size: 12px; color: var(--text-mute); margin-bottom: 6px; }
+    .ad-stat-card .value { font-size: 26px; font-weight: 900; }
+    .ad-stat-card .delta { font-size: 11px; margin-top: 4px; }
+    .delta.up { color: var(--safe); }
+    .delta.down { color: var(--danger); }
+    .ad-stat-card.accent { background: var(--gradient); color: white; }
+    .ad-stat-card.accent .label, .ad-stat-card.accent .delta { opacity: 0.9; }
+
+    .admin-body {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 40px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 16px;
+    }
+    .admin-section {
+      background: var(--bg-white);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .admin-section .head {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .admin-section .head h3 { font-size: 14px; font-weight: 900; }
+    .admin-section .head .badge {
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--gradient);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .pending-row {
+      display: grid;
+      grid-template-columns: 60px 1fr 100px 110px;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .pending-row:last-child { border-bottom: none; }
+    .pending-thumb {
+      width: 50px; height: 50px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #ffd6cc 0%, #ffb1a0 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .pending-info .name { font-weight: 700; margin-bottom: 2px; }
+    .pending-info .meta { font-size: 11px; color: var(--text-mute); }
+    .pending-actions { display: flex; gap: 6px; }
+    .btn-tiny {
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+    .btn-approve { background: var(--safe); color: white; }
+    .btn-reject { background: var(--bg-base); color: var(--text-mid); }
+
+    .activity-list { padding: 8px 18px; }
+    .activity-item {
+      display: flex;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .activity-item:last-child { border: none; }
+    .activity-icon {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--gradient-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .activity-text { flex: 1; }
+    .activity-text .what { font-weight: 700; }
+    .activity-text .when { color: var(--text-mute); font-size: 11px; }
+
+    /* ============== 반응형 — Tablet (900-1279) ============== */
+    @media (max-width: 1279px) {
+      .map-panel-right { width: 240px; }
+      .map-panel-left { width: 300px; }
+      .detail-sheet { width: 380px; }
+      .admin-body { grid-template-columns: 1fr; }
+      .admin-stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ============== 반응형 — Mobile (<900) ============== */
+    @media (max-width: 899px) {
+      :root { --nav-w: 0px; }
+      body { overflow: auto; }
+      .side-nav {
+        top: auto;
+        bottom: 0;
+        left: 0; right: 0;
+        width: 100%;
+        height: var(--nav-h-mobile);
+        flex-direction: row;
+        padding: 8px 4px;
+        border-right: none;
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -4px 12px rgba(0,0,0,.08);
+      }
+      .nav-logo { display: none; }
+      .nav-list {
+        flex-direction: row;
+        flex: 1;
+        padding: 0;
+        gap: 0;
+        justify-content: space-around;
+      }
+      .nav-bottom { display: none; }
+      .nav-item {
+        padding: 4px 8px;
+        flex-direction: column;
+      }
+      .nav-icon { font-size: 18px; }
+      .nav-label { font-size: 9px; }
+      .main {
+        left: 0;
+        bottom: var(--nav-h-mobile);
+      }
+
+      /* 지도 view 모바일 */
+      .map-header {
+        flex-wrap: wrap;
+        padding: 10px 14px;
+      }
+      .map-header .title-block h2 { font-size: 14px; }
+      .map-header .search-input { order: 3; flex: 1 1 100%; max-width: none; }
+      .map-panel-left {
+        top: auto;
+        bottom: 0;
+        left: 0; right: 0;
+        width: 100%;
+        height: 45vh;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -8px 32px rgba(0,0,0,.16);
+      }
+      .map-panel-left::before {
+        content: '';
+        position: absolute;
+        top: 8px; left: 50%;
+        transform: translateX(-50%);
+        width: 40px; height: 4px;
+        background: #ccc;
+        border-radius: 2px;
+      }
+      .map-panel-right {
+        top: 100px;
+        right: 12px;
+        left: 12px;
+        max-height: calc(45vh - 110px);
+        width: auto;
+      }
+      .map-cta { bottom: calc(45vh + 16px); right: 16px; }
+      .cta-main span { display: none; }
+      .cta-main { padding: 14px; border-radius: 50%; width: 52px; height: 52px; justify-content: center; }
+
+      /* 상세 view 모바일 */
+      .detail-sheet {
+        top: 0; right: 0; bottom: 0; left: 0;
+        width: 100%;
+        border-radius: 0;
+      }
+
+      /* 리뷰 작성 모바일 */
+      .review-view { padding: 20px 16px; }
+      .review-section { padding: 16px; }
+      .level-selector { gap: 6px; }
+      .level-pick { min-width: 0; padding: 10px 4px; }
+      .level-pick .emoji { font-size: 22px; }
+
+      /* 마이페이지 모바일 */
+      .mp-hero { padding: 24px 16px; }
+      .mp-hero-inner { gap: 12px; }
+      .mp-avatar { width: 56px; height: 56px; font-size: 24px; }
+      .mp-profile h1 { font-size: 18px; }
+      .mp-stats { padding: 0 16px 16px; }
+      .mp-stats-grid { grid-template-columns: repeat(2, 1fr); padding: 12px; }
+      .mp-stat .v { font-size: 18px; }
+      .mp-body { padding: 12px 16px 80px; }
+
+      /* 관리자 모바일 */
+      .admin-stats-grid { grid-template-columns: 1fr 1fr; padding: 14px 16px; }
+      .admin-body { padding: 0 16px 40px; }
+      .pending-row {
+        grid-template-columns: 50px 1fr;
+        gap: 10px;
+      }
+      .pending-row .pending-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+      }
+      .pending-row > .stat { display: none; }
+
+      /* 레벨 설정 모바일 */
+      .level-setup { padding: 24px 16px 80px; }
+      .level-hero h1 { font-size: 22px; }
+      .level-option { padding: 14px; gap: 12px; }
+      .level-option .icon { width: 44px; height: 44px; font-size: 24px; }
+
+      /* 온보딩 모바일 */
+      .onboarding-card { padding: 28px 20px; margin: 0 16px; }
+    }
+
+    @media (max-width: 480px) {
+      .map-panel-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============== 좌측/하단 Navigation ============== -->
+  <nav class="side-nav">
+    <div class="nav-logo">🌶️</div>
+    <div class="nav-list">
+      <button class="nav-item" data-view="onboarding">
+        <span class="nav-icon">🔐</span>
+        <span class="nav-label">로그인</span>
+      </button>
+      <button class="nav-item" data-view="level-setup">
+        <span class="nav-icon">🎚️</span>
+        <span class="nav-label">맵레벨</span>
+      </button>
+      <button class="nav-item active" data-view="map">
+        <span class="nav-icon">🗺️</span>
+        <span class="nav-label">지도</span>
+      </button>
+      <button class="nav-item" data-view="detail">
+        <span class="nav-icon">🍜</span>
+        <span class="nav-label">맛집</span>
+      </button>
+      <button class="nav-item" data-view="review">
+        <span class="nav-icon">✏️</span>
+        <span class="nav-label">제보</span>
+      </button>
+      <button class="nav-item" data-view="mypage">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">마이</span>
+      </button>
+      <button class="nav-item" data-view="admin">
+        <span class="nav-icon">🛡️</span>
+        <span class="nav-label">관리자</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============== Main Container ============== -->
+  <main class="main">
+
+    <!-- =========== VIEW 1: 온보딩 =========== -->
+    <section class="view" data-view="onboarding">
+      <div class="onboarding">
+        <div class="onboarding-card">
+          <div class="onboarding-brand">
+            <div class="logo">🌶️</div>
+            <h1>맵맵맵</h1>
+            <p>매운맛 실패 없는 맛집 지도</p>
+          </div>
+          <div class="onboarding-tabs">
+            <button class="onboarding-tab active" id="tab-login">로그인</button>
+            <button class="onboarding-tab" id="tab-signup">회원가입</button>
+          </div>
+          <form id="form-login">
+            <div class="form-group">
+              <label>이메일</label>
+              <input type="email" class="form-input" placeholder="example@email.com" value="inhiyu@gmail.com">
+            </div>
+            <div class="form-group">
+              <label>비밀번호</label>
+              <input type="password" class="form-input" placeholder="비밀번호" value="••••••••">
+            </div>
+            <button type="button" class="btn btn-primary btn-block">로그인</button>
+            <div class="onboarding-divider"><span>또는</span></div>
+            <div class="social-btns">
+              <button type="button" class="social-btn">📧 이메일로 로그인</button>
+              <button type="button" class="social-btn">💬 카카오로 시작하기</button>
+              <button type="button" class="social-btn">🟢 네이버로 시작하기</button>
+            </div>
+          </form>
+          <form id="form-signup" style="display:none">
+            <div class="form-group">
+              <label>이메일</label>
+              <input type="email" class="form-input" placeholder="example@email.com">
+            </div>
+            <div class="form-group">
+              <label>비밀번호 (8자 이상)</label>
+              <input type="password" class="form-input" placeholder="비밀번호">
+            </div>
+            <div class="form-group">
+              <label>비밀번호 확인</label>
+              <input type="password" class="form-input" placeholder="비밀번호 다시 입력">
+            </div>
+            <div class="form-group">
+              <label>닉네임</label>
+              <input type="text" class="form-input" placeholder="10자 이내" maxlength="10">
+            </div>
+            <button type="button" class="btn btn-primary btn-block">가입하기</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========== VIEW 2: 맵레벨 설정 =========== -->
+    <section class="view" data-view="level-setup">
+      <div class="level-setup">
+        <div class="level-container">
+          <div class="level-hero">
+            <div class="emoji-row">🐥 👼 🌶️ 🔥 💣 💀</div>
+            <h1>당신의 매운맛 레벨은?</h1>
+            <p>레벨에 맞는 맛집을 찾아드릴게요. 언제든 변경할 수 있어요.</p>
+          </div>
+          <div class="level-grid">
+            <div class="level-option">
+              <div class="icon">🐥</div>
+              <div class="info"><div class="name">Lv.0 맵찔이</div><div class="desc">진라면 순한맛도 매움... 케찹이 좋아요</div></div>
+              <div class="check">✓</div>
+            </div>
+            <div class="level-option">
+              <div class="icon">👼</div>
+              <div class="info"><div class="name">Lv.1 맵초보</div><div class="desc">신라면 정도는 가능! 근데 콧물 나요</div></div>
+              <div class="check">✓</div>
+            </div>
+            <div class="level-option">
+              <div class="icon">🌶️</div>
+              <div class="info"><div class="name">Lv.2 맵보통</div><div class="desc">열라면 즐겨먹음. 한국인 평균이에요</div></div>
+              <div class="check">✓</div>
+            </div>
+            <div class="level-option selected">
+              <div class="icon">🔥</div>
+              <div class="info"><div class="name">Lv.3 맵니아</div><div class="desc">불닭, 엽떡 오리지널 맛있게 먹어요</div></div>
+              <div class="check">✓</div>
+            </div>
+            <div class="level-option">
+              <div class="icon">💣</div>
+              <div class="info"><div class="name">Lv.4 맵고수</div><div class="desc">엽떡 매운맛으로 스트레스 풀어요</div></div>
+              <div class="check">✓</div>
+            </div>
+            <div class="level-option">
+              <div class="icon">💀</div>
+              <div class="info"><div class="name">Lv.5 맵친자</div><div class="desc">핵불닭, 디진다돈까스... 고통을 즐겨요</div></div>
+              <div class="check">✓</div>
+            </div>
+          </div>
+          <div class="level-actions">
+            <button class="btn btn-ghost">나중에</button>
+            <button class="btn btn-primary">설정 완료 →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========== VIEW 3: 메인 지도 =========== -->
+    <section class="view active" data-view="map">
+      <div class="map-view">
+        <div class="map-stage">
+          <div class="map-road h1"></div>
+          <div class="map-road h2"></div>
+          <div class="map-river"></div>
+          <div class="map-road v1"></div>
+          <div class="map-road v2"></div>
+          <div class="map-marker safe"   style="top:28%; left:32%"><div class="pin"><span class="lvl">1</span>9,000원</div></div>
+          <div class="map-marker warning" style="top:36%; left:48%"><div class="pin"><span class="lvl">3</span>12,000원</div></div>
+          <div class="map-marker danger" style="top:42%; left:40%; animation-delay:.1s"><div class="pin"><span class="lvl">5</span>15,000원</div></div>
+          <div class="map-marker warning" style="top:52%; left:62%; animation-delay:.2s"><div class="pin"><span class="lvl">2</span>8,500원</div></div>
+          <div class="map-marker safe"   style="top:60%; left:52%; animation-delay:.3s"><div class="pin"><span class="lvl">1</span>7,000원</div></div>
+          <div class="map-marker danger" style="top:48%; left:72%; animation-delay:.4s"><div class="pin"><span class="lvl">4</span>11,000원</div></div>
+          <div class="map-marker warning" style="top:70%; left:55%; animation-delay:.5s"><div class="pin"><span class="lvl">3</span>10,000원</div></div>
+          <div class="map-marker safe"   style="top:25%; left:65%; animation-delay:.6s"><div class="pin"><span class="lvl">0</span>6,500원</div></div>
+        </div>
+
+        <header class="map-header">
+          <div class="title-block">
+            <span class="level-badge badge-grad">Lv.3 🔥</span>
+            <div>
+              <h2>매운맛 맛집 지도</h2>
+              <p>서울 종로구 · 32곳</p>
+            </div>
+          </div>
+          <div class="search-input">
+            🔍
+            <input placeholder="동네, 메뉴, 매장명 검색...">
+          </div>
+        </header>
+
+        <aside class="map-panel-left">
+          <div class="panel-head">
+            <h3><span class="accent"></span> 매운맛 랭킹</h3>
+            <span class="count">전체 32곳</span>
+          </div>
+          <div class="panel-tabs">
+            <button class="panel-tab active">전체</button>
+            <button class="panel-tab">내 레벨</button>
+            <button class="panel-tab">신규</button>
+            <button class="panel-tab">찜</button>
+          </div>
+          <div class="panel-list">
+            <div class="rest-card">
+              <div class="rank medal">🥇</div>
+              <div class="info">
+                <div class="name">불맛탱탱 짬뽕집</div>
+                <div class="meta">🍜 짬뽕 · 9,000원 · 종로구</div>
+                <div class="tags"><span class="tag spicy-3">Lv.3 맵니아</span><span class="tag gray">인증 248</span></div>
+              </div>
+              <div class="stat"><div class="score">⭐ 4.8</div><div class="reviews">248</div></div>
+            </div>
+            <div class="rest-card">
+              <div class="rank medal">🥈</div>
+              <div class="info">
+                <div class="name">디진다 돈까스</div>
+                <div class="meta">🥩 돈까스 · 13,000원 · 중구</div>
+                <div class="tags"><span class="tag spicy-5">Lv.5 맵친자</span><span class="tag gray">고통주의</span></div>
+              </div>
+              <div class="stat"><div class="score">⭐ 4.7</div><div class="reviews">192</div></div>
+            </div>
+            <div class="rest-card">
+              <div class="rank medal">🥉</div>
+              <div class="info">
+                <div class="name">엽기 떡볶이 본점</div>
+                <div class="meta">🌶️ 떡볶이 · 15,000원 · 영등포구</div>
+                <div class="tags"><span class="tag spicy-4">Lv.4 맵고수</span></div>
+              </div>
+              <div class="stat"><div class="score">⭐ 4.6</div><div class="reviews">167</div></div>
+            </div>
+            <div class="rest-card">
+              <div class="rank">4</div>
+              <div class="info">
+                <div class="name">청양 칼국수</div>
+                <div class="meta">🍜 칼국수 · 8,500원 · 마포구</div>
+                <div class="tags"><span class="tag spicy-2">Lv.2 맵보통</span></div>
+              </div>
+              <div class="stat"><div class="score">⭐ 4.5</div><div class="reviews">134</div></div>
+            </div>
+            <div class="rest-card">
+              <div class="rank">5</div>
+              <div class="info">
+                <div class="name">진라면 순한 분식</div>
+                <div class="meta">🍜 라면 · 6,500원 · 종로구</div>
+                <div class="tags"><span class="tag spicy-1">Lv.1 맵초보</span><span class="tag new">신규</span></div>
+              </div>
+              <div class="stat"><div class="score">⭐ 4.4</div><div class="reviews">88</div></div>
+            </div>
+            <div class="rest-card">
+              <div class="rank">6</div>
+              <div class="info">
+                <div class="name">김밥천국 본점</div>
+                <div class="meta">🍙 분식 · 5,500원 · 서대문구</div>
+                <div class="tags"><span class="tag spicy-0">Lv.0 맵찔이</span></div>
+              </div>
+              <div class="stat"><div class="score">⭐ 4.3</div><div class="reviews">72</div></div>
+            </div>
+            <div class="rest-card">
+              <div class="rank">7</div>
+              <div class="info">
+                <div class="name">불닭 마차</div>
+                <div class="meta">🍗 닭갈비 · 12,000원 · 강남구</div>
+                <div class="tags"><span class="tag spicy-3">Lv.3 맵니아</span></div>
+              </div>
+              <div class="stat"><div class="score">⭐ 4.2</div><div class="reviews">65</div></div>
+            </div>
+            <div class="rest-card">
+              <div class="rank">8</div>
+              <div class="info">
+                <div class="name">매운갈비찜의 전설</div>
+                <div class="meta">🍖 갈비찜 · 18,000원 · 성동구</div>
+                <div class="tags"><span class="tag spicy-4">Lv.4 맵고수</span></div>
+              </div>
+              <div class="stat"><div class="score">⭐ 4.1</div><div class="reviews">54</div></div>
+            </div>
+          </div>
+        </aside>
+
+        <aside class="map-panel-right">
+          <div class="info-card">
+            <div class="card-title">🎚️ 매운맛 필터</div>
+            <div class="pills">
+              <span class="pill active">전체</span>
+              <span class="pill">Lv.0</span>
+              <span class="pill">Lv.1</span>
+              <span class="pill active">Lv.2</span>
+              <span class="pill active">Lv.3</span>
+              <span class="pill">Lv.4</span>
+              <span class="pill">Lv.5</span>
+            </div>
+            <div class="toggle-row">
+              <label>내 레벨 이하만</label>
+              <label class="switch">
+                <input type="checkbox" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="card-title">📍 마커 색상</div>
+            <div class="legend-row"><span class="legend-dot safe"></span> <b>Safe</b> · 맛있게 먹어요</div>
+            <div class="legend-row"><span class="legend-dot warning"></span> <b>Warning</b> · 조금 매워요</div>
+            <div class="legend-row"><span class="legend-dot danger"></span> <b>Danger</b> · 도전이 필요</div>
+          </div>
+          <div class="info-card hot-card">
+            <div class="card-title">🔥 이번 주 1위</div>
+            <div class="name">불맛탱탱 짬뽕집</div>
+            <div class="meta">인증 248 · ⭐ 4.8 · Lv.3</div>
+          </div>
+        </aside>
+
+        <div class="map-cta">
+          <button class="cta-icon" title="내 위치">📍</button>
+          <button class="cta-icon" title="필터">🎚️</button>
+          <button class="cta-main"><span>🌶️ 매운맛 인증</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========== VIEW 4: 맛집 상세 =========== -->
+    <section class="view" data-view="detail">
+      <div class="detail-view">
+        <!-- 동일 지도 배경 (재사용) -->
+        <div class="map-stage">
+          <div class="map-road h1"></div>
+          <div class="map-road h2"></div>
+          <div class="map-river"></div>
+          <div class="map-road v1"></div>
+          <div class="map-road v2"></div>
+          <div class="map-marker danger" style="top:42%; left:40%"><div class="pin"><span class="lvl">5</span>15,000원</div></div>
+        </div>
+
+        <aside class="detail-sheet">
+          <div class="detail-hero">
+            <button class="detail-back">←</button>
+            <button class="detail-fav">♡</button>
+            <div class="detail-title">
+              <h1>불맛탱탱 짬뽕집</h1>
+              <p>서울 종로구 · 🍜 짬뽕</p>
+            </div>
+          </div>
+          <div class="detail-body">
+            <div class="detail-stats">
+              <div class="stat-box"><div class="v">⭐ 4.8</div><div class="l">평점</div></div>
+              <div class="stat-box"><div class="v">Lv.3</div><div class="l">평균 맵기</div></div>
+              <div class="stat-box"><div class="v">248</div><div class="l">인증 리뷰</div></div>
+            </div>
+
+            <div class="detail-section">
+              <h4>🍴 대표 메뉴</h4>
+              <div class="menu-list">
+                <div class="menu-row"><span class="name">불맛 짬뽕</span><span class="price">9,000원</span></div>
+                <div class="menu-row"><span class="name">매운 짜장면</span><span class="price">8,000원</span></div>
+                <div class="menu-row"><span class="name">탕수육 (소)</span><span class="price">15,000원</span></div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h4>📝 최근 리뷰</h4>
+              <div class="review-item">
+                <div class="review-head">
+                  <div class="review-user"><div class="avatar">김</div>김매운</div>
+                  <span class="review-date">2일 전</span>
+                </div>
+                <div class="review-text">진짜 매운데 자꾸 생각나는 맛. Lv.3인 저한테 딱 맞았어요. 사장님이 친절하게 매운 정도 조절도 가능해요!</div>
+                <div class="review-photos">
+                  <div class="review-photo">🍜</div>
+                  <div class="review-photo">🌶️</div>
+                  <div class="review-photo">🧾</div>
+                </div>
+              </div>
+              <div class="review-item">
+                <div class="review-head">
+                  <div class="review-user"><div class="avatar">이</div>이불맛</div>
+                  <span class="review-date">1주 전</span>
+                </div>
+                <div class="review-text">매운맛 깔끔하고 깊이 있음. 영수증 인증 받고 포인트도 쏠쏠했어요 👍</div>
+              </div>
+            </div>
+          </div>
+          <div class="detail-footer">
+            <button class="btn btn-ghost">길찾기</button>
+            <button class="btn btn-primary">🌶️ 리뷰 작성</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- =========== VIEW 5: 리뷰 작성 =========== -->
+    <section class="view" data-view="review">
+      <div class="review-view">
+        <div class="review-container">
+          <div class="review-header">
+            <h1>🌶️ 매운맛 인증하기</h1>
+            <p>방문한 가게의 매운맛 정보를 공유하고 포인트를 받으세요</p>
+          </div>
+
+          <div class="review-section">
+            <h3>1️⃣ 가게 정보</h3>
+            <div class="form-group">
+              <label>가게 이름</label>
+              <input type="text" class="form-input" placeholder="예: 불맛탱탱 짬뽕집" value="불맛탱탱 짬뽕집">
+            </div>
+            <div class="form-group">
+              <label>주문한 메뉴</label>
+              <input type="text" class="form-input" placeholder="예: 불맛 짬뽕" value="불맛 짬뽕">
+            </div>
+            <div class="form-group">
+              <label>가격 (원)</label>
+              <input type="number" class="form-input" placeholder="9000" value="9000">
+            </div>
+          </div>
+
+          <div class="review-section">
+            <h3>2️⃣ 매운맛 평가</h3>
+            <div class="level-selector">
+              <div class="level-pick"><div class="emoji">🐥</div><div class="lab">Lv.0</div></div>
+              <div class="level-pick"><div class="emoji">👼</div><div class="lab">Lv.1</div></div>
+              <div class="level-pick"><div class="emoji">🌶️</div><div class="lab">Lv.2</div></div>
+              <div class="level-pick selected"><div class="emoji">🔥</div><div class="lab">Lv.3</div></div>
+              <div class="level-pick"><div class="emoji">💣</div><div class="lab">Lv.4</div></div>
+              <div class="level-pick"><div class="emoji">💀</div><div class="lab">Lv.5</div></div>
+            </div>
+          </div>
+
+          <div class="review-section">
+            <h3>3️⃣ 리뷰 작성</h3>
+            <div class="form-group">
+              <textarea class="form-input" placeholder="이 가게의 매운맛 후기를 자유롭게 작성해주세요!">진짜 매운데 자꾸 생각나는 맛. Lv.3인 저한테 딱 맞았어요. 사장님이 친절하게 매운 정도 조절도 가능해요!</textarea>
+            </div>
+          </div>
+
+          <div class="review-section">
+            <h3>4️⃣ 음식 사진 (최대 5장)</h3>
+            <div class="photo-uploader">
+              <div class="photo-slot filled">🍜</div>
+              <div class="photo-slot filled">🌶️</div>
+              <div class="photo-slot">
+                <div class="pic">📷</div>
+                <div class="lbl">사진 추가</div>
+              </div>
+              <div class="photo-slot">
+                <div class="pic">📷</div>
+                <div class="lbl">사진 추가</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="review-section">
+            <h3>5️⃣ 영수증 인증 <span class="tag" style="background:var(--gradient); color:white;">+50P</span></h3>
+            <div class="receipt-zone">
+              <div class="icon">🧾</div>
+              <div class="label">영수증을 업로드하면 +50 포인트!</div>
+              <div class="hint">JPG, PNG · 최대 5MB</div>
+            </div>
+          </div>
+
+          <div class="review-actions">
+            <button class="btn btn-ghost">취소</button>
+            <button class="btn btn-primary">제보하고 포인트 받기 🎁</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========== VIEW 6: 마이페이지 =========== -->
+    <section class="view" data-view="mypage">
+      <div class="mypage-view">
+        <div class="mp-hero">
+          <div class="mp-hero-inner">
+            <div class="mp-avatar">맵</div>
+            <div class="mp-profile">
+              <h1>맵친자 김매운</h1>
+              <p>가입 2025-01-15 · 인증 24회</p>
+              <div class="badges">
+                <span class="level-badge">Lv.3 맵니아 🔥</span>
+                <span class="level-badge">⭐ 우수 제보자</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mp-stats">
+          <div class="mp-stats-grid">
+            <div class="mp-stat"><div class="v">24</div><div class="l">작성한 리뷰</div></div>
+            <div class="mp-stat"><div class="v">12</div><div class="l">찜한 가게</div></div>
+            <div class="mp-stat"><div class="v">1,820</div><div class="l">누적 포인트</div></div>
+            <div class="mp-stat"><div class="v">98%</div><div class="l">승인률</div></div>
+          </div>
+        </div>
+
+        <div class="mp-body">
+          <div class="mp-tabs">
+            <button class="mp-tab active">내 리뷰</button>
+            <button class="mp-tab">찜한 곳</button>
+            <button class="mp-tab">포인트</button>
+            <button class="mp-tab">설정</button>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap: 12px;">
+            <div class="mp-review-card">
+              <div class="head">
+                <div>
+                  <h4>불맛탱탱 짬뽕집</h4>
+                  <span class="tag spicy-3" style="margin-top:4px;">Lv.3 맵니아</span>
+                </div>
+                <span class="date">2일 전</span>
+              </div>
+              <div class="body">진짜 매운데 자꾸 생각나는 맛. Lv.3인 저한테 딱 맞았어요. 사장님이 친절하게 매운 정도 조절도 가능해요!</div>
+              <div class="meta">
+                <span>🍜 불맛 짬뽕 · 9,000원</span>
+                <span class="status status-approved">✓ 승인됨 · +60P</span>
+              </div>
+            </div>
+            <div class="mp-review-card">
+              <div class="head">
+                <div>
+                  <h4>디진다 돈까스</h4>
+                  <span class="tag spicy-5" style="margin-top:4px;">Lv.5 맵친자</span>
+                </div>
+                <span class="date">5일 전</span>
+              </div>
+              <div class="body">이건 진짜 도전이에요... 한 입 먹고 후회. 근데 자꾸 생각나는 맛. 영수증 인증으로 50P 추가!</div>
+              <div class="meta">
+                <span>🥩 핵불닭 돈까스 · 13,000원</span>
+                <span class="status status-approved">✓ 승인됨 · +60P</span>
+              </div>
+            </div>
+            <div class="mp-review-card">
+              <div class="head">
+                <div>
+                  <h4>청양 칼국수</h4>
+                  <span class="tag spicy-2" style="margin-top:4px;">Lv.2 맵보통</span>
+                </div>
+                <span class="date">어제</span>
+              </div>
+              <div class="body">청양고추 듬뿍 들어간 칼국수. 가성비 최고. Lv.2 정도라 부담 없이 먹기 좋아요.</div>
+              <div class="meta">
+                <span>🍜 청양 칼국수 · 8,500원</span>
+                <span class="status status-pending">⏳ 승인 대기</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========== VIEW 7: 관리자 대시보드 =========== -->
+    <section class="view" data-view="admin">
+      <div class="admin-view">
+        <header class="admin-head">
+          <div>
+            <h1>🛡️ 관리자 대시보드</h1>
+            <p>리뷰 품질 관리 + 통계 · 마지막 업데이트 방금 전</p>
+          </div>
+          <button class="btn btn-primary">📊 리포트 다운로드</button>
+        </header>
+
+        <div class="admin-stats-grid">
+          <div class="ad-stat-card accent">
+            <div class="label">승인 대기 리뷰</div>
+            <div class="value">12</div>
+            <div class="delta">↑ 어제보다 +3</div>
+          </div>
+          <div class="ad-stat-card">
+            <div class="label">이번 달 신규 리뷰</div>
+            <div class="value">348</div>
+            <div class="delta up">↑ 12% MoM</div>
+          </div>
+          <div class="ad-stat-card">
+            <div class="label">활성 사용자</div>
+            <div class="value">1,247</div>
+            <div class="delta up">↑ 8% WoW</div>
+          </div>
+          <div class="ad-stat-card">
+            <div class="label">반려율</div>
+            <div class="value">3.2%</div>
+            <div class="delta down">↓ 1.1%p</div>
+          </div>
+        </div>
+
+        <div class="admin-body">
+          <div class="admin-section">
+            <div class="head">
+              <h3>⏳ 승인 대기 리뷰</h3>
+              <span class="badge">12 건</span>
+            </div>
+            <div class="pending-row">
+              <div class="pending-thumb">🍜</div>
+              <div class="pending-info">
+                <div class="name">청양 칼국수 — 김매운</div>
+                <div class="meta">Lv.2 · 영수증 ✓ · 5분 전</div>
+              </div>
+              <div class="stat tag spicy-2">Lv.2 맵보통</div>
+              <div class="pending-actions">
+                <button class="btn-tiny btn-approve">승인</button>
+                <button class="btn-tiny btn-reject">반려</button>
+              </div>
+            </div>
+            <div class="pending-row">
+              <div class="pending-thumb">🥩</div>
+              <div class="pending-info">
+                <div class="name">디진다 돈까스 — 박불맛</div>
+                <div class="meta">Lv.5 · 영수증 ✓ · 22분 전</div>
+              </div>
+              <div class="stat tag spicy-5">Lv.5 맵친자</div>
+              <div class="pending-actions">
+                <button class="btn-tiny btn-approve">승인</button>
+                <button class="btn-tiny btn-reject">반려</button>
+              </div>
+            </div>
+            <div class="pending-row">
+              <div class="pending-thumb">🌶️</div>
+              <div class="pending-info">
+                <div class="name">엽기 떡볶이 본점 — 이매콤</div>
+                <div class="meta">Lv.4 · 영수증 ✗ · 1시간 전</div>
+              </div>
+              <div class="stat tag spicy-4">Lv.4 맵고수</div>
+              <div class="pending-actions">
+                <button class="btn-tiny btn-approve">승인</button>
+                <button class="btn-tiny btn-reject">반려</button>
+              </div>
+            </div>
+            <div class="pending-row">
+              <div class="pending-thumb">🍗</div>
+              <div class="pending-info">
+                <div class="name">불닭 마차 — 최맵찔이</div>
+                <div class="meta">Lv.3 · 영수증 ✓ · 2시간 전</div>
+              </div>
+              <div class="stat tag spicy-3">Lv.3 맵니아</div>
+              <div class="pending-actions">
+                <button class="btn-tiny btn-approve">승인</button>
+                <button class="btn-tiny btn-reject">반려</button>
+              </div>
+            </div>
+            <div class="pending-row">
+              <div class="pending-thumb">🍙</div>
+              <div class="pending-info">
+                <div class="name">진라면 순한 분식 — 정초보</div>
+                <div class="meta">Lv.1 · 영수증 ✓ · 3시간 전</div>
+              </div>
+              <div class="stat tag spicy-1">Lv.1 맵초보</div>
+              <div class="pending-actions">
+                <button class="btn-tiny btn-approve">승인</button>
+                <button class="btn-tiny btn-reject">반려</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-section">
+            <div class="head"><h3>🔔 최근 활동</h3></div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-icon">✓</div>
+                <div class="activity-text">
+                  <div class="what">"불맛탱탱 짬뽕집" 리뷰 승인됨</div>
+                  <div class="when">방금 전 · admin</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon">🚫</div>
+                <div class="activity-text">
+                  <div class="what">중복 리뷰 1건 반려</div>
+                  <div class="when">10분 전 · admin</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon">📝</div>
+                <div class="activity-text">
+                  <div class="what">신규 리뷰 5건 도착</div>
+                  <div class="when">25분 전 · system</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon">👤</div>
+                <div class="activity-text">
+                  <div class="what">신규 가입 12명</div>
+                  <div class="when">1시간 전 · system</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon">🔥</div>
+                <div class="activity-text">
+                  <div class="what">"불맛탱탱" 이번주 1위 등극</div>
+                  <div class="when">3시간 전 · system</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ========== View Routing ==========
+    const navItems = document.querySelectorAll('.nav-item');
+    const views = document.querySelectorAll('.view');
+
+    function showView(name) {
+      navItems.forEach(n => n.classList.toggle('active', n.dataset.view === name));
+      views.forEach(v => v.classList.toggle('active', v.dataset.view === name));
+      // URL hash 동기화
+      try { history.replaceState(null, '', `#${name}`); } catch(e) {}
+    }
+    navItems.forEach(n => n.addEventListener('click', () => showView(n.dataset.view)));
+
+    // 초기 view: hash가 있으면 그쪽, 없으면 map
+    const initial = location.hash.replace('#','') || 'map';
+    if ([...views].some(v => v.dataset.view === initial)) showView(initial);
+
+    // ========== Onboarding 탭 전환 ==========
+    document.getElementById('tab-login').addEventListener('click', e => {
+      document.getElementById('tab-login').classList.add('active');
+      document.getElementById('tab-signup').classList.remove('active');
+      document.getElementById('form-login').style.display = '';
+      document.getElementById('form-signup').style.display = 'none';
+    });
+    document.getElementById('tab-signup').addEventListener('click', e => {
+      document.getElementById('tab-signup').classList.add('active');
+      document.getElementById('tab-login').classList.remove('active');
+      document.getElementById('form-signup').style.display = '';
+      document.getElementById('form-login').style.display = 'none';
+    });
+
+    // ========== Level option 선택 ==========
+    document.querySelectorAll('.level-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.level-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+      });
+    });
+
+    // ========== 매운맛 평가 (리뷰 작성) ==========
+    document.querySelectorAll('.level-pick').forEach(p => {
+      p.addEventListener('click', () => {
+        document.querySelectorAll('.level-pick').forEach(x => x.classList.remove('selected'));
+        p.classList.add('selected');
+      });
+    });
+
+    // ========== Filter pills ==========
+    document.querySelectorAll('.pill').forEach(p => {
+      p.addEventListener('click', () => p.classList.toggle('active'));
+    });
+
+    // ========== mp-tabs / panel-tabs ==========
+    document.querySelectorAll('.mp-tabs').forEach(group => {
+      group.querySelectorAll('.mp-tab').forEach(t => {
+        t.addEventListener('click', () => {
+          group.querySelectorAll('.mp-tab').forEach(x => x.classList.remove('active'));
+          t.classList.add('active');
+        });
+      });
+    });
+    document.querySelectorAll('.panel-tabs').forEach(group => {
+      group.querySelectorAll('.panel-tab').forEach(t => {
+        t.addEventListener('click', () => {
+          group.querySelectorAll('.panel-tab').forEach(x => x.classList.remove('active'));
+          t.classList.add('active');
+        });
+      });
+    });
+
+    // ========== 상세 뒤로가기 ==========
+    document.querySelector('.detail-back')?.addEventListener('click', () => showView('map'));
+
+    // ========== rest-card 클릭 → 상세 ==========
+    document.querySelectorAll('.rest-card').forEach(c => {
+      c.addEventListener('click', () => showView('detail'));
+    });
+
+    console.log('🌶️ MapMapMap Design Prototype — 7 views ready. Use side-nav or #hash to switch.');
+  </script>
+</body>
+</html>

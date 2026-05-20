@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>11. Gesture-based · 맵맵맵</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;590;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#fafaf7;--text:#1a1a1a;--text-3:#6e6e6e;--text-4:#9a9a9a;--border:rgba(0,0,0,.08);--surface:#f5f2ee;
+    --spice:#c5171e;--spice-2:#ff6b35;--gradient:linear-gradient(135deg,#c5171e,#ff6b35);}
+  *{margin:0;padding:0;box-sizing:border-box} html,body{height:100%;overflow:hidden}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+  .demo-bar{position:fixed;top:0;left:0;right:0;padding:12px 20px;background:#fff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:200}
+  .demo-bar h1{font-size:13px;font-weight:700} .demo-bar .help{font-size:11px;color:var(--text-3)}
+
+  .gesture-area{position:fixed;top:42px;left:0;right:0;bottom:0;background:linear-gradient(180deg,#fff8f0,#fff2e8);overflow:hidden;cursor:grab;user-select:none}
+  .gesture-area:active{cursor:grabbing}
+  .gesture-area::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.03) 0,rgba(0,0,0,.03) 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,rgba(0,0,0,.03) 0,rgba(0,0,0,.03) 1px,transparent 1px,transparent 60px)}
+
+  .card-stack{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:280px;height:380px}
+  .swipe-card{position:absolute;inset:0;background:#fff;border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.15);overflow:hidden;display:flex;flex-direction:column;transition:transform .3s,opacity .3s}
+  .swipe-card .photo{height:200px;background:var(--gradient);display:flex;align-items:center;justify-content:center;font-size:80px;position:relative;overflow:hidden}
+  .swipe-card .photo::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 70% 70%,rgba(255,255,255,.2),transparent 60%)}
+  .swipe-card .info{padding:18px;flex:1;display:flex;flex-direction:column}
+  .swipe-card h3{font-size:18px;font-weight:700;margin-bottom:4px}
+  .swipe-card .meta{font-size:11px;color:var(--text-3);font-family:monospace;margin-bottom:8px}
+  .swipe-card .stats{display:flex;gap:12px;margin-top:auto;font-size:13px;font-weight:700}
+  .swipe-card .lvl{padding:3px 10px;background:var(--gradient);color:#fff;border-radius:999px;font-size:11px}
+  .swipe-card .price{margin-left:auto;color:var(--spice);font-family:monospace}
+
+  .indicator{position:absolute;top:60px;font-size:48px;font-weight:900;padding:8px 18px;border-radius:12px;border:4px solid;opacity:0;transition:opacity .15s;pointer-events:none}
+  .indicator.like{right:20px;color:#27a644;border-color:#27a644;transform:rotate(20deg)}
+  .indicator.nope{left:20px;color:var(--spice);border-color:var(--spice);transform:rotate(-20deg)}
+
+  .helpers{position:fixed;bottom:24px;left:0;right:0;display:flex;justify-content:center;gap:14px;z-index:50}
+  .help-btn{width:54px;height:54px;border-radius:50%;background:#fff;border:1px solid var(--border);font-size:22px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.08);transition:transform .15s}
+  .help-btn:hover{transform:scale(1.1)}
+  .help-btn.like{background:#27a644;color:#fff;border:none}
+  .help-btn.nope{background:var(--spice);color:#fff;border:none}
+
+  .gesture-list{position:fixed;top:54px;left:16px;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);padding:10px 14px;border-radius:8px;font-size:11px;color:var(--text-3);max-width:200px;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+  .gesture-list b{color:var(--text);display:block;margin-bottom:4px}
+  .gesture-list ul{list-style:none;padding:0;margin:0;font-family:monospace}
+  .gesture-list li{padding:1px 0}
+  .gesture-list li::before{content:'·';color:var(--spice);margin-right:5px}
+
+  .counter{position:fixed;top:54px;right:16px;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);padding:10px 14px;border-radius:8px;font-size:11px;color:var(--text-3);box-shadow:0 4px 12px rgba(0,0,0,.06);font-family:monospace;text-align:right}
+  .counter b{color:var(--text);display:block;font-size:14px}
+</style>
+</head><body>
+<div class="demo-bar"><h1>11. Gesture-based</h1><span class="help">대표: Tinder · TikTok · iOS Swipe</span></div>
+
+<div class="gesture-area" id="area">
+  <div class="gesture-list">
+    <b>제스처 목록</b>
+    <ul>
+      <li>좌/우 드래그 (스와이프)</li>
+      <li>위로 스와이프 (정보)</li>
+      <li>탭 (좋아요)</li>
+      <li>더블탭 (찜)</li>
+    </ul>
+  </div>
+
+  <div class="counter">
+    Liked <b id="liked">0</b>
+    Passed <b id="passed">0</b>
+  </div>
+
+  <div class="card-stack">
+    <div class="swipe-card" id="card">
+      <div class="photo" id="photo">🍜</div>
+      <div class="info">
+        <h3 id="name">불맛탱탱 짬뽕집 🔥</h3>
+        <div class="meta" id="meta">짬뽕 · 종로구 · ID 0x4f2a</div>
+        <div class="stats">
+          <span class="lvl" id="lvl">Lv.3 맵니아</span>
+          <span class="price" id="price">9,000원</span>
+        </div>
+      </div>
+      <div class="indicator like" id="indLike">LIKE</div>
+      <div class="indicator nope" id="indNope">NOPE</div>
+    </div>
+  </div>
+
+  <div class="helpers">
+    <button class="help-btn nope" onclick="swipe('left')">✕</button>
+    <button class="help-btn" onclick="next()">↻</button>
+    <button class="help-btn like" onclick="swipe('right')">❤</button>
+  </div>
+</div>
+
+<script>
+  const restaurants = [
+    {em:'🍜', nm:'불맛탱탱 짬뽕집 🔥', mt:'짬뽕 · 종로구', lvl:'Lv.3 맵니아', pr:'9,000원'},
+    {em:'🍜', nm:'디진다 돈까스 💀', mt:'돈까스 · 중구', lvl:'Lv.5 맵친자', pr:'13,000원'},
+    {em:'🌶', nm:'엽기 떡볶이 본점 💣', mt:'떡볶이 · 영등포', lvl:'Lv.4 맵고수', pr:'15,000원'},
+    {em:'🍚', nm:'청양 칼국수', mt:'칼국수 · 마포구', lvl:'Lv.2 맵보통', pr:'8,500원'},
+    {em:'🍚', nm:'진라면 순한 분식', mt:'분식 · 종로구', lvl:'Lv.1 맵초보', pr:'6,500원'},
+    {em:'🍜', nm:'불닭 마차 🔥', mt:'닭갈비 · 강남구', lvl:'Lv.3 맵니아', pr:'12,000원'},
+  ];
+  let idx = 0, liked = 0, passed = 0;
+  const card = document.getElementById('card');
+  let startX = 0, startY = 0, dragging = false;
+
+  function show(){
+    const r = restaurants[idx % restaurants.length];
+    document.getElementById('photo').textContent = r.em;
+    document.getElementById('name').textContent = r.nm;
+    document.getElementById('meta').textContent = r.mt;
+    document.getElementById('lvl').textContent = r.lvl;
+    document.getElementById('price').textContent = r.pr;
+    card.style.transform = 'translate(0,0) rotate(0)';
+    card.style.opacity = '1';
+    document.getElementById('indLike').style.opacity = 0;
+    document.getElementById('indNope').style.opacity = 0;
+  }
+  function swipe(dir){
+    const x = dir === 'right' ? 600 : -600;
+    card.style.transform = `translate(${x}px,0) rotate(${x/20}deg)`;
+    card.style.opacity = '0';
+    if (dir === 'right') liked++; else passed++;
+    document.getElementById('liked').textContent = liked;
+    document.getElementById('passed').textContent = passed;
+    setTimeout(next, 300);
+  }
+  function next(){ idx++; show(); }
+
+  card.addEventListener('mousedown', startDrag);
+  card.addEventListener('touchstart', startDrag);
+  function startDrag(e){
+    dragging = true;
+    startX = e.touches ? e.touches[0].clientX : e.clientX;
+    startY = e.touches ? e.touches[0].clientY : e.clientY;
+    document.addEventListener('mousemove', drag); document.addEventListener('touchmove', drag);
+    document.addEventListener('mouseup', endDrag); document.addEventListener('touchend', endDrag);
+  }
+  function drag(e){
+    if (!dragging) return;
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - startX;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - startY;
+    card.style.transition = 'none';
+    card.style.transform = `translate(${x}px,${y/3}px) rotate(${x/20}deg)`;
+    document.getElementById('indLike').style.opacity = Math.max(0, x/100);
+    document.getElementById('indNope').style.opacity = Math.max(0, -x/100);
+  }
+  function endDrag(e){
+    if (!dragging) return;
+    dragging = false;
+    card.style.transition = 'transform .3s, opacity .3s';
+    const x = parseInt(card.style.transform.match(/translate\((-?\d+)/)?.[1] || 0);
+    if (Math.abs(x) > 100) swipe(x > 0 ? 'right' : 'left');
+    else { card.style.transform = 'translate(0,0)'; document.getElementById('indLike').style.opacity = 0; document.getElementById('indNope').style.opacity = 0; }
+    document.removeEventListener('mousemove', drag); document.removeEventListener('touchmove', drag);
+    document.removeEventListener('mouseup', endDrag); document.removeEventListener('touchend', endDrag);
+  }
+  show();
+</script>
+</body></html>

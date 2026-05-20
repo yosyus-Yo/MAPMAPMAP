@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>맵맵맵 아이콘 라이브러리</title>
+<link rel="stylesheet" href="tokens.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;510;590;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--text);padding:40px 32px;min-height:100vh}
+  h1{font-size:var(--text-display);font-weight:800;margin-bottom:8px;letter-spacing:-1px}
+  h1 .accent{background:var(--brand-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{font-size:14px;color:var(--text-3);margin-bottom:32px}
+
+  h2{font-size:var(--text-h2);font-weight:700;margin:32px 0 12px;display:flex;align-items:center;gap:8px}
+  h2::after{content:'';flex:1;height:1px;background:var(--border);margin-left:8px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+  .item{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 12px;text-align:center;transition:all 0.15s}
+  .item:hover{border-color:var(--brand-orange);box-shadow:var(--shadow-md);transform:translateY(-2px)}
+  .item .icon{display:flex;align-items:center;justify-content:center;height:48px;color:var(--text)}
+  .item .icon img{width:32px;height:32px}
+  .item .name{font-size:11px;font-family:var(--font-mono);color:var(--text-3);margin-top:8px;font-weight:590}
+  .item .label{font-size:13px;font-weight:700;margin-top:2px}
+
+  /* spice level grid는 크게 + 색상 칩 */
+  .spice-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:32px}
+  .spice-item{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px 12px;text-align:center}
+  .spice-item img{width:64px;height:64px;display:block;margin:0 auto 12px}
+  .spice-item .lvl{font-size:24px;font-weight:800;letter-spacing:-1px}
+  .spice-item .desc{font-size:11px;color:var(--text-3);margin-top:2px}
+  @media(max-width:900px){.spice-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:500px){.spice-grid{grid-template-columns:repeat(2,1fr)}}
+
+  .colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+  .color-chip{padding:14px 12px;border-radius:var(--r-md);border:1px solid var(--border)}
+  .color-chip .swatch{height:48px;border-radius:var(--r-sm);margin-bottom:8px;border:1px solid rgba(0,0,0,0.06)}
+  .color-chip .nm{font-size:11px;font-family:var(--font-mono);color:var(--text-2);font-weight:700}
+  .color-chip .hex{font-size:10px;font-family:var(--font-mono);color:var(--text-4);margin-top:2px}
+
+  .marker-demo{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:24px;background:#e8e2d8;border-radius:var(--r-lg);background-image:repeating-linear-gradient(45deg,#f0ebe2 0,#f0ebe2 4px,#e8e2d8 4px,#e8e2d8 8px)}
+  .km-marker{display:flex;flex-direction:column;background:white;border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px;box-shadow:var(--shadow-sm);min-width:110px}
+  .km-marker .top{display:flex;align-items:center;gap:4px;margin-bottom:2px}
+  .km-marker .top img{width:14px;height:14px}
+  .km-marker .top .lvl{font-size:11px;font-weight:700;color:var(--spice-3);font-family:var(--font-mono)}
+  .km-marker .body{font-size:13px;font-weight:700;font-family:var(--font-mono)}
+  .km-marker .meta{font-size:10px;color:var(--text-3);font-family:var(--font-mono);margin-top:2px;display:flex;gap:4px;align-items:center}
+  .km-marker .meta img{width:10px;height:10px;color:#f59e0b}
+  .km-marker.risk-safe{background:var(--risk-safe)}
+  .km-marker.risk-watch{background:var(--risk-watch)}
+  .km-marker.risk-warn{background:var(--risk-warn)}
+  .km-marker.risk-danger{background:var(--risk-danger)}
+</style>
+</head>
+<body>
+
+<h1><span class="accent">맵맵맵</span> 디자인 시스템</h1>
+<p class="sub">v1 · 이모지 0개 · 모든 시각 요소 커스텀 SVG</p>
+
+<h2>매운맛 레벨 (시그니처 6단계)</h2>
+<div class="spice-grid">
+  <div class="spice-item"><img src="icons/spice-level-0.svg" alt="Lv.0"><div class="lvl">Lv.0</div><div class="desc">순함</div></div>
+  <div class="spice-item"><img src="icons/spice-level-1.svg" alt="Lv.1"><div class="lvl">Lv.1</div><div class="desc">약간 매움</div></div>
+  <div class="spice-item"><img src="icons/spice-level-2.svg" alt="Lv.2"><div class="lvl">Lv.2</div><div class="desc">매움</div></div>
+  <div class="spice-item"><img src="icons/spice-level-3.svg" alt="Lv.3"><div class="lvl">Lv.3</div><div class="desc">강함</div></div>
+  <div class="spice-item"><img src="icons/spice-level-4.svg" alt="Lv.4"><div class="lvl">Lv.4</div><div class="desc">매우 강함</div></div>
+  <div class="spice-item"><img src="icons/spice-level-5.svg" alt="Lv.5"><div class="lvl">Lv.5</div><div class="desc">극강 (그을림)</div></div>
+</div>
+
+<h2>마커 디자인 (사용자 상대 색상 데모)</h2>
+<div class="marker-demo">
+  <div class="km-marker risk-safe">
+    <div class="top"><img src="icons/spice-level-1.svg"><span class="lvl">Lv.1</span></div>
+    <div class="body">6,500원</div>
+    <div class="meta"><img src="icons/ui-star.svg" style="color:#f59e0b">4.4 · 88 인증</div>
+  </div>
+  <div class="km-marker risk-watch">
+    <div class="top"><img src="icons/spice-level-3.svg"><span class="lvl">Lv.3</span></div>
+    <div class="body">9,000원</div>
+    <div class="meta"><img src="icons/ui-star.svg" style="color:#f59e0b">4.8 · 248 인증</div>
+  </div>
+  <div class="km-marker risk-warn">
+    <div class="top"><img src="icons/spice-level-4.svg"><span class="lvl">Lv.4</span></div>
+    <div class="body">15,000원</div>
+    <div class="meta"><img src="icons/ui-star.svg" style="color:#f59e0b">4.6 · 167 인증</div>
+  </div>
+  <div class="km-marker risk-danger">
+    <div class="top"><img src="icons/spice-level-5.svg"><span class="lvl">Lv.5</span></div>
+    <div class="body">13,000원</div>
+    <div class="meta"><img src="icons/ui-star.svg" style="color:#f59e0b">4.7 · 192 인증</div>
+  </div>
+</div>
+
+<h2>UI 아이콘 (16종)</h2>
+<div class="grid" id="ui-grid"></div>
+
+<h2>카테고리 아이콘 (5종)</h2>
+<div class="grid" id="cat-grid"></div>
+
+<h2>스파이스 컬러 스케일</h2>
+<div class="colors">
+  <div class="color-chip"><div class="swatch" style="background:var(--spice-0)"></div><div class="nm">spice-0</div><div class="hex">#C8C8C8</div></div>
+  <div class="color-chip"><div class="swatch" style="background:var(--spice-1)"></div><div class="nm">spice-1</div><div class="hex">#FCD34D</div></div>
+  <div class="color-chip"><div class="swatch" style="background:var(--spice-2)"></div><div class="nm">spice-2</div><div class="hex">#FB923C</div></div>
+  <div class="color-chip"><div class="swatch" style="background:var(--spice-3)"></div><div class="nm">spice-3</div><div class="hex">#EF4444</div></div>
+  <div class="color-chip"><div class="swatch" style="background:var(--spice-4)"></div><div class="nm">spice-4</div><div class="hex">#B91C1C</div></div>
+  <div class="color-chip"><div class="swatch" style="background:var(--spice-5)"></div><div class="nm">spice-5</div><div class="hex">#1F0606</div></div>
+</div>
+
+<h2>리스크 컬러 (사용자 상대 위험도)</h2>
+<div class="colors">
+  <div class="color-chip"><div class="swatch" style="background:var(--risk-safe)"></div><div class="nm">risk-safe</div><div class="hex">사용자 ≥ 가게</div></div>
+  <div class="color-chip"><div class="swatch" style="background:var(--risk-watch)"></div><div class="nm">risk-watch</div><div class="hex">+1 도전</div></div>
+  <div class="color-chip"><div class="swatch" style="background:var(--risk-warn)"></div><div class="nm">risk-warn</div><div class="hex">+2 위험</div></div>
+  <div class="color-chip"><div class="swatch" style="background:var(--risk-danger)"></div><div class="nm">risk-danger</div><div class="hex">+3 극위험</div></div>
+</div>
+
+<script>
+  const ui = ['map','search','certify','heart','list','location','filter','close','chevron-left','chevron-right','camera','receipt','share','bookmark','flame','star'];
+  const cat = ['noodle','rice','meat','japanese','chinese'];
+  const labels = {
+    map:'지도', search:'검색', certify:'인증/제보', heart:'찜', list:'마이/리스트',
+    location:'현재 위치', filter:'필터', close:'닫기', 'chevron-left':'왼쪽 화살표', 'chevron-right':'오른쪽 화살표',
+    camera:'카메라', receipt:'영수증', share:'공유', bookmark:'북마크', flame:'불꽃', star:'별점',
+    noodle:'면류', rice:'분식/한식', meat:'고기', japanese:'일식', chinese:'중식'
+  };
+  document.getElementById('ui-grid').innerHTML = ui.map(n =>
+    `<div class="item">
+      <div class="icon"><img src="icons/ui-${n}.svg"></div>
+      <div class="label">${labels[n]}</div>
+      <div class="name">ui-${n}</div>
+    </div>`).join('');
+  document.getElementById('cat-grid').innerHTML = cat.map(n =>
+    `<div class="item">
+      <div class="icon"><img src="icons/category-${n}.svg"></div>
+      <div class="label">${labels[n]}</div>
+      <div class="name">category-${n}</div>
+    </div>`).join('');
+</script>
+
+</body>
+</html>
