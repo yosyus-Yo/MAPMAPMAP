@@ -1,0 +1,44 @@
+/* ====================================================
+   버전 토글 버튼 (Stage B, 2026-05-18)
+   신버전에서 구버전으로 돌아가는 버튼.
+   ==================================================== */
+
+.version-toggle {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20,20,20,0.85);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 590;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  z-index: 150;
+  transition: background 0.15s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.version-toggle:hover {
+  background: rgba(0,0,0,0.95);
+  transform: translateX(-50%) translateY(-1px);
+}
+
+.version-toggle:active {
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 600px) {
+  .version-toggle {
+    top: 8px;
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+}

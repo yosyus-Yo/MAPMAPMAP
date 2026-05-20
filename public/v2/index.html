@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>맵맵맵 — Linear Blaze (7-view SPA)</title>
+
+  <!-- Google Analytics (GA4) — v1 이식 2026-05-19 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-6B878F8F37"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-6B878F8F37');
+  </script>
+
+  <!-- HEIC → JPEG 변환 (iPhone 사진 업로드 호환) — v1 이식 2026-05-19 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
+
+  <!-- Markdown 렌더링 (공지사항 markdown 지원) + XSS sanitize — 2026-05-19 -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;590;700&display=swap" rel="stylesheet">
+  <!-- 디자인 토큰 (Phase 2 분리, 2026-05-18) -->
+  <link rel="stylesheet" href="css/tokens.css">
+  <!-- 환영/공지 팝업 (Phase 6 추가, 2026-05-18) -->
+  <link rel="stylesheet" href="css/announce.css">
+  <!-- 사이드바 최신 리뷰 카드 (Phase 5 추가, 2026-05-18) -->
+  <link rel="stylesheet" href="css/sidebar-reviews.css">
+  <!-- 이미지 viewer (후속2 추가, 2026-05-18) -->
+  <link rel="stylesheet" href="css/image-viewer.css">
+  <!-- 버전 토글 (Stage B, 2026-05-18) -->
+  <!-- version-toggle.css 제거 2026-05-20: v1 deprecated, v2가 메인 -->
+  <!-- <link rel="stylesheet" href="css/version-toggle.css"> -->
+  <!-- 메인 CSS (2026-05-19: 인라인 <style> 분리) -->
+  <link rel="stylesheet" href="css/main.css">
+  <!-- 카카오 지도 SDK 사전 로드 (2026-05-18, P2-4 final fix)
+       페이지 protocol이 http://이면 protocol-relative `//`가 http로 해석되어 카카오 SDK 거부됨.
+       https 명시로 항상 안전한 https 요청. (http page → https resource는 차단 안 됨) -->
+  <script
+    defer
+    src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=80397851cbdcec5a798a9cd405203780&libraries=services&autoload=false"
+    onerror="console.error('[kakao-sdk preload] static script onerror');"
+    onload="console.log('[kakao-sdk preload] static script onload 성공');"></script>
+</head>
+<body>
+
+  <!-- ====== 환영/공지 팝업 (Phase 6, 2026-05-18 추가) ====== -->
+  <!-- 첫 진입 시 표시. 1일간 보지 않기 체크 시 localStorage 저장. ANNOUNCE_VERSION bump 시 자동 재표시. -->
+  <div class="announce-overlay" id="announceOverlay" style="display:none">
+    <div class="announce-modal" role="dialog" aria-modal="true" aria-labelledby="announceTitle">
+      <button class="announce-close" id="announceClose" aria-label="닫기">×</button>
+      <h2 id="announceTitle">🌶 맵맵맵에 오신 것을 환영합니다!</h2>
+
+      <section class="announce-section">
+        <h3>📌 공지사항</h3>
+        <ul>
+          <li><strong>베타 오픈</strong> — 영수증 인증 시 포인트 적립 (현재 0원, 추후 환급 예정)</li>
+          <li><strong>신버전 디자인 체험 중</strong> — 피드백 환영합니다</li>
+        </ul>
+      </section>
+
+      <section class="announce-section">
+        <h3>📖 사용방법</h3>
+        <ol>
+          <li>회원가입 후 본인의 <strong>매운맛 레벨</strong>을 설정</li>
+          <li>지도에서 가게를 찾고 핀 클릭 → 인증 리뷰 확인</li>
+          <li>직접 다녀온 가게는 <strong>영수증 사진</strong>으로 인증 리뷰 작성</li>
+          <li>인증 3건 달성 시 베타 리워드 +500P</li>
+        </ol>
+      </section>
+
+      <div class="announce-footer">
+        <label class="announce-hide-label">
+          <input type="checkbox" id="announceHideToday">
+          <span>1일간 보지 않기</span>
+        </label>
+        <button class="announce-confirm" id="announceConfirm">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 좌측/하단 Navigation (7-view 통합) -->
+  <!-- 정리1 (2026-05-18): brand-floating (큰 로고 박스) + tile-toggle (개발자용 디버깅 UI) 제거 -->
+
+  <!-- 구버전 토글 버튼 제거 2026-05-20 — v1 deprecated, 사용자 요청 -->
+  <!--
+  <button class="version-toggle" id="versionToggleV1" title="구버전으로 돌아가기">
+    📜 구버전
+  </button>
+  -->
+
+
+  <!-- 좌측 리뷰 Slide-over 패널 -->
+  <aside class="review-panel" id="reviewPanel" aria-hidden="true">
+    <div class="rp-head">
+      <div class="info">
+        <h3 id="rp-name">가게 선택</h3>
+        <div class="meta" id="rp-meta">—</div>
+      </div>
+      <button class="rp-close" onclick="closeReviewPanel()" title="닫기">✕</button>
+    </div>
+    <!-- 음식점 사진 캐러셀 (2026-05-19) — 첫 리뷰의 음식 사진들 가로 슬라이드 -->
+    <div class="rp-photos-carousel" id="rp-photos-carousel" style="display:none">
+      <div class="rp-photos-track" id="rp-photos-track"></div>
+      <div class="rp-photos-dots" id="rp-photos-dots"></div>
+    </div>
+    <div class="rp-stats">
+      <div class="rp-stat"><div class="v" id="rp-rating">—</div><div class="l">평점</div></div>
+      <div class="rp-stat"><div class="v" id="rp-level">—</div><div class="l">맵 레벨</div></div>
+      <div class="rp-stat"><div class="v" id="rp-count">—</div><div class="l">인증</div></div>
+    </div>
+    <!-- 추가 정보 (카테고리/주소/전화) — 2026-05-19 -->
+    <div class="rp-extra-info" id="rp-extra-info">
+      <div class="rp-extra-row" id="rp-extra-category" style="display:none"><span class="rp-extra-ico">🍽</span><span class="rp-extra-val"></span></div>
+      <div class="rp-extra-row" id="rp-extra-address" style="display:none"><span class="rp-extra-ico">📍</span><span class="rp-extra-val"></span></div>
+      <div class="rp-extra-row" id="rp-extra-phone" style="display:none"><span class="rp-extra-ico">📞</span><span class="rp-extra-val"></span></div>
+    </div>
+    <div class="rp-body" id="rp-body">
+      <div class="rp-empty">마커를 클릭해서 가게의 리뷰를 확인하세요.</div>
+    </div>
+    <div class="rp-cta">
+      <button id="btn-rp-review" onclick="startReviewFromCurrentPanel()">✍ 내가 인증 남기기</button>
+    </div>
+  </aside>
+
+  <!-- 리뷰 상세 슬라이드 패널 (좌측 review-panel 옆에서 슬라이드 인, 네이버지도 스타일) -->
+  <div class="review-modal-backdrop" id="reviewModal">
+    <div class="review-modal">
+      <div class="rm-hero" id="rm-hero">
+        <button class="rm-close" onclick="closeReviewModal()" title="닫기 (Esc)">✕</button>
+        <button class="rm-photo-nav prev" id="rm-prev" onclick="changePhoto(-1)">‹</button>
+        <button class="rm-photo-nav next" id="rm-next" onclick="changePhoto(1)">›</button>
+        <div class="rm-photo-counter" id="rm-counter" style="display:none">1 / 1</div>
+      </div>
+      <div class="rm-body">
+        <div class="rm-user">
+          <div class="rm-avatar" id="rm-avatar">?</div>
+          <div class="rm-user-info">
+            <div class="nm" id="rm-nickname">—</div>
+            <div class="date" id="rm-date">—</div>
+          </div>
+        </div>
+        <div class="rm-spice-bar">
+          <span class="lbl">본인 평가</span>
+          <div class="bars" id="rm-bars"><span></span><span></span><span></span><span></span><span></span></div>
+          <span class="level" id="rm-level">Lv.0</span>
+        </div>
+        <div class="rm-content" id="rm-content">—</div>
+        <!-- 공감 버튼 (2026-05-20) — 카드 리뷰의 like-btn과 동일 구조 → rpToggleLike 재사용 -->
+        <div class="rm-actions">
+          <button type="button" class="rm-like-btn like-btn" id="rm-like-btn" data-review-id="" title="공감하기">
+            <span class="heart">🤍</span>
+            <span class="count">0</span>
+          </button>
+        </div>
+        <div id="rm-thumbs-section" style="display:none">
+          <div class="rm-section-h">📷 인증 사진</div>
+          <div class="rm-photo-thumbs" id="rm-thumbs"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- user-chip: 로그인 시 표시. Phase 7에서 동적 렌더 (avatar / lvl) -->
+  <div class="user-chip-floating" data-view="mypage" id="userChip" style="display:none">
+    <div class="avatar" id="userChipAvatar">?</div>
+    <div class="lvl-mini" id="userChipLevel">Lv.—</div>
+  </div>
+
+  <!-- guest-login-btn: 비회원 시 표시. onAuthFail에서 show, onAuthSuccess에서 hide (2026-05-20)
+       기본 display:none — initAuth→onAuthFail이 hideUserChip()으로 inline 제거하면 CSS inline-block 복귀로 표시 -->
+  <button class="guest-login-btn" id="guestLoginBtn" data-view="onboarding" type="button" style="display:none">
+    🌶 로그인
+  </button>
+
+  <!-- 하단 중앙 Floating Pill Nav (07 패턴, 5개 핵심 view) -->
+  <nav class="pill-nav">
+    <button class="nav-item active" data-view="map"><span class="nav-icon">🗺</span><span class="nav-label">지도</span></button>
+    <!-- 2026-05-19: "맛집" nav-item 제거 — 가게 마커 클릭 시에만 detail view 진입 (직접 nav로 가는 동선 불필요) -->
+    <button class="nav-item" data-view="review"><span class="nav-icon">✍</span><span class="nav-label">제보</span></button>
+    <!-- P2-3 (2026-05-18): 레벨 nav-item 제거 — 설정 탭에서 변경 가능 -->
+    <button class="nav-item" data-view="mypage"><span class="nav-icon">📋</span><span class="nav-label">마이</span></button>
+    <!-- 로그인/관리자는 user-chip 클릭 시 마이페이지에서 진입 -->
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ====== VIEW 1: 온보딩 ====== -->
+    <section class="view" data-view="onboarding">
+      <div class="onboarding">
+        <div class="ob-card">
+          <div class="ob-brand">
+            <div class="logo"><img src="logo.svg" alt="맵맵맵"></div>
+            <h1>맵<span>맵맵</span></h1>
+            <p>매운맛 실패 없는 맛집 지도</p>
+          </div>
+          <div class="ob-tabs">
+            <button class="ob-tab active" id="tab-login">로그인</button>
+            <button class="ob-tab" id="tab-signup">회원가입</button>
+          </div>
+          <form id="form-login" autocomplete="on">
+            <div class="form-group"><label>이메일</label><input type="email" class="form-input" id="login-email" placeholder="example@email.com" autocomplete="email"></div>
+            <div class="form-group"><label>비밀번호</label><input type="password" class="form-input" id="login-password" placeholder="비밀번호 입력" autocomplete="current-password"></div>
+            <button type="button" class="btn btn-primary btn-block" id="btn-login-submit">🌶 로그인</button>
+            <div class="ob-divider"><span>또는</span></div>
+            <div class="social-btns">
+              <button type="button" class="social-btn" disabled title="준비 중">💬 카카오로 시작하기</button>
+              <button type="button" class="social-btn" disabled title="준비 중">🟢 네이버로 시작하기</button>
+            </div>
+            <!-- 정리2 (2026-05-18): 시안의 mock value 제거. 실제 인증은 미구현 — 차후 api.js auth.login 연결 필요 -->
+          </form>
+          <form id="form-signup" style="display:none" autocomplete="on">
+            <div class="form-group"><label>이메일</label><input type="email" class="form-input" id="signup-email" placeholder="example@email.com" autocomplete="email"></div>
+            <div class="form-group"><label>비밀번호 (8자 이상)</label><input type="password" class="form-input" id="signup-password" placeholder="8자 이상" autocomplete="new-password" minlength="8"></div>
+            <div class="form-group"><label>닉네임</label><input type="text" class="form-input" id="signup-nickname" placeholder="2~10자" maxlength="10" minlength="2"></div>
+            <!-- P2-1 (2026-05-18): 매운맛 레벨 회원가입 통합. 가입 후 별도 level-setup 진입 안 함. -->
+            <div class="form-group">
+              <label>매운맛 레벨 (가입 후 마이페이지에서 변경 가능)</label>
+              <div id="signup-level-grid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-top:6px;">
+                <button type="button" class="signup-lvl-btn" data-level="0" style="padding:9px 4px; font-size:11px; font-weight:600; border:1px solid var(--border); background:var(--surface); border-radius:var(--r-sm); cursor:pointer;">🐥 맵찔이<br><span style="font-size:9px; color:var(--text-3); font-weight:500">Lv.0</span></button>
+                <button type="button" class="signup-lvl-btn" data-level="1" style="padding:9px 4px; font-size:11px; font-weight:600; border:1px solid var(--border); background:var(--surface); border-radius:var(--r-sm); cursor:pointer;">👼 맵초보<br><span style="font-size:9px; color:var(--text-3); font-weight:500">Lv.1</span></button>
+                <button type="button" class="signup-lvl-btn" data-level="2" style="padding:9px 4px; font-size:11px; font-weight:600; border:1px solid var(--border); background:var(--surface); border-radius:var(--r-sm); cursor:pointer;">🌶 맵보통<br><span style="font-size:9px; color:var(--text-3); font-weight:500">Lv.2</span></button>
+                <button type="button" class="signup-lvl-btn" data-level="3" style="padding:9px 4px; font-size:11px; font-weight:600; border:1px solid var(--border); background:var(--surface); border-radius:var(--r-sm); cursor:pointer;">🔥 맵니아<br><span style="font-size:9px; color:var(--text-3); font-weight:500">Lv.3</span></button>
+                <button type="button" class="signup-lvl-btn" data-level="4" style="padding:9px 4px; font-size:11px; font-weight:600; border:1px solid var(--border); background:var(--surface); border-radius:var(--r-sm); cursor:pointer;">💣 맵고수<br><span style="font-size:9px; color:var(--text-3); font-weight:500">Lv.4</span></button>
+                <button type="button" class="signup-lvl-btn" data-level="5" style="padding:9px 4px; font-size:11px; font-weight:600; border:1px solid var(--border); background:var(--surface); border-radius:var(--r-sm); cursor:pointer;">💀 맵친자<br><span style="font-size:9px; color:var(--text-3); font-weight:500">Lv.5</span></button>
+              </div>
+              <input type="hidden" id="signup-spicy-level" value="">
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="btn-signup-submit">🌶 가입하기</button>
+          </form>
+          </div>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 2: 맵레벨 설정 ====== -->
+    <section class="view" data-view="level-setup">
+      <div class="level-setup">
+        <div class="ls-container">
+          <div class="ls-hero">
+            <div class="emoji-row">🐥 👼 🌶 🔥 💣 💀</div>
+            <h1>당신의 <span class="accent">매운맛 레벨</span>은?</h1>
+            <p>레벨에 맞는 맛집을 찾아드립니다 · 언제든 변경 가능</p>
+          </div>
+          <div class="level-grid" id="level-grid">
+            <div class="level-option" data-level="0"><div class="icon-box">🐥</div><div class="info"><div class="name">Lv.0 맵찔이</div><div class="desc">진라면 순한맛도 매움 · 케찹이 좋아요</div></div><div class="check">✅</div></div>
+            <div class="level-option" data-level="1"><div class="icon-box">👼</div><div class="info"><div class="name">Lv.1 맵초보</div><div class="desc">신라면 정도는 가능 · 콧물 나요</div></div><div class="check">✅</div></div>
+            <div class="level-option" data-level="2"><div class="icon-box">🌶</div><div class="info"><div class="name">Lv.2 맵보통</div><div class="desc">열라면 즐겨먹음 · 한국인 평균</div></div><div class="check">✅</div></div>
+            <div class="level-option" data-level="3"><div class="icon-box">🔥</div><div class="info"><div class="name">Lv.3 맵니아</div><div class="desc">불닭, 엽떡 오리지널 맛있게 먹음</div></div><div class="check">✅</div></div>
+            <div class="level-option" data-level="4"><div class="icon-box">💣</div><div class="info"><div class="name">Lv.4 맵고수</div><div class="desc">엽떡 매운맛으로 스트레스 풀어요</div></div><div class="check">✅</div></div>
+            <div class="level-option" data-level="5"><div class="icon-box">💀</div><div class="info"><div class="name">Lv.5 맵친자</div><div class="desc">핵불닭, 디진다돈까스 · 고통을 즐김</div></div><div class="check">✅</div></div>
+          </div>
+          <div class="ls-actions">
+            <button class="btn btn-ghost" id="btn-level-later">나중에</button>
+            <button class="btn btn-primary" id="btn-level-submit">설정 완료 →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 3: 메인 지도 ====== -->
+    <section class="view active" data-view="map">
+      <div class="map-view-page">
+        <div class="map-layout">
+          <div class="map-stage">
+            <!-- 카카오 지도 컨테이너 (SDK 로드 후 채워짐) -->
+            <div id="kakao-map"></div>
+
+            <!-- 내 위치로 이동 버튼 (v1 이식 Phase B, 2026-05-19) -->
+            <button type="button" class="map-my-location-btn" id="map-my-location-btn" title="내 위치로 이동">
+              📍 내 위치로
+            </button>
+
+            <!-- 지도 범례 (v1 이식 Phase B, 2026-05-19) — Lv.0~Lv.5 마커 색상 의미 -->
+            <div class="map-legend-overlay" id="map-legend">
+              <div class="map-legend-header" id="map-legend-header">
+                <h4>🔥 매운맛 레벨</h4>
+                <button class="map-legend-toggle" type="button">▲</button>
+              </div>
+              <div class="map-legend-content">
+                <div class="legend-item"><img src="img/marker-lv0.png" alt="Lv.0" class="legend-marker"><span>Lv.0~1 — 안전 (순한맛)</span></div>
+                <div class="legend-item"><img src="img/marker-lv1.png" alt="Lv.2" class="legend-marker"><span>Lv.2 — 약간 매움</span></div>
+                <div class="legend-item"><img src="img/marker-lv2.png" alt="Lv.3" class="legend-marker"><span>Lv.3 — 매움</span></div>
+                <div class="legend-item"><img src="img/marker-lv3.png" alt="Lv.4" class="legend-marker"><span>Lv.4 — 많이 매움</span></div>
+                <div class="legend-item"><img src="img/marker-lv4.png" alt="Lv.5" class="legend-marker"><span>Lv.5 — 도전 필요</span></div>
+              </div>
+            </div>
+
+            <!-- SDK 로드 실패 시 fallback 배경 (디자인) -->
+            <div class="ember e1"></div><div class="ember e2"></div><div class="ember e3"></div>
+            <div class="ember e4"></div><div class="ember e5"></div>
+            <div class="road h1"></div><div class="road h2"></div>
+            <div class="road v1"></div><div class="road v2"></div>
+
+            <!-- 정리1 (2026-05-18): mini-stats (개발자용 통계 overlay), filter-bar (정적 mock) 제거 -->
+            <!-- 통계는 구버전 보유, 신버전은 사이드바 카운터로 대체. 필터는 사이드바 탭에서. -->
+            <!-- updateStats() 호환 위해 hidden 컨테이너만 유지 -->
+            <div class="mini-stats" style="display:none">
+              <span id="stat-count"></span>
+              <span id="stat-avg"></span>
+              <span id="stat-verified"></span>
+              <span id="stat-match"></span>
+            </div>
+
+            <!-- 정리1 (2026-05-18): 시안의 정적 .pin/.spice-banner/.map-ctrl mock 제거. -->
+            <!-- 지도 마커는 Leaflet이 동적으로 렌더링 (addMainMarkers). 줌 컨트롤은 Leaflet 내장. -->
+            <!-- 'show-fallback' body 클래스 시에만 fallback 디자인 표시는 CSS가 처리. -->
+            <!-- 매운맛 1위 banner는 향후 reviews.recentApproved top1로 동적 생성 검토. -->
+          </div>
+
+          <aside class="map-sidebar peek">
+            <div class="sb-head">
+              <h2><span class="ico">💬</span> 최신 리뷰</h2>
+              <span class="count" id="sb-count">— · loading</span>
+            </div>
+            <div class="sb-tabs">
+              <button class="sb-tab active" data-filter="all">전체</button>
+              <button class="sb-tab" data-filter="photo">사진 있음</button>
+              <button class="sb-tab" data-filter="my-level">내 레벨</button>
+              <button class="sb-tab" data-filter="nearby" title="내 위치에서 가까운 음식점 순">📍 내 주변</button>
+            </div>
+            <div class="sb-list" id="sb-list">
+              <div class="sb-row" style="text-align:center; color:var(--text-3); font-size:12px">⏳ 최신 리뷰 로드 중...</div>
+            </div>
+            <div class="sb-footer">
+              <div class="ico">❤</div>
+              <div class="text"><div class="top">베타 리워드</div><div class="bot">3건 인증 시 +500P</div></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 4: 맛집 상세 ====== -->
+    <section class="view" data-view="detail">
+      <div class="detail-view">
+        <!-- 배경 지도 (Leaflet) -->
+        <div class="map-stage">
+          <div id="detail-map"></div>
+          <!-- Fallback 디자인 효과 (Leaflet 로드 실패 시) -->
+          <div class="ember e1"></div><div class="ember e3"></div>
+          <div class="road h1"></div><div class="road h2"></div>
+          <div class="road v1"></div><div class="road v2"></div>
+        </div>
+        <aside class="detail-sheet">
+          <div class="dt-hero">
+            <button class="dt-back">←</button>
+            <button class="dt-fav">♡</button>
+            <div class="dt-title">
+              <h1>불맛탱탱 짬뽕집 🔥</h1>
+              <p>서울 종로구 · 짬뽕 · ID 0x4f2a</p>
+            </div>
+          </div>
+          <div class="dt-body">
+            <div class="dt-stats">
+              <div class="stat-box"><div class="v">❤ 4.8</div><div class="l">평점</div></div>
+              <div class="stat-box"><div class="v">Lv.3 🔥</div><div class="l">평균 맵기</div></div>
+              <div class="stat-box"><div class="v">248</div><div class="l">인증 리뷰</div></div>
+            </div>
+            <div class="dt-section">
+              <h4>🥢 대표 메뉴</h4>
+              <div class="menu-list">
+                <div class="menu-row"><span class="name">불맛 짬뽕</span><span class="price">9,000원</span></div>
+                <div class="menu-row"><span class="name">매운 짜장면</span><span class="price">8,000원</span></div>
+                <div class="menu-row"><span class="name">탕수육 (소)</span><span class="price">15,000원</span></div>
+              </div>
+            </div>
+            <div class="dt-section">
+              <h4>📝 최근 리뷰</h4>
+              <div class="review-item">
+                <div class="review-head">
+                  <div class="review-user"><div class="ava">김</div>김매운</div>
+                  <span class="review-date">2일 전</span>
+                </div>
+                <div class="review-text">진짜 매운데 자꾸 생각나는 맛. Lv.3인 저한테 딱 맞았어요. 사장님이 친절하게 매운 정도 조절도 가능해요!</div>
+                <div class="review-photos"><div class="review-photo">🍜</div><div class="review-photo">🌶</div><div class="review-photo">🧾</div></div>
+              </div>
+              <div class="review-item">
+                <div class="review-head">
+                  <div class="review-user"><div class="ava">이</div>이불맛</div>
+                  <span class="review-date">1주 전</span>
+                </div>
+                <div class="review-text">매운맛 깔끔하고 깊이 있음. 영수증 인증 받고 포인트도 쏠쏠 👍</div>
+              </div>
+            </div>
+          </div>
+          <div class="dt-footer">
+            <button class="btn btn-ghost">길찾기</button>
+            <button class="btn btn-primary">🌶 리뷰 작성</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 5: 리뷰 작성 ====== -->
+    <section class="view" data-view="review">
+      <!-- Phase 9 (2026-05-18): mock value 제거 + 실 file input + ID 부여 -->
+      <div class="review-view">
+        <div class="rv-container">
+          <div class="rv-header">
+            <h1><span class="accent">🌶 매운맛 인증</span></h1>
+            <p>방문한 가게의 매운맛 정보를 공유하고 포인트를 받으세요</p>
+          </div>
+
+          <div class="rv-section">
+            <h3><span class="num">1</span> 가게 정보</h3>
+
+            <!-- 카카오 장소 검색 (2026-05-18 통합 — 구버전에서 가져옴) -->
+            <div class="form-group" id="rv-search-group">
+              <label>가게 이름 검색 *</label>
+              <div style="display:flex; gap:8px">
+                <input type="text" class="form-input" id="rv-place-search" placeholder="가게 이름을 입력해주세요 (예: 도원반점)" style="flex:1"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__appHandlers && window.__appHandlers.searchPlace();}">
+                <button type="button" class="btn btn-primary" style="padding:8px 14px; white-space:nowrap" onclick="window.__appHandlers && window.__appHandlers.searchPlace()">🔍 검색</button>
+              </div>
+              <div id="rv-place-results" style="display:none; max-height:240px; overflow-y:auto; margin-top:8px; background:var(--surface); border:1px solid var(--border); border-radius:8px"></div>
+            </div>
+
+            <!-- 선택된 가게 표시 (검색 결과 클릭 시 노출) -->
+            <div id="rv-selected-place" style="display:none; padding:12px 14px; background:linear-gradient(135deg,rgba(197,23,30,0.06),rgba(255,107,53,0.06)); border:1px solid rgba(197,23,30,0.2); border-radius:10px; margin-bottom:12px">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px">
+                <div style="flex:1; min-width:0">
+                  <div style="font-weight:700; font-size:14px; color:var(--text)" id="rv-selected-name">—</div>
+                  <div style="font-size:11px; color:var(--text-3); margin-top:3px" id="rv-selected-address">—</div>
+                </div>
+                <button type="button" class="btn btn-ghost" style="font-size:11px; padding:4px 10px" onclick="window.__appHandlers && window.__appHandlers.clearSelectedPlace()">변경</button>
+              </div>
+            </div>
+
+            <div class="form-group"><label>주문한 메뉴 *</label><input type="text" class="form-input" id="rv-menu-name" placeholder="예: 불맛 짬뽕" required></div>
+
+            <!-- hidden — 검색 시 자동 채워짐 -->
+            <input type="hidden" id="rv-restaurant-name">
+            <input type="hidden" id="rv-restaurant-address">
+            <input type="hidden" id="rv-restaurant-lat">
+            <input type="hidden" id="rv-restaurant-lng">
+          </div>
+
+          <div class="rv-section">
+            <h3 style="display:flex; align-items:center; gap:8px"><span class="num">2</span> 매운맛 평가 *
+              <button type="button" id="rv-spicy-guide-btn"
+                      style="margin-left:auto; padding:4px 10px; font-size:11px; font-weight:600; background:rgba(197,23,30,0.08); color:#c5171e; border:1px solid rgba(197,23,30,0.25); border-radius:999px; cursor:pointer">평가 기준 보기</button>
+            </h3>
+            <div class="level-selector" id="rv-level-selector">
+              <div class="level-pick" data-spicy="0"><div class="emoji">🐥</div><div class="lab">Lv.0</div></div>
+              <div class="level-pick" data-spicy="1"><div class="emoji">👼</div><div class="lab">Lv.1</div></div>
+              <div class="level-pick" data-spicy="2"><div class="emoji">🌶</div><div class="lab">Lv.2</div></div>
+              <div class="level-pick" data-spicy="3"><div class="emoji">🔥</div><div class="lab">Lv.3</div></div>
+              <div class="level-pick" data-spicy="4"><div class="emoji">💣</div><div class="lab">Lv.4</div></div>
+              <div class="level-pick" data-spicy="5"><div class="emoji">💀</div><div class="lab">Lv.5</div></div>
+            </div>
+          </div>
+
+          <div class="rv-section">
+            <h3><span class="num">3</span> 리뷰 작성 (30자 이상)</h3>
+            <div class="form-group">
+              <textarea class="form-input" id="rv-comment" placeholder="이 가게의 매운맛 후기를 자유롭게 작성해주세요! (최소 30자)" minlength="30" rows="4"></textarea>
+              <div style="font-size: 11px; color: var(--text-3); margin-top: 4px; text-align: right">
+                <span id="rv-comment-count">0</span> / 30+
+              </div>
+            </div>
+          </div>
+
+          <div class="rv-section">
+            <h3><span class="num">4</span> 음식 사진 * (1~5장)</h3>
+            <input type="file" id="rv-food-images" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple style="display:none">
+            <div class="photo-uploader" id="rv-photo-uploader">
+              <div class="photo-slot" data-action="add-food">
+                <div class="pic">📷</div><div class="lbl">사진 추가</div>
+              </div>
+            </div>
+            <div style="font-size: 11px; color: var(--text-3); margin-top: 4px">JPG/PNG/WebP, 각 5MB 이내, 최대 5장</div>
+          </div>
+
+          <div class="rv-section">
+            <h3><span class="num">5</span> 영수증 인증 * <span class="pill pill-grad" style="margin-left:6px;">+50P</span></h3>
+            <input type="file" id="rv-receipt-image" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" style="display:none">
+            <div class="receipt-zone" id="rv-receipt-zone">
+              <div class="icon">🧾</div>
+              <div class="label">영수증 사진 업로드 (필수)</div>
+              <div class="hint">JPG/PNG/WebP, 최대 5MB</div>
+            </div>
+          </div>
+
+          <div class="rv-actions">
+            <button class="btn btn-ghost" id="btn-review-cancel" type="button">취소</button>
+            <button class="btn btn-primary" id="btn-review-submit" type="button">제보하기 ❤</button>
+          </div>
+
+          <div id="rv-error" style="color: #c5171e; font-size: 12px; margin-top: 12px; padding: 10px 12px; background: rgba(197,23,30,0.08); border-radius: 8px; text-align: center; display: none"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== VIEW 6: 마이페이지 ====== -->
+    <section class="view" data-view="mypage">
+      <!-- 정리3 (2026-05-18): 시안의 mock (맵친자 김매운, Lv.3, 24회 등) 제거. -->
+      <!-- 실 마이페이지는 추후 api.js auth.me() + reviews.myList() + favorites.list() 연결 시 동적 렌더. -->
+      <div class="mypage-view">
+        <div class="mp-hero">
+          <div class="mp-inner">
+            <div class="mp-avatar" id="mp-avatar">?</div>
+            <div class="mp-profile">
+              <h1 id="mp-nickname">로그인이 필요합니다</h1>
+              <p id="mp-meta">매운맛 레벨 설정 후 인증 시작</p>
+              <div class="badges" id="mp-badges">
+                <!-- 로그인 시 동적 렌더 (Lv.N + 베타테스터 등) -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mp-stats">
+          <div class="mp-stats-grid">
+            <div class="mp-stat"><div class="v" id="mp-stat-reviews">—</div><div class="l">작성한 리뷰</div></div>
+            <div class="mp-stat"><div class="v" id="mp-stat-favorites">—</div><div class="l">찜한 가게</div></div>
+            <div class="mp-stat"><div class="v" id="mp-stat-points">—</div><div class="l">누적 포인트</div></div>
+            <div class="mp-stat"><div class="v" id="mp-stat-rate">—</div><div class="l">승인률</div></div>
+          </div>
+        </div>
+
+        <div class="mp-body">
+          <div class="mp-tabs">
+            <button class="mp-tab active" data-mp-tab="reviews">내 리뷰</button>
+            <button class="mp-tab" data-mp-tab="favorites">찜한 곳</button>
+            <button class="mp-tab" data-mp-tab="points">포인트</button>
+            <button class="mp-tab" data-mp-tab="settings">설정</button>
+          </div>
+
+          <div id="mp-content" style="padding: 24px 18px; text-align:center; color:var(--text-3); font-size:13px; line-height:1.7">
+            <div style="font-size:36px; margin-bottom:8px">🌶</div>
+            <div>로그인 후 내 리뷰와 포인트 내역을 확인할 수 있어요</div>
+          </div>
+          <!-- 로그아웃 (로그인 시에만 표시 — app-handlers.renderMyPage에서 토글) -->
+          <div id="mp-logout-wrap" style="padding: 12px 18px 24px; text-align:center; display:none">
+            <button class="btn btn-ghost" style="font-size:12px; padding:6px 14px" onclick="window.__appHandlers && window.__appHandlers.handleLogout()">
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== Admin Auth Gate Modal (P1-4, 2026-05-18) ======
+         /godmap (admin view) 진입 시 별도 인증 강제.
+         일반 사용자 세션과 분리된 admin 계정 로그인 필요.
+         성공 시 sessionStorage['admin_auth_passed']='1' → 동일 세션 내 재인증 면제.
+    -->
+    <div id="admin-auth-overlay" style="
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+      z-index:9999; align-items:center; justify-content:center; padding:20px;
+      backdrop-filter:blur(4px);" role="dialog" aria-modal="true" aria-label="관리자 인증">
+      <div style="
+        background:var(--bg); color:var(--text); border-radius:var(--r-md);
+        max-width:380px; width:100%; padding:28px 24px;
+        box-shadow:0 20px 60px rgba(0,0,0,0.3); border:1px solid var(--border);
+        font-family:inherit;">
+        <div style="text-align:center; margin-bottom:18px;">
+          <div style="font-size:36px; margin-bottom:6px">🛡</div>
+          <h2 style="font-size:17px; font-weight:700; letter-spacing:-0.3px; margin-bottom:4px;">관리자 인증</h2>
+          <p style="font-size:11px; color:var(--text-3); line-height:1.5;">
+            관리자 계정으로 다시 로그인하세요.<br>
+            <span style="color:var(--text-4)">일반 사용자 세션은 이 인증으로 대체됩니다.</span>
+          </p>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+          <label style="font-size:11px; color:var(--text-3); font-weight:600;">
+            관리자 이메일
+            <input id="admin-auth-email" type="email" autocomplete="email" placeholder="admin@example.com"
+              style="margin-top:4px; display:block; width:100%; padding:9px 12px; font-size:13px;
+                border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface);
+                color:var(--text); font-family:inherit; box-sizing:border-box;">
+          </label>
+          <label style="font-size:11px; color:var(--text-3); font-weight:600;">
+            비밀번호
+            <input id="admin-auth-password" type="password" autocomplete="current-password" placeholder="••••••••"
+              style="margin-top:4px; display:block; width:100%; padding:9px 12px; font-size:13px;
+                border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface);
+                color:var(--text); font-family:inherit; box-sizing:border-box;">
+          </label>
+        </div>
+
+        <div id="admin-auth-error" style="
+          display:none; padding:8px 12px; margin-bottom:12px;
+          font-size:11px; color:#c5171e; background:#fff5f5;
+          border:1px solid #fcc; border-radius:var(--r-sm); line-height:1.5;"></div>
+
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="admin-auth-cancel"
+            style="flex:1; padding:9px 14px; font-size:12px; font-weight:600;
+              background:transparent; color:var(--text-2); border:1px solid var(--border);
+              border-radius:var(--r-sm); cursor:pointer;">
+            취소
+          </button>
+          <button type="button" id="admin-auth-submit"
+            class="btn btn-primary"
+            style="flex:1.5; padding:9px 14px; font-size:12px; font-weight:700;">
+            🛡 인증 후 진입
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== Review Detail Modal (P1-5, 2026-05-18) ======
+         승인 대기 리뷰 클릭 시 상세 modal. 영수증/음식사진/코멘트/유저 확인 + 승인/반려.
+         반려 시 사유 textarea로 입력 (이전 prompt() 대체).
+    -->
+    <div id="review-detail-overlay" style="
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65);
+      z-index:9998; align-items:center; justify-content:center; padding:20px;
+      backdrop-filter:blur(4px); overflow-y:auto;" role="dialog" aria-modal="true" aria-label="리뷰 상세">
+      <div style="
+        background:var(--bg); color:var(--text); border-radius:var(--r-md);
+        max-width:520px; width:100%; max-height:90vh; overflow-y:auto;
+        box-shadow:0 20px 60px rgba(0,0,0,0.4); border:1px solid var(--border);
+        font-family:inherit;">
+
+        <!-- Header -->
+        <div style="padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <h2 style="font-size:15px; font-weight:700; letter-spacing:-0.3px;">🔍 리뷰 검토</h2>
+            <p style="font-size:11px; color:var(--text-3); margin-top:2px;" id="rd-meta">로딩 중...</p>
+          </div>
+          <button type="button" id="rd-close" aria-label="닫기"
+            style="font-size:18px; color:var(--text-3); background:transparent;
+              border:none; cursor:pointer; padding:4px 8px;">✕</button>
+        </div>
+
+        <!-- Body -->
+        <div style="padding:18px 22px; display:flex; flex-direction:column; gap:16px;">
+
+          <!-- 가게/유저 정보 -->
+          <div id="rd-info" style="display:flex; flex-direction:column; gap:4px;">
+            <div style="font-size:14px; font-weight:700;" id="rd-restaurant">—</div>
+            <div style="font-size:11px; color:var(--text-3);" id="rd-user-line">—</div>
+          </div>
+
+          <!-- 음식 사진 carousel -->
+          <div>
+            <div style="font-size:11px; font-weight:600; color:var(--text-3); margin-bottom:6px;">🍜 음식 사진</div>
+            <div id="rd-food-images" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;
+              scrollbar-width:thin;">
+              <!-- runtime injected -->
+            </div>
+          </div>
+
+          <!-- 영수증 -->
+          <div>
+            <div style="font-size:11px; font-weight:600; color:var(--text-3); margin-bottom:6px;">🧾 영수증</div>
+            <div id="rd-receipt-wrap" style="background:var(--surface); border:1px solid var(--border);
+              border-radius:var(--r-sm); padding:8px; text-align:center; min-height:120px;
+              display:flex; align-items:center; justify-content:center;">
+              <span style="font-size:11px; color:var(--text-4);">로딩 중...</span>
+            </div>
+          </div>
+
+          <!-- 코멘트 -->
+          <div>
+            <div style="font-size:11px; font-weight:600; color:var(--text-3); margin-bottom:6px;">💬 코멘트</div>
+            <div id="rd-comment" style="background:var(--surface); border:1px solid var(--border);
+              border-radius:var(--r-sm); padding:10px 12px; font-size:12px; line-height:1.6;
+              white-space:pre-wrap; min-height:40px;">—</div>
+          </div>
+
+          <!-- 반려 사유 입력 (반려 클릭 시 표시) -->
+          <div id="rd-reject-form" style="display:none;">
+            <div style="font-size:11px; font-weight:600; color:#c5171e; margin-bottom:6px;">
+              ❌ 반려 사유 (사용자에게 전달됨)
+            </div>
+            <textarea id="rd-reject-reason" rows="3" maxlength="500"
+              placeholder="예: 영수증과 음식이 일치하지 않습니다 / 사진 품질이 너무 낮습니다 / ..."
+              style="width:100%; padding:10px 12px; font-size:12px; font-family:inherit;
+                background:var(--surface); border:1px solid #fcc; border-radius:var(--r-sm);
+                color:var(--text); resize:vertical; box-sizing:border-box; line-height:1.5;"></textarea>
+            <div style="font-size:10px; color:var(--text-4); margin-top:4px;">
+              <span id="rd-reject-counter">0</span> / 500
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer 버튼 -->
+        <div style="padding:14px 22px; border-top:1px solid var(--border);
+          background:var(--surface); display:flex; gap:8px; align-items:center;">
+
+          <!-- 기본 상태: [반려] [승인] -->
+          <div id="rd-actions-default" style="flex:1; display:flex; gap:8px;">
+            <button type="button" id="rd-reject-toggle"
+              style="flex:1; padding:10px 14px; font-size:12px; font-weight:600;
+                background:transparent; color:#c5171e; border:1px solid #c5171e;
+                border-radius:var(--r-sm); cursor:pointer;">❌ 반려</button>
+            <button type="button" id="rd-approve"
+              class="btn btn-primary"
+              style="flex:1.5; padding:10px 14px; font-size:12px; font-weight:700;">✅ 승인</button>
+          </div>
+
+          <!-- 반려 모드: [취소] [반려 확정] -->
+          <div id="rd-actions-reject" style="flex:1; display:none; gap:8px;">
+            <button type="button" id="rd-reject-cancel"
+              style="flex:1; padding:10px 14px; font-size:12px; font-weight:600;
+                background:transparent; color:var(--text-2); border:1px solid var(--border);
+                border-radius:var(--r-sm); cursor:pointer;">취소</button>
+            <button type="button" id="rd-reject-confirm"
+              style="flex:1.5; padding:10px 14px; font-size:12px; font-weight:700;
+                background:#c5171e; color:#fff; border:none;
+                border-radius:var(--r-sm); cursor:pointer;">❌ 반려 확정</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== VIEW 7: 관리자 대시보드 ====== -->
+    <section class="view" data-view="admin">
+      <!-- Phase 11 (2026-05-18): mock 제거 + 동적 렌더 영역. is_admin=true 사용자만 접근 가능 (app-handlers에서 enforce) -->
+      <div class="admin-view">
+        <header class="admin-head">
+          <div>
+            <h1>🛡 관리자 대시보드</h1>
+            <p>리뷰 품질 관리 · <span id="admin-updated">로딩 중...</span></p>
+          </div>
+          <button class="btn btn-primary" id="btn-admin-refresh">🔄 새로고침</button>
+        </header>
+
+        <div class="admin-stats" id="admin-stats">
+          <div class="ad-stat accent">
+            <div class="label">승인 대기</div>
+            <div class="value" id="ad-stat-pending">—</div>
+          </div>
+          <div class="ad-stat">
+            <div class="label">승인</div>
+            <div class="value" id="ad-stat-approved">—</div>
+          </div>
+          <div class="ad-stat">
+            <div class="label">반려</div>
+            <div class="value" id="ad-stat-rejected">—</div>
+          </div>
+          <div class="ad-stat">
+            <div class="label">총 사용자</div>
+            <div class="value" id="ad-stat-users">—</div>
+          </div>
+        </div>
+
+        <div class="admin-body">
+          <div class="ad-section">
+            <div class="head">
+              <h3>⏳ 승인 대기 리뷰</h3>
+              <span class="badge" id="admin-pending-count">— 건</span>
+            </div>
+            <div id="admin-pending-list">
+              <div style="padding: 24px 18px; text-align:center; color:var(--text-3); font-size:13px">
+                ⏳ 로딩 중...
+              </div>
+            </div>
+          </div>
+
+          <!-- 공지사항 편집 (Phase B, 2026-05-19) -->
+          <div class="ad-section" id="admin-announce-section">
+            <div class="head"><h3>📌 첫 진입 공지 팝업 편집</h3></div>
+            <div style="padding: 14px 18px; font-size:12px;">
+              <div style="margin-bottom:10px; padding:8px 10px; background:var(--surface); border-radius:6px; font-size:11px; color:var(--text-3); line-height:1.6">
+                💡 저장 시 <strong>버전이 자동 +1</strong> 되어 모든 사용자의 "1일간 보지 않기"가 무효화되고 다시 표시됩니다.<br>
+                💡 <strong>Markdown 지원</strong>: <code>**굵게**</code> · <code>*기울임*</code> · <code>## 헤더</code> · <code>- 목록</code> · <code>1. 번호 목록</code> · <code>[링크](url)</code> · <code>&gt; 인용</code> · <code>`코드`</code>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:10px">
+                <label style="font-size:11px; font-weight:600; color:var(--text-2)">제목
+                  <input type="text" id="adm-ann-title"
+                         placeholder="🌶 맵맵맵에 오신 것을 환영합니다!"
+                         style="margin-top:4px; width:100%; padding:8px 10px; font-size:13px; font-family:inherit; border:1px solid var(--border); border-radius:6px; background:white;">
+                </label>
+                <label style="font-size:11px; font-weight:600; color:var(--text-2)">📌 공지사항 (Markdown)
+                  <textarea id="adm-ann-notice" rows="6"
+                            placeholder="## 베타 오픈&#10;&#10;- **영수증 인증** 시 포인트 적립 (현재 0원, 추후 환급 예정)&#10;- *신버전 디자인 체험 중* — [피드백 보내기](mailto:hello@example.com)&#10;&#10;&gt; 의견은 언제든 환영입니다."
+                            style="margin-top:4px; width:100%; padding:8px 10px; font-size:12px; font-family:'Berkeley Mono', ui-monospace, monospace; border:1px solid var(--border); border-radius:6px; background:white; resize:vertical;"></textarea>
+                </label>
+                <label style="font-size:11px; font-weight:600; color:var(--text-2)">📖 사용방법 (Markdown)
+                  <textarea id="adm-ann-howto" rows="7"
+                            placeholder="1. 회원가입 후 본인의 **매운맛 레벨** 설정&#10;2. 지도에서 가게를 찾고 핀 클릭 → 인증 리뷰 확인&#10;3. 직접 다녀온 가게는 **영수증 사진**으로 인증 리뷰 작성&#10;4. 인증 3건 달성 시 베타 리워드 `+500P`"
+                            style="margin-top:4px; width:100%; padding:8px 10px; font-size:12px; font-family:'Berkeley Mono', ui-monospace, monospace; border:1px solid var(--border); border-radius:6px; background:white; resize:vertical;"></textarea>
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer">
+                  <input type="checkbox" id="adm-ann-active" checked style="cursor:pointer">
+                  <span>공지 활성화 (체크 해제 시 팝업 표시 안 함)</span>
+                </label>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:4px">
+                  <div style="font-size:11px; color:var(--text-4); font-family:'Berkeley Mono', ui-monospace, monospace; flex:1 1 auto; min-width:0">
+                    현재 버전: <span id="adm-ann-version">—</span> · 최종 수정: <span id="adm-ann-updated">—</span>
+                  </div>
+                  <div style="display:flex; gap:6px; flex:0 0 auto">
+                    <button type="button" id="adm-ann-preview"
+                            style="padding:7px 14px; font-size:12px; font-weight:600; background:var(--surface); border:1px solid var(--border); border-radius:6px; cursor:pointer; color:var(--text); white-space:nowrap">👁 미리보기</button>
+                    <button type="button" id="adm-ann-save"
+                            style="padding:7px 14px; font-size:12px; font-weight:600; background:var(--gradient); border:none; border-radius:6px; cursor:pointer; color:white; white-space:nowrap">💾 저장 (버전 +1)</button>
+                  </div>
+                </div>
+                <div id="adm-ann-status" style="font-size:11px; color:var(--text-3); min-height:14px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ad-section">
+            <div class="head"><h3>📊 안내</h3></div>
+            <div style="padding: 16px 18px; font-size:12px; color:var(--text-3); line-height:1.7">
+              <div>• 신버전 관리자 view는 <strong>승인 대기 리뷰만</strong> 처리 가능합니다.</div>
+              <div>• 활동 로그/통계 차트/사용자 관리는 구버전 admin.html에서 가능합니다.</div>
+              <div>• 관리자 권한이 없으면 본 뷰는 자동 차단됩니다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 맵기 평가 가이드 모달 — v1 이식 2026-05-19 -->
+  <div class="spicy-guide-overlay" id="spicy-guide-overlay" onclick="(function(e){if(e.target.id==='spicy-guide-overlay')document.getElementById('spicy-guide-overlay').classList.remove('active');})(event)">
+    <div class="spicy-guide-popup" onclick="event.stopPropagation()">
+      <button type="button" class="spicy-guide-close" onclick="document.getElementById('spicy-guide-overlay').classList.remove('active')">&times;</button>
+      <h3>🌶️ 맵기 평가 기준</h3>
+      <ul class="spicy-guide-list">
+        <li><span class="spicy-guide-level">Lv.0</span>진라면 순한맛</li>
+        <li><span class="spicy-guide-level">Lv.1</span>신라면</li>
+        <li><span class="spicy-guide-level">Lv.2</span>열라면</li>
+        <li><span class="spicy-guide-level">Lv.3</span>불닭볶음면</li>
+        <li><span class="spicy-guide-level">Lv.4</span>엽기떡볶이 매운맛</li>
+        <li><span class="spicy-guide-level">Lv.5</span>디진다돈까스</li>
+      </ul>
+    </div>
+  </div>
+  
+
+  <!-- 환영/공지 팝업 로직 (Phase 6, 2026-05-18) — 다른 init과 독립 -->
+  <script src="js/announce.js" defer></script>
+  <script src="js/slime-physics.js" defer></script>
+  <!-- Fullscreen 이미지 viewer (후속2, 2026-05-18) -->
+  <script src="js/image-viewer.js" defer></script>
+  <!-- 버전 토글 (Stage B, 2026-05-18) -->
+  <!-- version-toggle.js 제거 2026-05-20: 버튼 없으니 JS도 불필요 -->
+  <!-- <script src="js/version-toggle.js" defer></script> -->
+  <!-- API 모듈 (Phase 7, 2026-05-18) — IIFE로 wrap, window.API 노출 -->
+  <script src="js/api.js" defer></script>
+  <!-- 인증/마이페이지/레벨 핸들러 (Phase 7, 2026-05-18) — api.js 이후 로드 -->
+  <script src="js/app-handlers.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>

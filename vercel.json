@@ -3,5 +3,15 @@
   "framework": null,
   "installCommand": "echo 'No install needed'",
   "buildCommand": "echo 'No build needed'",
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "redirects": [
+    { "source": "/godmap", "destination": "/v2/#godmap", "permanent": false },
+    { "source": "/v2/godmap", "destination": "/v2/#godmap", "permanent": false },
+    { "source": "/admin.html", "destination": "/v2/#admin", "permanent": false },
+    { "source": "/admin", "destination": "/v2/#admin", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/", "destination": "/v2/index.html" },
+    { "source": "/index.html", "destination": "/v2/index.html" }
+  ]
 }

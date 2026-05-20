@@ -1,0 +1,35 @@
+# Vercel 배포 제외 목록 (2026-05-18 신설)
+# Stage B 진입 (2026-05-18): public-v2/ → public/v2/ 이동, 배포 포함됨.
+# 접근 경로: https://[domain]/v2/index.html
+# 구버전(public/index.html)과 토글 가능
+
+# ─── 디자인 시안 ───
+design-preview/
+design-preview.html
+figma-output/
+
+# ─── 문서/기획 ───
+docs/
+specs/
+README.md
+MVP_계획서_정리.md
+mapmapmap-기획서-v2.md
+
+# ─── 사용 안 하는 옛 프로토타입 ───
+mapmapmap-admin.html
+mapmapmap-mvp-web.html
+
+# ─── Archived (사용 안 함, ../server-archive/README.md 참조) ───
+server-archive/
+api-archive/
+
+# ─── DB 스키마/정책 (개발자 참조용, 런타임 미사용) ───
+supabase-schema.sql
+supabase-rls-policies.sql
+supabase-access-logs.sql
+supabase-add-phone.sql
+
+# ─── 시스템 ───
+.DS_Store
+node_modules/
+*.log

@@ -1,0 +1,152 @@
+/* ====================================================
+   Fullscreen 이미지 viewer (후속2, 2026-05-18)
+   사이드바 카드 사진 / 리뷰 패널 사진 클릭 시 큰 화면 표시.
+   ==================================================== */
+
+.img-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 32px 16px;
+  cursor: zoom-out;
+  animation: ivFadeIn 0.18s ease-out;
+}
+
+.img-viewer-overlay.open {
+  display: flex;
+}
+
+@keyframes ivFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.img-viewer-container {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: default;
+}
+
+.img-viewer-img {
+  max-width: 100%;
+  max-height: calc(100vh - 120px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 60px rgba(0,0,0,0.5);
+  animation: ivZoomIn 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes ivZoomIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.img-viewer-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2;
+  transition: background 0.15s;
+}
+
+.img-viewer-close:hover {
+  background: rgba(0,0,0,0.8);
+}
+
+.img-viewer-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2;
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.img-viewer-nav:hover {
+  background: rgba(0,0,0,0.85);
+}
+
+.img-viewer-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.img-viewer-prev { left: 16px; }
+.img-viewer-next { right: 16px; }
+
+.img-viewer-counter {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 13px;
+  font-weight: 590;
+  font-family: 'Berkeley Mono', ui-monospace, monospace;
+  background: rgba(0,0,0,0.55);
+  padding: 6px 14px;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2;
+}
+
+/* 사진 클릭 가능 표시 (호버 시 cursor) */
+.sb-review-card .rc-thumb,
+.rp-review .photo,
+.review-photos img,
+.rm-photo-thumb {
+  cursor: zoom-in;
+}
+
+/* 모바일 */
+@media (max-width: 600px) {
+  .img-viewer-overlay { padding: 16px 8px; }
+  .img-viewer-nav {
+    width: 40px; height: 40px;
+    font-size: 24px;
+  }
+  .img-viewer-prev { left: 8px; }
+  .img-viewer-next { right: 8px; }
+  .img-viewer-close {
+    top: 8px; right: 8px;
+    width: 40px; height: 40px;
+  }
+  .img-viewer-counter { top: 12px; }
+}
