@@ -23,6 +23,11 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;590;700&display=swap" rel="stylesheet">
   <!-- 디자인 토큰 (Phase 2 분리, 2026-05-18) -->
+  <!-- 2026-05-20: Clean URL routing 도입 — Vercel rewrite로 /map, /onboarding 등을 이 파일로 보냄.
+       그때 페이지 path가 /map이면 상대 경로(css/, js/, img/)가 잘못 해석됨.
+       <base href="/v2/">로 모든 상대 경로를 /v2/ 기준으로 강제. -->
+  <base href="/v2/">
+
   <link rel="stylesheet" href="css/tokens.css">
   <!-- 환영/공지 팝업 (Phase 6 추가, 2026-05-18) -->
   <link rel="stylesheet" href="css/announce.css">

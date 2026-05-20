@@ -74,9 +74,20 @@
       // 인증 전 view에선 nav 숨김
       const noNav = (resolved === 'onboarding' || resolved === 'level-setup');
       document.body.classList.toggle('no-nav', noNav);
-      // URL hash 보존 (alias 입력 시에도 사용자가 입력한 alias 그대로 유지)
-      try { history.replaceState(null, '', `#${name}`); } catch(e) {}
+      // URL path 갱신 (2026-05-20: hash → pathname clean URL).
+      // alias 입력 시에도 사용자가 입력한 alias 그대로 유지 (예: /godmap).
+      // <base href="/v2/"> 영향 회피 위해 명시적 절대 경로 사용.
+      try { history.replaceState(null, '', `/${name}`); } catch(e) {}
     }
+
+    // pathname → view name 추출 (2026-05-20)
+    // /map → 'map', /onboarding → 'onboarding', / → 'map' (default)
+    function pathToView() {
+      const path = location.pathname.replace(/^\//, '').replace(/\/$/, '');
+      return path || 'map';
+    }
+    // 다른 스크립트(app-handlers.js)에서 사용 가능하도록 노출
+    window.pathToView = pathToView;
 
     // Bottom Sheet 3-state 토글 (드래그 핸들 클릭)
     document.addEventListener('click', (e) => {
@@ -90,16 +101,16 @@
       }
     });
     navItems.forEach(n => n.addEventListener('click', () => showView(n.dataset.view)));
-    const initial = location.hash.replace('#','') || 'map';
+    // 2026-05-20: hash → pathname routing 전환
+    const initial = pathToView();
     // alias 해소 후 실제 view 존재 여부 확인
     if ([...views].some(v => v.dataset.view === resolveViewName(initial))) showView(initial);
 
-    // hashchange 리스너 (P1-3, 2026-05-18) — 사용자가 URL을 직접 입력/수정했을 때 즉시 view 전환
-    window.addEventListener('hashchange', () => {
-      const hash = location.hash.replace('#', '');
-      if (!hash) return;
-      const resolved = resolveViewName(hash);
-      if ([...views].some(v => v.dataset.view === resolved)) showView(hash);
+    // popstate 리스너 (2026-05-20, 기존 hashchange 대체) — 사용자가 뒤로/앞으로 가거나 URL 직접 입력 시 view 전환
+    window.addEventListener('popstate', () => {
+      const name = pathToView();
+      const resolved = resolveViewName(name);
+      if ([...views].some(v => v.dataset.view === resolved)) showView(name);
     });
 
     // ========== Supabase + Leaflet 통합 ==========

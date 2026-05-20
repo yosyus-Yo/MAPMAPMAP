@@ -99,9 +99,11 @@
     if (user.spicy_level === null || user.spicy_level === undefined) {
       if (typeof window.showView === 'function') window.showView('level-setup');
     } else {
-      // 정상 → 현재 hash가 onboarding이면 map으로
-      const hash = location.hash.replace('#', '');
-      if (hash === 'onboarding' || !hash) {
+      // 정상 → 현재 path가 onboarding 또는 root면 map으로 (2026-05-20: hash → pathname)
+      const current = (typeof window.pathToView === 'function'
+        ? window.pathToView()
+        : (location.pathname.replace(/^\//, '').replace(/\/$/, '') || 'map'));
+      if (current === 'onboarding' || current === 'map' || !current) {
         if (typeof window.showView === 'function') window.showView('map');
       }
     }
