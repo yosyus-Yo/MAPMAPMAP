@@ -656,6 +656,7 @@
 
   // ============== Phase 9: 리뷰 작성 ==============
   let _selectedSpicy = null;
+  let _selectedRating = null;  // 2026-05-20: 자체 별점 시스템 (Option B)
   let _foodImages = []; // File[]
   let _receiptImage = null; // File
 
@@ -668,6 +669,30 @@
       $$('#rv-level-selector .level-pick').forEach(p => p.classList.remove('selected'));
       pick.classList.add('selected');
       _selectedSpicy = parseInt(pick.dataset.spicy, 10);
+    });
+  }
+
+  // 별점 입력 핸들러 (2026-05-20, 자체 별점 시스템 Option B)
+  function bindReviewRatingSelector() {
+    const sel = $('#rv-rating-selector');
+    if (!sel) return;
+    const labels = { 1: '별로예요', 2: '아쉬워요', 3: '괜찮아요', 4: '맛있어요', 5: '최고예요' };
+    sel.addEventListener('click', (e) => {
+      const btn = e.target.closest('.star-btn');
+      if (!btn) return;
+      const rating = parseInt(btn.dataset.rating, 10);
+      _selectedRating = rating;
+      // 별 채우기 (1~rating까지 ★, 나머지 ☆)
+      $$('#rv-rating-selector .star-btn').forEach(b => {
+        const r = parseInt(b.dataset.rating, 10);
+        const filled = r <= rating;
+        b.textContent = filled ? '★' : '☆';
+        b.classList.toggle('active', filled);
+      });
+      const labelEl = $('#rv-rating-label');
+      if (labelEl) labelEl.textContent = `${rating}점 — ${labels[rating]}`;
+      const hidden = $('#rv-rating');
+      if (hidden) hidden.value = String(rating);
     });
   }
 
@@ -822,6 +847,13 @@
     $('#rv-comment-count') && ($('#rv-comment-count').textContent = '0');
     $$('#rv-level-selector .level-pick').forEach(p => p.classList.remove('selected'));
     _selectedSpicy = null;
+    // 2026-05-20: 별점 리셋
+    _selectedRating = null;
+    $$('#rv-rating-selector .star-btn').forEach(b => { b.textContent = '☆'; b.classList.remove('active'); });
+    const ratingLabel = $('#rv-rating-label');
+    if (ratingLabel) ratingLabel.textContent = '선택해주세요';
+    const ratingHidden = $('#rv-rating');
+    if (ratingHidden) ratingHidden.value = '';
     _foodImages = [];
     _receiptImage = null;
     renderFoodPhotoUploader();
@@ -1033,6 +1065,7 @@
     if (!latStr || !lngStr || isNaN(lat) || isNaN(lng)) return showErrorInReview('가게 검색 결과에서 선택해주세요 (좌표 누락)');
     if (!menuName) return showErrorInReview('메뉴를 입력해주세요');
     if (_selectedSpicy === null) return showErrorInReview('매운맛 레벨을 선택해주세요');
+    if (_selectedRating === null) return showErrorInReview('별점을 선택해주세요');  // 2026-05-20
     if (!comment || comment.length < 30) return showErrorInReview('리뷰는 30자 이상 작성해주세요');
     if (_foodImages.length === 0) return showErrorInReview('음식 사진을 1장 이상 첨부해주세요');
     if (!_receiptImage) return showErrorInReview('영수증 사진은 필수입니다');
@@ -1044,6 +1077,7 @@
     fd.append('restaurant_lng', String(lng));
     fd.append('menu_name', menuName);
     fd.append('spicy_level', String(_selectedSpicy));
+    fd.append('rating', String(_selectedRating));  // 2026-05-20: 별점 1-5
     fd.append('comment', comment);
     for (const f of _foodImages) fd.append('food_images', f);
     fd.append('receipt_image', _receiptImage);
@@ -1641,6 +1675,7 @@
 
     // 리뷰 작성 (Phase 9)
     bindReviewLevelSelector();
+    bindReviewRatingSelector();  // 2026-05-20: 자체 별점 시스템
     bindReviewPhotoUploader();
     bindReviewReceipt();
     bindReviewCommentCounter();

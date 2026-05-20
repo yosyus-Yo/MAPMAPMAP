@@ -463,7 +463,20 @@
           </div>
 
           <div class="rv-section">
-            <h3><span class="num">3</span> 리뷰 작성 (30자 이상)</h3>
+            <h3><span class="num">3</span> 별점 평가 * <span style="font-size:11px; color:var(--text-3); font-weight:400; margin-left:6px">(맵기가 아닌 음식점 전체 평가)</span></h3>
+            <div class="rating-selector" id="rv-rating-selector" role="radiogroup" aria-label="별점 평가">
+              <button type="button" class="star-btn" data-rating="1" aria-label="1점">☆</button>
+              <button type="button" class="star-btn" data-rating="2" aria-label="2점">☆</button>
+              <button type="button" class="star-btn" data-rating="3" aria-label="3점">☆</button>
+              <button type="button" class="star-btn" data-rating="4" aria-label="4점">☆</button>
+              <button type="button" class="star-btn" data-rating="5" aria-label="5점">☆</button>
+              <span class="rating-label" id="rv-rating-label" style="font-size:12px; color:var(--text-3); margin-left:8px">선택해주세요</span>
+            </div>
+            <input type="hidden" id="rv-rating" value="">
+          </div>
+
+          <div class="rv-section">
+            <h3><span class="num">4</span> 리뷰 작성 (30자 이상)</h3>
             <div class="form-group">
               <textarea class="form-input" id="rv-comment" placeholder="이 가게의 매운맛 후기를 자유롭게 작성해주세요! (최소 30자)" minlength="30" rows="4"></textarea>
               <div style="font-size: 11px; color: var(--text-3); margin-top: 4px; text-align: right">
@@ -473,7 +486,7 @@
           </div>
 
           <div class="rv-section">
-            <h3><span class="num">4</span> 음식 사진 * (1~5장)</h3>
+            <h3><span class="num">5</span> 음식 사진 * (1~5장)</h3>
             <input type="file" id="rv-food-images" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple style="display:none">
             <div class="photo-uploader" id="rv-photo-uploader">
               <div class="photo-slot" data-action="add-food">
@@ -484,7 +497,7 @@
           </div>
 
           <div class="rv-section">
-            <h3><span class="num">5</span> 영수증 인증 * <span class="pill pill-grad" style="margin-left:6px;">+50P</span></h3>
+            <h3><span class="num">6</span> 영수증 인증 * <span class="pill pill-grad" style="margin-left:6px;">+50P</span></h3>
             <input type="file" id="rv-receipt-image" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" style="display:none">
             <div class="receipt-zone" id="rv-receipt-zone">
               <div class="icon">🧾</div>

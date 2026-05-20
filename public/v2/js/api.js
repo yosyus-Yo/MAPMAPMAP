@@ -341,6 +341,7 @@ const API = {
       const restaurant_lng = formData.get('restaurant_lng');
       const menu_name = formData.get('menu_name');
       const spicy_level = formData.get('spicy_level');
+      const rating = formData.get('rating');  // 2026-05-20: 별점 1-5
       const comment = formData.get('comment');
       const food_images = formData.getAll('food_images');
       const receipt_image = formData.get('receipt_image');
@@ -435,7 +436,8 @@ const API = {
         throw new Error('가게 정보가 필요합니다');
       }
 
-      // 리뷰 저장
+      // 리뷰 저장 (2026-05-20: rating 추가, 1-5 범위)
+      const ratingInt = rating ? parseInt(rating) : null;
       const { data: review, error: reviewError } = await sb
         .from('reviews')
         .insert({
@@ -443,6 +445,7 @@ const API = {
           restaurant_id: finalRestaurantId,
           menu_name,
           spicy_level: parseInt(spicy_level),
+          rating: (ratingInt && ratingInt >= 1 && ratingInt <= 5) ? ratingInt : null,
           food_image_url: JSON.stringify(foodImageUrls),
           receipt_image_url: receiptUrlData.publicUrl,
           comment: comment || null,
@@ -520,20 +523,25 @@ const API = {
       if (review.status === 'approved') {
         const { data: reviewStats } = await sb
           .from('reviews')
-          .select('spicy_level')
+          .select('spicy_level, rating')
           .eq('restaurant_id', review.restaurant_id)
           .eq('status', 'approved');
 
         if (reviewStats && reviewStats.length > 0) {
           const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+          // 2026-05-20: 자체 별점 시스템 — null 제외 후 평균. 모두 null이면 avg_rating=null
+          const ratingsOnly = reviewStats.filter(r => r.rating !== null && r.rating !== undefined);
+          const avgRating = ratingsOnly.length > 0
+            ? ratingsOnly.reduce((sum, r) => sum + r.rating, 0) / ratingsOnly.length
+            : null;
           await sb
             .from('restaurants')
-            .update({ avg_level: avgLevel, review_count: reviewStats.length })
+            .update({ avg_level: avgLevel, avg_rating: avgRating, review_count: reviewStats.length })
             .eq('id', review.restaurant_id);
         } else {
           await sb
             .from('restaurants')
-            .update({ avg_level: 0, review_count: 0 })
+            .update({ avg_level: 0, avg_rating: null, review_count: 0 })
             .eq('id', review.restaurant_id);
         }
       }
@@ -709,18 +717,23 @@ const API = {
         }
       }
 
-      // 맛집 평균 재계산
+      // 맛집 평균 재계산 (2026-05-20: rating 추가)
       const { data: reviewStats } = await sb
         .from('reviews')
-        .select('spicy_level')
+        .select('spicy_level, rating')
         .eq('restaurant_id', review.restaurant_id)
         .eq('status', 'approved');
 
       if (reviewStats && reviewStats.length > 0) {
         const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+        // 2026-05-20: 자체 별점 시스템
+        const ratingsOnly = reviewStats.filter(r => r.rating !== null && r.rating !== undefined);
+        const avgRating = ratingsOnly.length > 0
+          ? ratingsOnly.reduce((sum, r) => sum + r.rating, 0) / ratingsOnly.length
+          : null;
         await sb
           .from('restaurants')
-          .update({ avg_level: avgLevel, review_count: reviewStats.length })
+          .update({ avg_level: avgLevel, avg_rating: avgRating, review_count: reviewStats.length })
           .eq('id', review.restaurant_id);
       }
 
@@ -780,20 +793,25 @@ const API = {
       if (review.status === 'approved') {
         const { data: reviewStats } = await sb
           .from('reviews')
-          .select('spicy_level')
+          .select('spicy_level, rating')
           .eq('restaurant_id', review.restaurant_id)
           .eq('status', 'approved');
 
         if (reviewStats && reviewStats.length > 0) {
           const avgLevel = reviewStats.reduce((sum, r) => sum + r.spicy_level, 0) / reviewStats.length;
+          // 2026-05-20: 자체 별점 시스템 — null 제외 후 평균. 모두 null이면 avg_rating=null
+          const ratingsOnly = reviewStats.filter(r => r.rating !== null && r.rating !== undefined);
+          const avgRating = ratingsOnly.length > 0
+            ? ratingsOnly.reduce((sum, r) => sum + r.rating, 0) / ratingsOnly.length
+            : null;
           await sb
             .from('restaurants')
-            .update({ avg_level: avgLevel, review_count: reviewStats.length })
+            .update({ avg_level: avgLevel, avg_rating: avgRating, review_count: reviewStats.length })
             .eq('id', review.restaurant_id);
         } else {
           await sb
             .from('restaurants')
-            .update({ avg_level: 0, review_count: 0 })
+            .update({ avg_level: 0, avg_rating: null, review_count: 0 })
             .eq('id', review.restaurant_id);
         }
       }

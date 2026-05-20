@@ -96,6 +96,7 @@ CREATE TABLE public.reviews (
   restaurant_id UUID REFERENCES public.restaurants(id) ON DELETE CASCADE,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   spicy_level INTEGER CHECK (spicy_level BETWEEN 0 AND 5),
+  rating INTEGER CHECK (rating IS NULL OR rating BETWEEN 1 AND 5),  -- 2026-05-20: 자체 별점 (1-5)
   content TEXT,
   food_image_url JSONB,
   receipt_image_url TEXT,
@@ -103,6 +104,10 @@ CREATE TABLE public.reviews (
   rejected_reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- restaurants 테이블에 avg_rating 컬럼 추가 (기존 컬럼은 마이그레이션으로)
+-- 2026-05-20: 자체 별점 평균 (NULL = 아직 별점 리뷰 없음)
+-- ALTER TABLE public.restaurants ADD COLUMN avg_rating DOUBLE PRECISION;
 
 -- review_likes
 CREATE TABLE public.review_likes (

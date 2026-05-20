@@ -689,8 +689,11 @@
       document.getElementById('rp-name').innerHTML = `${escapeHtml(r.name)}${Math.round(r.avg_level || 0) >= 4 ? ' 🔥' : ''}`;
       document.getElementById('rp-meta').textContent = `${r.category || '—'} · ${(r.address || '').slice(0, 30)}`;
       const lvl = Math.round(r.avg_level || 0);
-      const star = (4 + lvl / 10).toFixed(1);
-      // 별점 작게: ★ 기호와 숫자 분리 (CSS .star 클래스로 별만 더 작게)
+      // 2026-05-20: 가짜 평점 제거 (Option A) + 실제 avg_rating 표시 (Option B)
+      // avg_rating이 null이면 "—" 표시 (아직 별점 리뷰 없음)
+      const star = (r.avg_rating !== null && r.avg_rating !== undefined)
+        ? r.avg_rating.toFixed(1)
+        : '—';
       document.getElementById('rp-rating').innerHTML = `<span class="star">★</span> ${star}`;
       document.getElementById('rp-level').textContent = 'Lv.' + lvl + ' 🔥';
       document.getElementById('rp-count').textContent = r.review_count || 0;

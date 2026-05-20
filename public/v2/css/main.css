@@ -1716,6 +1716,17 @@
     .photo-slot .pic { font-size: 24px; }
     .photo-slot .lbl { font-size: 10px; font-weight: 590; }
     .level-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* 별점 입력 (2026-05-20, Option B 자체 별점 시스템) */
+    .rating-selector { display: flex; align-items: center; gap: 4px; padding: 4px 0; }
+    .star-btn {
+      background: transparent; border: none; cursor: pointer; padding: 4px;
+      font-size: 28px; line-height: 1; color: #d0d0d0;
+      transition: color 0.1s, transform 0.1s;
+    }
+    .star-btn:hover { color: #ffc107; transform: scale(1.1); }
+    .star-btn.active { color: #ffc107; }
+    .rating-label { font-weight: 600; }
     .level-pick {
       flex: 1;
       min-width: 64px;
