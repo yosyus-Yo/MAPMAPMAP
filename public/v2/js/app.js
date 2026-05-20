@@ -804,6 +804,63 @@
       setRow('rp-extra-category', r.category || '');
       setRow('rp-extra-address', r.address || '');
       setRow('rp-extra-phone', r.phone || '');
+
+      // 2026-05-20: 외부 지도 링크 (카카오 deeplink + 네이버 검색 URL)
+      renderExternalMapLinks(r);
+    }
+
+    // 카카오/네이버 외부 지도 링크 생성 (2026-05-20)
+    // - 카카오: kakao_place_id 있으면 정확한 deeplink, 없으면 검색 URL
+    // - 네이버: Edge Function (naver-place) 활성 시 정확한 URL, 아니면 검색 URL fallback
+    function renderExternalMapLinks(r) {
+      const links = document.getElementById('rp-extra-links');
+      const kakaoLink = document.getElementById('rp-link-kakao');
+      const naverLink = document.getElementById('rp-link-naver');
+      if (!links || !kakaoLink || !naverLink) return;
+
+      const name = r.name || '';
+      const address = r.address || '';
+      if (!name) {
+        links.style.display = 'none';
+        return;
+      }
+      links.style.display = '';
+
+      // 카카오맵 — kakao_place_id 있으면 deeplink, 없으면 검색 URL
+      if (r.kakao_place_id) {
+        kakaoLink.href = `https://place.map.kakao.com/${encodeURIComponent(r.kakao_place_id)}`;
+      } else {
+        kakaoLink.href = `https://map.kakao.com/?q=${encodeURIComponent(name + ' ' + address)}`;
+      }
+      kakaoLink.style.display = '';
+
+      // 네이버 — 기본은 검색 URL (즉시 작동), Edge Function 호출로 정확한 URL 시도
+      const fallbackNaverUrl = `https://map.naver.com/p/search/${encodeURIComponent(name + ' ' + address)}`;
+      naverLink.href = fallbackNaverUrl;
+      naverLink.style.display = '';
+
+      // 비동기로 Edge Function 호출 (실패 시 fallback 유지)
+      tryFetchNaverPlaceUrl(name, address).then(url => {
+        if (url) naverLink.href = url;
+      }).catch(() => {
+        // 실패 시 fallback 유지, 사용자에게 노출 안 함
+      });
+    }
+
+    // Supabase Edge Function (naver-place) 호출 — 정확한 네이버 place URL 가져오기
+    // Function 미배포 또는 API 키 미등록 시 throw → fallback URL 사용됨
+    async function tryFetchNaverPlaceUrl(name, address) {
+      try {
+        const res = await supabaseClient.functions.invoke('naver-place', {
+          body: { name, address }
+        });
+        if (res.error) return null;
+        const link = res.data?.link;
+        // 네이버 검색 API의 link 필드는 종종 cleanLink로 정규화 필요
+        return (typeof link === 'string' && link.startsWith('http')) ? link : null;
+      } catch (e) {
+        return null;
+      }
     }
 
     // 사진 캐러셀 — 모든 리뷰의 음식 사진을 가로 슬라이드로 (2026-05-19)

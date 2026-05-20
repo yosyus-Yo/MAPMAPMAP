@@ -702,6 +702,34 @@
     .rp-extra-ico { flex-shrink: 0; font-size: 11px; }
     .rp-extra-val { word-break: break-all; }
 
+    /* 외부 지도 링크 (2026-05-20) — 카카오/네이버 deeplink */
+    .rp-extra-links {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+    .rp-ext-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text-1);
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .rp-ext-link:hover {
+      background: var(--spice-soft);
+      border-color: var(--spice);
+      color: var(--spice);
+      transform: translateY(-1px);
+    }
+
     /* ============ 페이지네이션 (2026-05-19) ============ */
     .rp-pagination {
       display: flex;
