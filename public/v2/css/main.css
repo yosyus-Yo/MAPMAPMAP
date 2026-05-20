@@ -946,7 +946,8 @@
       display: flex;
       flex-direction: column;
       transform: translateX(calc(-100% - 480px));    /* 좌측 review-panel 아래로 숨김 */
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      /* 2026-05-20 fix: 사용자 요청 — 닫힐 때도 슬라이드. opacity transition 누락으로 instant 사라짐 → opacity도 0.3s 처리 */
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       opacity: 0;
       pointer-events: none;
       z-index: 49;             /* review-panel(50)보다 살짝 아래 — 겹치지는 않음 */
