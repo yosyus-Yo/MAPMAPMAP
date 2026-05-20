@@ -76,8 +76,9 @@
       document.body.classList.toggle('no-nav', noNav);
       // URL path 갱신 (2026-05-20: hash → pathname clean URL).
       // alias 입력 시에도 사용자가 입력한 alias 그대로 유지 (예: /godmap).
-      // 2026-05-20: v2 → 루트 마이그레이션 후 절대 경로 사용 유지 (clean URL).
-      try { history.replaceState(null, '', `/${name}`); } catch(e) {}
+      // 2026-05-20: admin → /godmap으로 URL 표시 (admin URL 노출 방지, vercel /admin redirect → /).
+      const urlName = (name === 'admin') ? 'godmap' : name;
+      try { history.replaceState(null, '', `/${urlName}`); } catch(e) {}
     }
 
     // pathname → view name 추출 (2026-05-20)

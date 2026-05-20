@@ -5,8 +5,8 @@
   "buildCommand": "echo 'No build needed'",
   "outputDirectory": "public",
   "redirects": [
-    { "source": "/godmap", "destination": "/admin", "permanent": false },
-    { "source": "/admin.html", "destination": "/admin", "permanent": false },
+    { "source": "/admin", "destination": "/", "permanent": false },
+    { "source": "/admin.html", "destination": "/", "permanent": false },
     { "source": "/v2", "destination": "/", "permanent": false },
     { "source": "/v2/(.*)", "destination": "/$1", "permanent": false }
   ],
@@ -17,6 +17,6 @@
     { "source": "/mypage", "destination": "/index.html" },
     { "source": "/detail", "destination": "/index.html" },
     { "source": "/level-setup", "destination": "/index.html" },
-    { "source": "/admin", "destination": "/index.html" }
+    { "source": "/godmap", "destination": "/index.html" }
   ]
 }
