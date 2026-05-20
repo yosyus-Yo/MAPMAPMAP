@@ -161,9 +161,10 @@
       }
       // is_active=false면 표시 안 함
     } else {
-      // Fallback: HTML 하드코딩 + v1 키
-      _currentVersionKey = `mmm_announce_hide_${ANNOUNCE_VERSION_FALLBACK}`;
-      if (shouldShow(_currentVersionKey)) open();
+      // 2026-05-20: fetch 실패 시 모달 표시 안 함 (옛 하드코딩 본문 fallback 폐기).
+      // 이유: admin이 저장한 내용이 적용 안 된 채 초기 본문이 노출되는 문제 해결.
+      // 사용자가 admin에서 announcements 테이블 확인 → is_active=true로 설정 시 다시 표시.
+      console.warn('[announce] Supabase 페치 실패 또는 데이터 없음 — 모달 표시 안 함. admin에서 공지 확인 필요.');
     }
   }
 

@@ -50,29 +50,22 @@
 </head>
 <body>
 
-  <!-- ====== 환영/공지 팝업 (Phase 6, 2026-05-18 추가) ====== -->
-  <!-- 첫 진입 시 표시. 1일간 보지 않기 체크 시 localStorage 저장. ANNOUNCE_VERSION bump 시 자동 재표시. -->
+  <!-- ====== 환영/공지 팝업 (Phase 6, 2026-05-18 추가 / 2026-05-20: 하드코딩 본문 제거) ====== -->
+  <!-- 본문은 Supabase announcements 테이블에서 admin이 저장한 내용으로 announce.js가 채움.
+       fetch 실패 시 announce.js가 모달 자체를 표시 안 함 (옛 하드코딩 노출 방지). -->
   <div class="announce-overlay" id="announceOverlay" style="display:none">
     <div class="announce-modal" role="dialog" aria-modal="true" aria-labelledby="announceTitle">
       <button class="announce-close" id="announceClose" aria-label="닫기">×</button>
-      <h2 id="announceTitle">🌶 맵맵맵에 오신 것을 환영합니다!</h2>
+      <h2 id="announceTitle"></h2>
 
       <section class="announce-section">
         <h3>📌 공지사항</h3>
-        <ul>
-          <li><strong>베타 오픈</strong> — 영수증 인증 시 포인트 적립 (현재 0원, 추후 환급 예정)</li>
-          <li><strong>신버전 디자인 체험 중</strong> — 피드백 환영합니다</li>
-        </ul>
+        <div class="md-body"></div>
       </section>
 
       <section class="announce-section">
         <h3>📖 사용방법</h3>
-        <ol>
-          <li>회원가입 후 본인의 <strong>매운맛 레벨</strong>을 설정</li>
-          <li>지도에서 가게를 찾고 핀 클릭 → 인증 리뷰 확인</li>
-          <li>직접 다녀온 가게는 <strong>영수증 사진</strong>으로 인증 리뷰 작성</li>
-          <li>인증 3건 달성 시 베타 리워드 +500P</li>
-        </ol>
+        <div class="md-body"></div>
       </section>
 
       <div class="announce-footer">
