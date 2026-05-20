@@ -826,16 +826,17 @@
       }
       links.style.display = '';
 
-      // 카카오맵 — kakao_place_id 있으면 deeplink, 없으면 검색 URL
+      // 카카오맵 — kakao_place_id 있으면 deeplink, 없으면 검색 URL (2026-05-20: name만, address 제외 — 사용자 요청)
       if (r.kakao_place_id) {
         kakaoLink.href = `https://place.map.kakao.com/${encodeURIComponent(r.kakao_place_id)}`;
       } else {
-        kakaoLink.href = `https://map.kakao.com/?q=${encodeURIComponent(name + ' ' + address)}`;
+        kakaoLink.href = `https://map.kakao.com/?q=${encodeURIComponent(name)}`;
       }
       kakaoLink.style.display = '';
 
       // 네이버 — 기본은 검색 URL (즉시 작동), Edge Function 호출로 정확한 URL 시도
-      const fallbackNaverUrl = `https://map.naver.com/p/search/${encodeURIComponent(name + ' ' + address)}`;
+      // 2026-05-20: name만 사용 (address 제외 — 사용자 요청). Edge Function 내부 query는 정확도 위해 address 유지.
+      const fallbackNaverUrl = `https://map.naver.com/p/search/${encodeURIComponent(name)}`;
       naverLink.href = fallbackNaverUrl;
       naverLink.style.display = '';
 
