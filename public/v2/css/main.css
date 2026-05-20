@@ -86,21 +86,33 @@
     .nav-label { font-weight: 700; letter-spacing: -0.02em; }
 
     /* user chip — Pill 옆에 별도로 우상단 */
+    /* 2026-05-20: 사용자 가시성 향상 — padding/avatar/font 모두 확대, "마이페이지" 라벨 추가 */
     .user-chip-floating {
       position: fixed;
       top: 16px; right: 16px;
-      padding: 8px 12px;
-      background: rgba(255,255,255,0.95);
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.98);
       backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
+      border: 1.5px solid var(--spice);
       border-radius: 999px;
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 10px;
       cursor: pointer;
       z-index: 150;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 3px 10px rgba(197,23,30,0.18);
       transition: all 0.15s;
     }
-    .user-chip-floating:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+    .user-chip-floating:hover {
+      box-shadow: 0 5px 14px rgba(197,23,30,0.28);
+      transform: translateY(-1px);
+      background: rgba(255,255,255,1);
+    }
+    .user-chip-floating:active { transform: translateY(0); }
+    .user-chip-floating .chip-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-1);
+      letter-spacing: -0.2px;
+    }
 
     /* guest-login-btn — 비회원 시 user-chip-floating과 같은 위치 (2026-05-20) */
     /* 표시/숨김: HTML inline style="display:none"로 기본 hidden, JS hideUserChip()이 display='' (CSS 기본=inline-block 복귀) */
@@ -134,16 +146,16 @@
       .guest-login-btn { top: 12px; right: 12px; padding: 7px 14px; font-size: 12px; }
     }
     .user-chip-floating .avatar {
-      width: 24px; height: 24px;
+      width: 32px; height: 32px;
       border-radius: 50%;
       background: var(--gradient);
       color: white;
-      font-size: 10px;
+      font-size: 14px;
       font-weight: 700;
       display: flex; align-items: center; justify-content: center;
     }
     .user-chip-floating .lvl-mini {
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
       background: var(--gradient);
       -webkit-background-clip: text;
@@ -1997,7 +2009,10 @@
       .nav-item.active .nav-label { display: inline; }
       .nav-icon { font-size: 17px; }
 
-      .user-chip-floating { top: 12px; right: 12px; padding: 6px 10px; }
+      /* 2026-05-20: 모바일에서도 크게 유지 + 라벨 표시 */
+      .user-chip-floating { top: 12px; right: 12px; padding: 8px 14px; gap: 8px; }
+      .user-chip-floating .avatar { width: 28px; height: 28px; font-size: 12px; }
+      .user-chip-floating .chip-label { font-size: 12px; }
 
       /* P1-6 (2026-05-18): 모바일에서 admin-head 우측 padding 줄이기 (chip이 작아져서) */
       .admin-head { padding-right: 130px !important; }
