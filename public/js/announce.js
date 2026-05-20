@@ -78,13 +78,29 @@
     }
   }
 
-  async function fetchAnnouncement() {
+  // 2026-05-20: fetch 실패 시 1회 자동 재시도 (1초 대기)
+  // 일시적 네트워크 오류 / Supabase cold start 등에 대비
+  async function fetchAnnouncement(retryCount = 0) {
+    const MAX_RETRIES = 1;
+    const RETRY_DELAY_MS = 1000;
+
     if (!window.API?.announcements?.get) return null;
     try {
       const res = await window.API.announcements.get();
+      // 데이터가 null이고 재시도 가능하면 한 번 더 시도
+      if (!res?.announcement && retryCount < MAX_RETRIES) {
+        console.log(`[announce] 데이터 없음 — ${RETRY_DELAY_MS}ms 후 재시도 (${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        return fetchAnnouncement(retryCount + 1);
+      }
       return res?.announcement || null;
     } catch (e) {
-      console.warn('[announce] Supabase 페치 실패 (테이블 미존재 가능 — fallback 사용):', e?.message || e);
+      if (retryCount < MAX_RETRIES) {
+        console.log(`[announce] 페치 실패 (${e?.message || e}) — ${RETRY_DELAY_MS}ms 후 재시도 (${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        return fetchAnnouncement(retryCount + 1);
+      }
+      console.warn('[announce] Supabase 페치 최종 실패 (재시도 후):', e?.message || e);
       return null;
     }
   }
