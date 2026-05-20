@@ -2142,10 +2142,11 @@
     .spicy-guide-list li:last-child { border-bottom: none; }
     .spicy-guide-level { font-weight: 700; color: #c5171e; min-width: 50px; }
 
-    /* 내 위치 버튼 (v1 이식 Phase B, 2026-05-19 우하단 / 2026-05-20 네비바 바로 위로 이동) */
-    /* .pill-nav가 bottom: 24px + 높이 ~50px → 76px. 마진 12px → bottom: 88px */
+    /* 내 위치 버튼 (v1 이식 Phase B, 2026-05-19 / 2026-05-20 fix2: position fixed + bottom 100px) */
+    /* 직전 absolute는 leafmap 컨테이너 기준이라 88px가 viewport 기준 아니어서 미흡.
+       fixed로 viewport 기준 + .pill-nav(fixed bottom 24px + 높이 ~52px = 76px) 위 24px 마진 → 100px */
     .map-my-location-btn {
-      position: absolute; bottom: 88px; right: 12px; z-index: 9999;
+      position: fixed; bottom: 100px; right: 16px; z-index: 9999;
       padding: 10px 16px; font-size: 13px; font-weight: 700;
       background: linear-gradient(135deg, #c5171e, #ff6b35); color: white;
       border: 2px solid white;
@@ -2212,7 +2213,7 @@
     .legend-marker { width: 18px; height: 22px; object-fit: contain; flex-shrink: 0; }
 
     @media (max-width: 768px) {
-      .map-my-location-btn { bottom: 80px; right: 8px; padding: 8px 14px; font-size: 12px; }
+      .map-my-location-btn { bottom: 90px; right: 12px; padding: 8px 14px; font-size: 12px; }
       .map-legend-overlay { bottom: 130px; left: 8px; max-width: 200px; }
       .map-legend-header h4 { font-size: 11px; }
       .legend-item { font-size: 10px; }
