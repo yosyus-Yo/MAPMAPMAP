@@ -1007,6 +1007,18 @@
         transform: translateY(100%);
       }
       .review-panel.open { transform: translateY(0); }
+      /* 2026-06-02: 풀스크린 패널이 열리면 전역 헤더(로그인)·네비·로고 숨김.
+         패널 z-index(50) < 로그인버튼/네비(150)라 가려지던 문제 해결:
+         - ✕ 닫기 버튼 노출 (로그인 버튼이 덮던 우상단)
+         - 리뷰작성 CTA가 하단 네비에 가리지 않음
+         body.no-nav와 동일 구체성(0,2,1) + !important로 기존 규칙 override */
+      body.review-panel-open .guest-login-btn,
+      body.review-panel-open .user-chip-floating,
+      body.review-panel-open .brand-floating,
+      body.review-panel-open .pill-nav { display: none !important; }
+      /* 노치/상태바 + 홈 인디케이터 safe-area 여백 */
+      .review-panel .rp-head { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+      .review-panel .rp-cta { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
     }
 
     /* ============== 리뷰 상세 슬라이드 패널 (네이버지도 스타일, 2026-05-18) ============== */

@@ -171,8 +171,7 @@
         </div>
         <div class="rm-spice-bar">
           <span class="lbl">본인 평가</span>
-          <div class="bars" id="rm-bars"><span></span><span></span><span></span><span></span><span></span></div>
-          <span class="level" id="rm-level">Lv.0</span>
+          <span class="level" id="rm-level">평가 Lv.0 🌶</span>
         </div>
         <div class="rm-content" id="rm-content">—</div>
         <!-- 공감 버튼 (2026-05-20) — 카드 리뷰의 like-btn과 동일 구조 → rpToggleLike 재사용 -->
@@ -239,11 +238,13 @@
             <div class="form-group"><label>이메일</label><input type="email" class="form-input" id="login-email" placeholder="example@email.com" autocomplete="email"></div>
             <div class="form-group"><label>비밀번호</label><input type="password" class="form-input" id="login-password" placeholder="비밀번호 입력" autocomplete="current-password"></div>
             <button type="button" class="btn btn-primary btn-block" id="btn-login-submit">🌶 로그인</button>
+            <!-- 2026-06-02: 소셜 로그인 임시 숨김 (기능 미구현). 다음에 카카오/네이버 OAuth 구현 시 주석 해제.
             <div class="ob-divider"><span>또는</span></div>
             <div class="social-btns">
               <button type="button" class="social-btn" disabled title="준비 중">💬 카카오로 시작하기</button>
               <button type="button" class="social-btn" disabled title="준비 중">🟢 네이버로 시작하기</button>
             </div>
+            -->
             <!-- 정리2 (2026-05-18): 시안의 mock value 제거. 실제 인증은 미구현 — 차후 api.js auth.login 연결 필요 -->
           </form>
           <form id="form-signup" style="display:none" autocomplete="on">
@@ -314,11 +315,11 @@
                 <button class="map-legend-toggle" type="button">▲</button>
               </div>
               <div class="map-legend-content">
-                <div class="legend-item"><img src="/img/marker-lv0.png" alt="Lv.0" class="legend-marker"><span>Lv.0~1 — 안전 (순한맛)</span></div>
-                <div class="legend-item"><img src="/img/marker-lv1.png" alt="Lv.2" class="legend-marker"><span>Lv.2 — 약간 매움</span></div>
-                <div class="legend-item"><img src="/img/marker-lv2.png" alt="Lv.3" class="legend-marker"><span>Lv.3 — 매움</span></div>
-                <div class="legend-item"><img src="/img/marker-lv3.png" alt="Lv.4" class="legend-marker"><span>Lv.4 — 많이 매움</span></div>
-                <div class="legend-item"><img src="/img/marker-lv4.png" alt="Lv.5" class="legend-marker"><span>Lv.5 — 도전 필요</span></div>
+                <div class="legend-item"><img src="/img/marker-lv0.png" alt="Lv.0" class="legend-marker"><span>Lv.0~1</span></div>
+                <div class="legend-item"><img src="/img/marker-lv1.png" alt="Lv.2" class="legend-marker"><span>Lv.2</span></div>
+                <div class="legend-item"><img src="/img/marker-lv2.png" alt="Lv.3" class="legend-marker"><span>Lv.3</span></div>
+                <div class="legend-item"><img src="/img/marker-lv3.png" alt="Lv.4" class="legend-marker"><span>Lv.4</span></div>
+                <div class="legend-item"><img src="/img/marker-lv4.png" alt="Lv.5" class="legend-marker"><span>Lv.5</span></div>
               </div>
             </div>
 

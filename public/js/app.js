@@ -700,7 +700,11 @@
 
       // Head + stats 즉시 갱신
       document.getElementById('rp-name').innerHTML = `${escapeHtml(r.name)}${Math.round(r.avg_level || 0) >= 4 ? ' 🔥' : ''}`;
-      document.getElementById('rp-meta').textContent = `${r.category || '—'} · ${(r.address || '').slice(0, 30)}`;
+      // category 데이터가 없거나 placeholder('-','—','–')인 매장은 '매운맛'으로 통일
+      // (일부 매장만 category 입력되어 '—'/'-'로 표시되던 불일치 해결, 2026-06-02)
+      const _cat = (r.category || '').trim();
+      const _catLabel = (_cat && !['-', '—', '–', '–', '·'].includes(_cat)) ? _cat : '매운맛';
+      document.getElementById('rp-meta').textContent = `${_catLabel} · ${(r.address || '').slice(0, 30)}`;
       const lvl = Math.round(r.avg_level || 0);
       // 2026-05-20: 가짜 평점 제거 (Option A) + 실제 avg_rating 표시 (Option B)
       // avg_rating이 null이면 "—" 표시 (아직 별점 리뷰 없음)
@@ -934,7 +938,6 @@
         const nickname = rv.users?.nickname || rv.user_nickname || '익명';
         const date = rv.created_at ? new Date(rv.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '';
         const content = rv.content || rv.review_text || rv.comment || '';
-        const fills = [1,2,3,4,5].map(n => `<span${n <= reviewLevel ? ' class="fill"' : ''}></span>`).join('');
         let photos = '';
         const photoUrls = getAllPhotoUrls(rv);
         if (photoUrls.length) {
@@ -962,7 +965,7 @@
               <div class="date">${escapeHtml(date)}</div>
             </div>
             <div class="body">
-              <div class="level-line">${fills}</div>
+              <div class="rc-level" style="margin-bottom:6px">평가 Lv.${reviewLevel} 🌶</div>
               ${escapeHtml(content.length > 80 ? content.slice(0, 80) + '…' : content)}
             </div>
             ${photos}
@@ -1089,11 +1092,8 @@
       document.getElementById('rm-nickname').innerHTML = `${escapeHtml(nickname)} <span class="badge">Lv.${userLevel}</span>`;
       document.getElementById('rm-date').textContent = date;
       document.getElementById('rm-content').textContent = content;
-      document.getElementById('rm-level').textContent = 'Lv.' + reviewLevel;
-
-      // 매운맛 막대
-      const bars = document.getElementById('rm-bars');
-      bars.innerHTML = [1,2,3,4,5].map(n => `<span${n <= reviewLevel ? ' class="fill"' : ''}></span>`).join('');
+      // 최신 리뷰와 동일하게 "평가 Lv.N 🌶" 텍스트로 통일 (막대 제거, 2026-06-02)
+      document.getElementById('rm-level').textContent = '평가 Lv.' + reviewLevel + ' 🌶';
 
       // 사진들 — food_image_url JSON array 펼침 + receipt 마지막. 음식 사진부터 보임 (이전에는 첫 URL이 깨져 🚫 표시됨)
       _modalPhotos = getAllPhotoUrls(rv);
