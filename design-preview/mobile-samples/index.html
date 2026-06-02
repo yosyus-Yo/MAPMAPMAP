@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>맵맵맵 모바일 레이아웃 시안 비교</title>
+<style>
+  :root{--spice:#c5171e;--spice-2:#ff6b35;--gradient:linear-gradient(135deg,#c5171e,#ff6b35);--text:#1a1a1a;--text-3:#6e6e6e;--border:rgba(0,0,0,.1)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;background:#f0ece6;color:var(--text);padding:20px 14px 60px}
+  header{text-align:center;max-width:760px;margin:0 auto 24px}
+  header h1{font-size:21px}header h1 b{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  header p{font-size:13px;color:var(--text-3);margin-top:6px;line-height:1.6}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;max-width:1100px;margin:0 auto}
+  .item{background:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+  .item h2{font-size:15px;display:flex;align-items:center;gap:6px}
+  .item .desc{font-size:12px;color:var(--text-3);margin:6px 0 12px;line-height:1.5;min-height:48px}
+  .phone{width:100%;max-width:300px;margin:0 auto;aspect-ratio:300/620;border-radius:26px;border:7px solid #1a1a1a;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.2);background:#000}
+  .phone iframe{width:100%;height:100%;border:0;display:block}
+  .item a.full{display:block;text-align:center;margin-top:12px;background:var(--gradient);color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px;border-radius:10px}
+  .ref{max-width:1100px;margin:34px auto 0;background:#fff;border-radius:14px;padding:18px 20px;font-size:13px;color:var(--text-3);line-height:1.7}
+  .ref b{color:var(--text)}
+  @media(max-width:520px){.item .desc{min-height:0}}
+</style>
+</head>
+<body>
+  <header>
+    <h1>맵<b>맵맵</b> · 모바일 첫 화면 레이아웃 시안</h1>
+    <p>거지맵·야장맵·카카오/네이버/구글 지도 패턴을 참고한 4가지 방향입니다.<br>
+       각 폰 프레임을 보고, <b>전체화면으로 보기</b>를 누르면 실제 모바일 풀스크린으로 확인할 수 있어요. 마음에 드는 시안 번호(A/B/C/D)를 알려주세요.<br>
+       <b style="color:var(--spice)">※ 4개 모두 현재 PC 웹과 동일한 기능만 사용 — 배치만 모바일에 맞게 바꿉니다 (검색 등 새 기능 없음).</b></p>
+  </header>
+  <div class="grid">
+    <div class="item">
+      <h2>A · 지도 우선 (미니멀)</h2>
+      <div class="desc">지도를 최대로. UI는 최소화하고 리뷰는 얇은 핸들 하나로 축소. 지도 탐색에 집중.</div>
+      <div class="phone"><iframe src="a-map-first.html" loading="lazy"></iframe></div>
+      <a class="full" href="a-map-first.html" target="_blank">전체화면으로 보기 →</a>
+    </div>
+    <div class="item">
+      <h2>B · 바텀시트 중심</h2>
+      <div class="desc">지도 상단 56% + 하단 리뷰 시트 기본 노출. 리뷰를 많이 보는 사용자에 적합.</div>
+      <div class="phone"><iframe src="b-bottom-sheet.html" loading="lazy"></iframe></div>
+      <a class="full" href="b-bottom-sheet.html" target="_blank">전체화면으로 보기 →</a>
+    </div>
+    <div class="item">
+      <h2>C · 상단바 + 전체지도 <span style="font-size:11px;color:var(--spice)">추천</span></h2>
+      <div class="desc">상단 로고바 + 실제 필터탭(전체/사진/내레벨/내주변), 우측 FAB 스택, 하단 핸들. 지도앱과 가장 유사한 표준 패턴.</div>
+      <div class="phone"><iframe src="c-top-bar.html" loading="lazy"></iframe></div>
+      <a class="full" href="c-top-bar.html" target="_blank">전체화면으로 보기 →</a>
+    </div>
+    <div class="item">
+      <h2>D · 플로팅 통합</h2>
+      <div class="desc">전체 지도 위 둥근 검색 pill + 우측 FAB. 하단은 리뷰+네비를 둥근 카드 1개로 통합해 적층 제거.</div>
+      <div class="phone"><iframe src="d-floating.html" loading="lazy"></iframe></div>
+      <a class="full" href="d-floating.html" target="_blank">전체화면으로 보기 →</a>
+    </div>
+  </div>
+  <div class="ref">
+    <b>기능 동일 원칙</b>: 4개 시안 모두 현재 PC 웹과 같은 기능(매운맛 레벨 범례 · 내 위치 · 리뷰 4탭 필터 · 제보 · 마이 · 로그인)만 씁니다. 지도 검색처럼 PC에 없는 기능은 넣지 않았습니다 — 배치만 바뀝니다.<br>
+    <b>공통 개선점</b> (현재 mapmadmap 대비): 하단에 흩어진 범례·내위치·네비·시트 4중 충돌 → 상단(로고/필터)·우측(FAB 스택)·하단(시트 1개)으로 영역 분리.<br>
+    <b>참고 서비스</b>: 거지맵(가격 마커=매운맛 레벨 마커 대응), 야장맵(비강제 온보딩), 카카오·네이버·구글 지도(우측 FAB + 하단 시트 배치).<br>
+    ※ 지도는 mock(가짜 배경)이며 마커·리뷰는 예시 데이터입니다. 레이아웃 구조 비교용입니다.
+  </div>
+</body>
+</html>

@@ -18,6 +18,8 @@
       const el = document.getElementById('map-legend');
       const header = document.getElementById('map-legend-header');
       if (!el || !header) return;
+      // 2026-06-01: 모바일에선 슬라임 물리 비활성 — 범례를 시트 dock 위 고정 위치로 (시트 충돌·겹침 방지)
+      if (window.matchMedia('(max-width: 768px)').matches) { el.style.transform = 'none'; return; }
 
       let x = 0, y = 0;
       let vx = 0, vy = 0;

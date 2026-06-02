@@ -4,6 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>맵맵맵 - 매운맛 실패 없는 맛집 지도</title>
+  <meta name="description" content="매운맛 실패 없는 맛집 지도. 매운맛 레벨로 실패 없이 맛집을 찾아보세요.">
+
+  <!-- 파비콘 (2026-06-02) -->
+  <link rel="icon" type="image/png" href="/img/logo.png">
+  <link rel="apple-touch-icon" href="/img/logo.png">
+
+  <!-- OG / 공유 미리보기 (2026-06-02: 카카오/검색 공유 시 맵맵맵 로고 표시) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="맵맵맵">
+  <meta property="og:title" content="맵맵맵 - 매운맛 실패 없는 맛집 지도">
+  <meta property="og:description" content="매운맛 실패 없는 맛집 지도. 매운맛 레벨로 실패 없이 맛집을 찾아보세요.">
+  <meta property="og:image" content="https://www.xn--r02baa.com/img/logo.png">
+  <meta property="og:image:width" content="2000">
+  <meta property="og:image:height" content="2000">
+  <meta property="og:url" content="https://www.xn--r02baa.com">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="맵맵맵 - 매운맛 실패 없는 맛집 지도">
+  <meta name="twitter:description" content="매운맛 실패 없는 맛집 지도">
+  <meta name="twitter:image" content="https://www.xn--r02baa.com/img/logo.png">
 
   <!-- Google Analytics (GA4) — v1 이식 2026-05-19 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-6B878F8F37"></script>
@@ -186,6 +205,8 @@
   <!-- 하단 중앙 Floating Pill Nav (07 패턴, 5개 핵심 view) -->
   <nav class="pill-nav">
     <button class="nav-item active" data-view="map"><span class="nav-icon">🗺</span><span class="nav-label">지도</span></button>
+    <!-- 2026-06-02: 최신 리뷰를 지도 시트에서 분리해 독립 탭으로 (모바일 레이아웃 개선 — 지도 풀스크린) -->
+    <button class="nav-item" data-view="reviews"><span class="nav-icon">💬</span><span class="nav-label">최신</span></button>
     <!-- 2026-05-19: "맛집" nav-item 제거 — 가게 마커 클릭 시에만 detail view 진입 (직접 nav로 가는 동선 불필요) -->
     <button class="nav-item" data-view="review"><span class="nav-icon">✍</span><span class="nav-label">제보</span></button>
     <!-- P2-3 (2026-05-18): 레벨 nav-item 제거 — 설정 탭에서 변경 가능 -->
@@ -199,6 +220,11 @@
     <!-- ====== VIEW 1: 온보딩 ====== -->
     <section class="view" data-view="onboarding">
       <div class="onboarding">
+        <!-- 2026-06-01: 로그인 화면 상단 헤더 — 클릭 시 맵 화면으로 이동 (data-view=map → app.js navItems 핸들러가 showView('map') 호출) -->
+        <button class="ob-header" data-view="map" type="button" aria-label="맵 화면으로 이동">
+          <span class="ob-header-logo"><img src="logo.svg" alt="맵맵맵"></span>
+          <span class="ob-header-title">맵<span>맵맵</span></span>
+        </button>
         <div class="ob-card">
           <div class="ob-brand">
             <div class="logo"><img src="logo.svg" alt="맵맵맵"></div>
@@ -318,27 +344,31 @@
             <!-- 매운맛 1위 banner는 향후 reviews.recentApproved top1로 동적 생성 검토. -->
           </div>
 
-          <aside class="map-sidebar peek">
-            <div class="sb-head">
-              <h2><span class="ico">💬</span> 최신 리뷰</h2>
-              <span class="count" id="sb-count">— · loading</span>
-            </div>
-            <div class="sb-tabs">
-              <button class="sb-tab active" data-filter="all">전체</button>
-              <button class="sb-tab" data-filter="photo">사진 있음</button>
-              <button class="sb-tab" data-filter="my-level">내 레벨</button>
-              <button class="sb-tab" data-filter="nearby" title="내 위치에서 가까운 음식점 순">📍 내 주변</button>
-            </div>
-            <div class="sb-list" id="sb-list">
-              <div class="sb-row" style="text-align:center; color:var(--text-3); font-size:12px">⏳ 최신 리뷰 로드 중...</div>
-            </div>
-            <div class="sb-footer">
-              <div class="ico">❤</div>
-              <div class="text"><div class="top">베타 리워드</div><div class="bot">3건 인증 시 +500P</div></div>
-            </div>
-          </aside>
         </div>
       </div>
+    </section>
+
+    <!-- ====== VIEW: 최신 리뷰 (2026-06-02: 지도 시트에서 분리한 독립 탭) ====== -->
+    <section class="view" data-view="reviews">
+      <aside class="map-sidebar review-feed">
+        <div class="sb-head">
+          <h2><span class="ico">💬</span> 최신 리뷰</h2>
+          <span class="count" id="sb-count">— · loading</span>
+        </div>
+        <div class="sb-tabs">
+          <button class="sb-tab active" data-filter="all">전체</button>
+          <button class="sb-tab" data-filter="photo">사진 있음</button>
+          <button class="sb-tab" data-filter="my-level">내 레벨</button>
+          <button class="sb-tab" data-filter="nearby" title="내 위치에서 가까운 음식점 순">📍 내 주변</button>
+        </div>
+        <div class="sb-list" id="sb-list">
+          <div class="sb-row" style="text-align:center; color:var(--text-3); font-size:12px">⏳ 최신 리뷰 로드 중...</div>
+        </div>
+        <div class="sb-footer">
+          <div class="ico">❤</div>
+          <div class="text"><div class="top">베타 리워드</div><div class="bot">3건 인증 시 +500P</div></div>
+        </div>
+      </aside>
     </section>
 
     <!-- ====== VIEW 4: 맛집 상세 ====== -->

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>D. 플로팅 통합</title>
+<style>
+  :root{
+    --bg:#fafaf7;--panel:#fff;--surface:#f5f2ee;--surface-2:#ebe6df;
+    --text:#1a1a1a;--text-3:#6e6e6e;--text-4:#9a9a9a;
+    --spice:#c5171e;--spice-2:#ff6b35;--gradient:linear-gradient(135deg,#c5171e,#ff6b35);
+    --border:rgba(0,0,0,.08);--shadow-sm:0 2px 8px rgba(0,0,0,.1);--shadow-lg:0 8px 28px rgba(0,0,0,.18);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;color:var(--text);overflow:hidden}
+  .map{position:absolute;inset:0;background:linear-gradient(180deg,#fff8f0,#fff2e8);overflow:hidden}
+  .road{position:absolute;background:#fff;opacity:.85}.road.h{height:16px;left:-10%;right:-10%}.road.v{width:16px;top:-10%;bottom:-10%}
+  .blk{position:absolute;background:rgba(197,23,30,.03);border-radius:6px}
+  .mk{position:absolute;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);z-index:2}
+  .mk .bub{background:#fff;border:1.5px solid var(--spice);color:var(--spice);font-weight:700;font-size:11px;padding:3px 8px;border-radius:999px;white-space:nowrap;box-shadow:var(--shadow-sm)}
+  .mk .pin{font-size:20px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  /* 상단 좌측 로고 칩 */
+  .brandchip{position:absolute;top:14px;left:14px;z-index:12;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);padding:8px 14px;border-radius:999px;box-shadow:var(--shadow-sm);font-weight:800;font-size:14px}
+  .brandchip b{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  /* 상단 우측 마이페이지 칩 (미니멀 A 패턴) */
+  .topchip{position:absolute;top:14px;right:14px;z-index:12;display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:7px 12px 7px 8px;box-shadow:var(--shadow-sm)}
+  .topchip .av{width:26px;height:26px;border-radius:50%;background:var(--gradient);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  .topchip .lb{font-size:12px;font-weight:600;color:var(--text-3)}
+  /* 작은 매운맛 레벨 범례 (웹 슬라임 범례 축소판) */
+  .mini-legend{position:absolute;left:14px;bottom:142px;z-index:10;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-radius:16px;box-shadow:var(--shadow-lg);padding:9px 12px}
+  .mini-legend .ml-head{font-size:10px;font-weight:700;color:var(--text);margin-bottom:5px}
+  .mini-legend .ml-row{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-3);line-height:1.8}
+  .mini-legend .ml-row .ic{font-size:12px}
+  .fab-col{position:absolute;right:14px;bottom:148px;z-index:10;display:flex;flex-direction:column;gap:10px}
+  .fab{width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;font-size:19px;border:1px solid var(--border)}
+  .fab.primary{background:var(--gradient);color:#fff;border:2px solid #fff}
+  /* 하단 통합 카드 (시트 + 네비) */
+  .dock{position:absolute;left:12px;right:12px;bottom:14px;z-index:11;background:#fff;border-radius:22px;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden}
+  .dock .grip{width:40px;height:4px;background:var(--surface-2);border-radius:2px;margin:8px auto 0}
+  .dock .sheet-row{display:flex;align-items:center;gap:9px;padding:10px 16px 12px}
+  .dock .sheet-row .th{width:38px;height:38px;border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:19px}
+  .dock .sheet-row .meta{flex:1;min-width:0}
+  .dock .sheet-row .meta .t{font-size:12px;font-weight:700}.dock .sheet-row .meta .s{font-size:10px;color:var(--text-3)}
+  .dock .sheet-row .more{font-size:11px;color:var(--spice);font-weight:700}
+  .dock .nav{display:flex;border-top:1px solid var(--border)}
+  .dock .nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;color:var(--text-3);padding:9px 0}
+  .dock .nav button.on{color:var(--spice)}.dock .nav .ic{font-size:18px}
+  .tag{position:absolute;top:0;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:11px;padding:3px 10px;border-radius:0 0 8px 8px;z-index:20;opacity:.85}
+</style>
+</head>
+<body>
+  <div class="tag">D · 플로팅 통합</div>
+  <div class="map">
+    <div class="road h" style="top:34%"></div><div class="road h" style="top:66%"></div>
+    <div class="road v" style="left:42%"></div><div class="road v" style="left:78%"></div>
+    <div class="blk" style="top:38%;left:46%;width:26%;height:26%"></div>
+    <div class="mk" style="top:28%;left:32%"><div class="bub">불막창 Lv.4</div><div class="pin">💣</div></div>
+    <div class="mk" style="top:44%;left:62%"><div class="bub">엽떡 Lv.3</div><div class="pin">🔥</div></div>
+    <div class="mk" style="top:58%;left:26%"><div class="bub">국밥 Lv.1</div><div class="pin">👼</div></div>
+  </div>
+  <div class="brandchip">맵<b>맵맵</b></div>
+  <div class="topchip"><span class="av">김</span><span class="lb">마이</span></div>
+  <div class="mini-legend">
+    <div class="ml-head">🔥 매운맛 레벨</div>
+    <div class="ml-row"><span class="ic">🐥</span> Lv.0~1 순한맛</div>
+    <div class="ml-row"><span class="ic">🌶</span> Lv.2~3 보통</div>
+    <div class="ml-row"><span class="ic">💀</span> Lv.4~5 도전</div>
+  </div>
+  <div class="fab-col">
+    <div class="fab primary">📍</div>
+  </div>
+  <div class="dock">
+    <div class="grip"></div>
+    <div class="sheet-row">
+      <div class="th">💣</div>
+      <div class="meta"><div class="t">불막창 한신포차 · Lv.4</div><div class="s">⭐ 4.6 · 마포구 · 최신 리뷰 24건</div></div>
+      <div class="more">목록 ▲</div>
+    </div>
+    <div class="nav">
+      <button class="on"><span class="ic">🗺</span>지도</button><button><span class="ic">✍</span>제보</button><button><span class="ic">📋</span>마이</button>
+    </div>
+  </div>
+</body>
+</html>

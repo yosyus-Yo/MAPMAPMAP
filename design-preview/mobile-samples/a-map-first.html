@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>A. 지도 우선 (미니멀)</title>
+<style>
+  :root{
+    --bg:#fafaf7;--panel:#fff;--surface:#f5f2ee;--surface-2:#ebe6df;
+    --text:#1a1a1a;--text-3:#6e6e6e;
+    --spice:#c5171e;--spice-2:#ff6b35;--gradient:linear-gradient(135deg,#c5171e,#ff6b35);
+    --border:rgba(0,0,0,.08);--shadow-sm:0 2px 8px rgba(0,0,0,.1);--shadow-lg:0 8px 28px rgba(0,0,0,.18);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;color:var(--text);overflow:hidden}
+  /* ---- mock 지도 ---- */
+  .map{position:absolute;inset:0;background:linear-gradient(180deg,#fff8f0,#fff2e8);overflow:hidden}
+  .road{position:absolute;background:#fff;opacity:.85;box-shadow:0 0 0 1px rgba(0,0,0,.03)}
+  .road.h{height:16px;left:-10%;right:-10%}.road.v{width:16px;top:-10%;bottom:-10%}
+  .blk{position:absolute;background:rgba(197,23,30,.03);border-radius:6px}
+  .mk{position:absolute;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);z-index:2}
+  .mk .bub{background:#fff;border:1.5px solid var(--spice);color:var(--spice);font-weight:700;font-size:11px;padding:3px 8px;border-radius:999px;white-space:nowrap;box-shadow:var(--shadow-sm)}
+  .mk .pin{font-size:20px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  /* ---- 오버레이 ---- */
+  .brand{position:absolute;top:14px;left:14px;z-index:10;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);padding:6px 12px;border-radius:999px;box-shadow:var(--shadow-sm);font-weight:800;font-size:14px}
+  .brand b{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .chip{position:absolute;top:14px;right:14px;z-index:10;width:38px;height:38px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:center;font-size:18px}
+  .fab-col{position:absolute;right:14px;bottom:120px;z-index:10;display:flex;flex-direction:column;gap:10px}
+  .fab{width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;font-size:19px;border:1px solid var(--border)}
+  .fab.primary{background:var(--gradient);color:#fff;border:2px solid #fff}
+  .handle{position:absolute;left:0;right:0;bottom:60px;z-index:9;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.1);padding:10px 18px 12px;text-align:center}
+  .handle .grip{width:40px;height:4px;background:var(--surface-2);border-radius:2px;margin:0 auto 8px}
+  .handle .row{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700}
+  .handle .row .cnt{color:var(--spice)}
+  .nav{position:absolute;left:0;right:0;bottom:0;z-index:11;height:60px;background:#fff;border-top:1px solid var(--border);display:flex}
+  .nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;color:var(--text-3)}
+  .nav button.on{color:var(--spice)}.nav .ic{font-size:19px}
+  .tag{position:absolute;top:0;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:11px;padding:3px 10px;border-radius:0 0 8px 8px;z-index:20;opacity:.85}
+</style>
+</head>
+<body>
+  <div class="tag">A · 지도 우선 (미니멀)</div>
+  <div class="map">
+    <div class="road h" style="top:28%"></div>
+    <div class="road h" style="top:64%"></div>
+    <div class="road v" style="left:38%"></div>
+    <div class="road v" style="left:74%"></div>
+    <div class="blk" style="top:32%;left:42%;width:28%;height:28%"></div>
+    <div class="blk" style="top:10%;left:8%;width:24%;height:14%"></div>
+    <div class="mk" style="top:24%;left:30%"><div class="bub">불막창 Lv.4</div><div class="pin">💣</div></div>
+    <div class="mk" style="top:40%;left:60%"><div class="bub">엽기떡볶이 Lv.3</div><div class="pin">🔥</div></div>
+    <div class="mk" style="top:58%;left:24%"><div class="bub">순한국밥 Lv.1</div><div class="pin">👼</div></div>
+    <div class="mk" style="top:70%;left:66%"><div class="bub">핵불닭 Lv.5</div><div class="pin">💀</div></div>
+  </div>
+  <div class="brand">맵<b>맵맵</b></div>
+  <div class="chip">👤</div>
+  <div class="fab-col">
+    <div class="fab">🔥</div>
+    <div class="fab primary">📍</div>
+  </div>
+  <div class="handle">
+    <div class="grip"></div>
+    <div class="row">💬 최신 리뷰 <span class="cnt">24건</span> ▲</div>
+  </div>
+  <nav class="nav">
+    <button class="on"><span class="ic">🗺</span>지도</button>
+    <button><span class="ic">✍</span>제보</button>
+    <button><span class="ic">📋</span>마이</button>
+  </nav>
+</body>
+</html>

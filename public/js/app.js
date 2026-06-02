@@ -20,7 +20,7 @@
  */
 
 // View routing
-    const navItems = document.querySelectorAll('.nav-item, .user-chip-floating[data-view], .guest-login-btn[data-view]');
+    const navItems = document.querySelectorAll('.nav-item, .user-chip-floating[data-view], .guest-login-btn[data-view], .ob-header[data-view]');
     const views = document.querySelectorAll('.view');
 
     // View alias 매핑 (P1-3, 2026-05-18) — 비밀 URL로 admin 진입 등
@@ -35,7 +35,7 @@
     // 노출 — 다른 스크립트에서도 사용 가능
     window.resolveViewName = resolveViewName;
 
-    function showView(name) {
+    function showView(name, opts = {}) {
       const resolved = resolveViewName(name);
 
       // P1-8 (2026-05-18): view 전환 시 잔존 모달/패널 모두 닫기.
@@ -74,11 +74,27 @@
       // 인증 전 view에선 nav 숨김
       const noNav = (resolved === 'onboarding' || resolved === 'level-setup');
       document.body.classList.toggle('no-nav', noNav);
+      // 2026-06-02: 현재 view를 body 클래스로 노출 (데스크톱 반응형 — 지도 화면일 때 리뷰 사이드바 동시 표시용)
+      [...document.body.classList].filter(c => c.startsWith('view-')).forEach(c => document.body.classList.remove(c));
+      document.body.classList.add('view-' + resolved);
       // URL path 갱신 (2026-05-20: hash → pathname clean URL).
       // alias 입력 시에도 사용자가 입력한 alias 그대로 유지 (예: /godmap).
       // 2026-05-20: admin → /godmap으로 URL 표시 (admin URL 노출 방지, vercel /admin redirect → /).
       const urlName = (name === 'admin') ? 'godmap' : name;
-      try { history.replaceState(null, '', `/${urlName}`); } catch(e) {}
+      // 2026-06-01: history 모드 분기.
+      // 사용자 네비게이션(다른 view로 전환)은 pushState로 스택에 쌓아
+      // 브라우저 뒤로가기가 이전 view(예: 로그인→맵)로 돌아가게 함.
+      // popstate 핸들러는 { history: 'none' }로 호출해 이중 기록 방지.
+      const histMode = opts.history || 'auto';
+      try {
+        if (histMode === 'none') {
+          // 브라우저가 이미 history를 이동시킨 상태 — 조작하지 않음
+        } else if (histMode === 'push' || (histMode === 'auto' && pathToView() !== urlName)) {
+          history.pushState(null, '', `/${urlName}`);
+        } else {
+          history.replaceState(null, '', `/${urlName}`);
+        }
+      } catch(e) {}
     }
 
     // pathname → view name 추출 (2026-05-20)
@@ -90,17 +106,8 @@
     // 다른 스크립트(app-handlers.js)에서 사용 가능하도록 노출
     window.pathToView = pathToView;
 
-    // Bottom Sheet 3-state 토글 (드래그 핸들 클릭)
-    document.addEventListener('click', (e) => {
-      const sheet = document.querySelector('.map-sidebar');
-      if (!sheet) return;
-      const handle = e.target.closest('.map-sidebar');
-      if (handle && e.offsetY <= 16) {
-        if (sheet.classList.contains('peek')) { sheet.classList.remove('peek'); }
-        else if (sheet.classList.contains('full')) { sheet.classList.remove('full'); sheet.classList.add('peek'); }
-        else { sheet.classList.add('full'); }
-      }
-    });
+    // 2026-06-02: 최신 리뷰가 독립 탭(reviews view)으로 분리 → 지도 바텀시트 토글 로직 제거.
+    //   시트가 더 이상 지도 위에 없으므로 핸들 드래그/슬라임 충돌 회피 코드 불필요.
     navItems.forEach(n => n.addEventListener('click', () => showView(n.dataset.view)));
     // 2026-05-20: hash → pathname routing 전환
     const initial = pathToView();
@@ -111,7 +118,7 @@
     window.addEventListener('popstate', () => {
       const name = pathToView();
       const resolved = resolveViewName(name);
-      if ([...views].some(v => v.dataset.view === resolved)) showView(name);
+      if ([...views].some(v => v.dataset.view === resolved)) showView(name, { history: 'none' });
     });
 
     // ========== Supabase + Leaflet 통합 ==========
@@ -557,6 +564,11 @@
     // 이벤트 바인딩 (DOM 이미 파싱된 시점이라 즉시 등록 가능)
     document.getElementById('map-my-location-btn')?.addEventListener('click', moveToMyLocation);
     document.getElementById('map-legend-header')?.addEventListener('click', toggleMapLegend);
+
+    // 2026-06-01: 모바일에서는 범례를 기본 접힌(작은 칩) 상태로 시작 — 탭하면 5단계 펼쳐짐
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      document.getElementById('map-legend')?.classList.add('collapsed');
+    }
 
 
     // Haversine distance (km)
@@ -1310,9 +1322,11 @@
       });
       const mapType = kakaoMapTypeFor(currentTileName);
       if (mapType) leafMap.setMapTypeId(mapType);
-      // 줌 컨트롤 추가 (우측)
-      const zoomControl = new window.kakao.maps.ZoomControl();
-      leafMap.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+      // 줌 컨트롤 추가 (우측) — 2026-06-01: 모바일에선 제거 (핀치 줌으로 충분, 화면 정리)
+      if (!window.matchMedia('(max-width: 768px)').matches) {
+        const zoomControl = new window.kakao.maps.ZoomControl();
+        leafMap.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+      }
       document.body.classList.add('kakao-loaded');
       addMainMarkers();
       tryUserLocation(leafMap);

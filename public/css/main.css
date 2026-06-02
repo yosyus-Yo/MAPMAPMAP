@@ -279,6 +279,7 @@
 
     /* ============== VIEW 1: 온보딩 ============== */
     .onboarding {
+      position: relative; /* 2026-06-01: .ob-header absolute 기준점 */
       width: 100%; height: 100%;
       display: flex;
       align-items: center;
@@ -325,6 +326,45 @@
       background-clip: text;
     }
     .ob-brand p { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+    /* 2026-06-01: 로그인 화면 상단 헤더 (클릭 → 맵 화면) */
+    .ob-header {
+      position: absolute;
+      top: 0; left: 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      height: 56px;
+      padding: 0 18px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      z-index: 20;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.12s ease;
+    }
+    .ob-header-logo {
+      width: 30px; height: 30px;
+      border-radius: 9px;
+      background: white;
+      display: flex; align-items: center; justify-content: center;
+      padding: 5px;
+      box-shadow: 0 2px 8px rgba(197,23,30,0.25);
+      border: 1.5px solid var(--spice-soft);
+      flex-shrink: 0;
+    }
+    .ob-header-logo img { width: 100%; height: 100%; display: block; }
+    .ob-header-title {
+      font-size: 17px; font-weight: 700; letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .ob-header-title span {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .ob-header:hover { opacity: 0.85; }
+    .ob-header:active { transform: scale(0.97); }
     .ob-tabs {
       display: flex;
       background: var(--surface);
@@ -1429,6 +1469,36 @@
     .map-sidebar::before { display: none; } /* 데스크톱은 드래그 핸들 불필요 */
     .map-sidebar.peek,
     .map-sidebar.full { /* 데스크톱은 sheet 모드 OFF */ }
+    /* 2026-06-02: 최신 리뷰 독립 탭 — 풀스크린 목록 (시트/사이드바 아님, 모바일·데스크톱 공통) */
+    .view[data-view="reviews"] .map-sidebar.review-feed {
+      position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+      width: auto; height: auto; max-height: none;
+      border: none; border-radius: 0; box-shadow: none;
+      padding-bottom: 88px; z-index: 1;
+    }
+    .view[data-view="reviews"] .map-sidebar.review-feed::before { display: none; }
+    /* 2026-06-02: 모바일 — 베타 리워드 배너를 하단 네비 바로 위 floating 카드로 (배너~네비 빈 공간 제거) */
+    @media (max-width: 899px) {
+      /* 셀렉터 구체성을 전역(.map-sidebar.review-feed)과 맞춰야 padding-bottom이 적용됨 + 페이지네이션이 배너 위로 */
+      .view[data-view="reviews"] .map-sidebar.review-feed { padding-bottom: 175px; }
+      .view[data-view="reviews"] .review-feed .sb-footer {
+        position: fixed; left: 12px; right: 12px; bottom: 76px;
+        border-radius: 16px; box-shadow: 0 6px 20px rgba(197,23,30,0.3);
+        z-index: 50;
+      }
+    }
+    /* 2026-06-02: 데스크톱은 기존 레이아웃 복원 — 최신 리뷰를 지도 옆 우측 사이드바로 동시 표시 (모바일만 탭 분리) */
+    @media (min-width: 900px) {
+      .pill-nav .nav-item[data-view="reviews"] { display: none; }
+      body.view-map .view[data-view="reviews"] { display: block; position: fixed; inset: 0; pointer-events: none; z-index: 39; }
+      body.view-map .view[data-view="reviews"] .map-sidebar.review-feed {
+        position: fixed; top: 80px; right: 16px; bottom: 96px; left: auto;
+        width: 360px; height: auto;
+        border: 1px solid var(--border); border-radius: 16px;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.12), 0 0 24px rgba(197,23,30,0.06);
+        padding-bottom: 0; pointer-events: auto;
+      }
+    }
     .sb-head {
       padding: 14px 18px;
       border-bottom: 1px solid var(--border);
@@ -2018,18 +2088,19 @@
       .admin-head { padding-right: 130px !important; }
       .admin-stats { padding-right: 130px !important; }
 
-      /* 지도 view — 모바일에선 진짜 Bottom Sheet (peek/half/full) */
+      /* 지도 view — 모바일 Bottom Sheet.
+         2026-06-01 (B/D-dock): 시트를 하단 네비(pill-nav) 위로 띄운 둥근 dock으로 → 네비를 가리지 않음 */
       .map-sidebar {
         top: auto;
-        left: 0; right: 0;
-        bottom: 0;
-        width: 100%;
+        left: 8px; right: 8px;
+        bottom: 78px;
+        width: auto;
         height: var(--sheet-peek);
-        max-height: var(--sheet-full);
-        border-radius: 18px 18px 0 0;
-        border-bottom: none;
-        box-shadow: 0 -12px 40px rgba(0,0,0,0.15);
-        padding-bottom: 80px;
+        max-height: calc(100vh - 96px);
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        padding-bottom: 12px;
       }
       .map-sidebar::before {
         display: block;
@@ -2043,7 +2114,9 @@
         cursor: grab;
       }
       .map-sidebar.peek { height: var(--sheet-peek); overflow: hidden; }
-      .map-sidebar.full { height: var(--sheet-full); }
+      .map-sidebar.full { height: calc(100vh - 96px); }
+      /* 시트 full 시 내 위치 버튼 숨김 (시트가 지도를 덮으므로) */
+      body.sheet-full .map-my-location-btn { opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
       .map-sidebar > .sb-head { margin-top: 18px; }
       .mini-stats { gap: 14px; padding: 10px 12px; }
       .mini-stats .item .value { font-size: 12px; }
@@ -2206,6 +2279,12 @@
       padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;
     }
     .map-legend-overlay.collapsed .map-legend-content { display: none; }
+    /* 2026-06-01: 접힌 상태 = 헤더만 보이는 작은 둥근 칩 (하단선 제거) */
+    .map-legend-overlay.collapsed { border-radius: 999px; }
+    .map-legend-overlay.collapsed .map-legend-header { border-bottom: none; background: #fff; }
+    /* 2026-06-01 (B/D-dock): 리뷰 시트가 올라오면 범례를 투명 처리해 충돌·겹침 회피 (슬라임 DOM은 유지) */
+    .map-legend-overlay { transition: opacity 0.25s ease; }
+    .map-legend-overlay.sheet-hidden { opacity: 0; pointer-events: none; }
     .legend-item {
       display: flex; align-items: center; gap: 8px;
       font-size: 11px; color: #555;
@@ -2213,9 +2292,19 @@
     .legend-marker { width: 18px; height: 22px; object-fit: contain; flex-shrink: 0; }
 
     @media (max-width: 768px) {
-      .map-my-location-btn { bottom: 90px; right: 12px; padding: 8px 14px; font-size: 12px; }
-      .map-legend-overlay { bottom: 130px; left: 8px; max-width: 200px; }
-      .map-legend-header h4 { font-size: 11px; }
-      .legend-item { font-size: 10px; }
+      /* 2026-06-02: 시트 제거 → 내 위치 버튼 하단 네비 위로 복귀 */
+      .map-my-location-btn { bottom: 80px; right: 12px; padding: 8px 14px; font-size: 12px; }
+      /* 2026-06-02: 최신 리뷰 시트 제거(독립 탭) → 범례를 하단 네비 위로 복귀 */
+      .map-legend-overlay { bottom: 80px; left: 8px; max-width: 120px; }
+      /* 2026-06-01: 펼친 범례 ~50% 축소 + 추가 20% 축소 (사용자 요청) */
+      .map-legend-header { padding: 4px 7px; }
+      .map-legend-header h4 { font-size: 9px; }
+      .map-legend-content { padding: 4px 7px; gap: 2px; }
+      .legend-item { font-size: 8px; gap: 4px; }
+      .legend-marker { width: 10px; height: 13px; }
+      .map-legend-toggle { font-size: 8px; }
+      /* 접힌 칩은 내용 폭만큼만 작게 (D 스타일 미니 범례) */
+      .map-legend-overlay.collapsed { max-width: none; width: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+      .map-legend-overlay.collapsed .map-legend-header { padding: 6px 11px; }
       /* 2026-05-19 정정: 데스크탑 자동 이동 규칙 제거되어 모바일 무효화 룰도 불필요 (물리 충돌이 처리) */
     }
