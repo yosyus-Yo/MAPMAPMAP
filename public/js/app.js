@@ -258,6 +258,7 @@
     let RECENT_REVIEWS = [];
 
     async function fetchRecentReviews(limit = 1000) {  // 2026-05-18: 20 → 1000 (전체 리뷰, 페이지네이션으로 표시)
+      await getMyLevel();  // 2026-06-02: 색 배지용 내 레벨 캐시 보장 (렌더 전)
       if (!supabaseClient) {
         console.warn('[sidebar] Supabase client 없음 — 빈 리스트 반환');
         return [];
@@ -382,7 +383,11 @@
       const start = _currentPage * PAGE_SIZE;
       const reviews = allReviews.slice(start, start + PAGE_SIZE);
 
-      list.innerHTML = reviews.map(r => {
+      // 비로그인/레벨 미설정 시 색 배지 안내 (2026-06-02)
+      const guideNote = (myCurrentLevel() === null || myCurrentLevel() === undefined)
+        ? `<div class="spice-login-note">ℹ️ 로그인 후 매운맛 레벨을 설정하면 내 기준으로 🟢🟠🔴 색이 표시돼요</div>`
+        : '';
+      list.innerHTML = guideNote + reviews.map(r => {
         const firstChar = (r.user_nickname || '?').charAt(0);
         const lvl = r.spicy_level ?? '?';
         const userLvl = r.user_level !== null ? `Lv.${r.user_level}` : '';
@@ -408,7 +413,7 @@
               <span class="rc-date">${escapeHtml(formatRelativeTime(r.created_at))}${distanceHtml}</span>
             </div>
             <div class="rc-restaurant">${escapeHtml(r.restaurant_name)}${menu ? `<span class="rc-menu-inline"> · ${menu}</span>` : ''}</div>
-            <span class="rc-level">평가 Lv.${lvl} 🌶</span>
+            <span class="rc-level">평가 Lv.${lvl} 🌶</span>${spiceBadgeHtml(r.spicy_level)}
             ${commentHtml}
             ${thumbHtml}
           </div>`;
@@ -461,6 +466,13 @@
       }
     };
 
+    // 로그인/레벨설정 후 최신 리뷰 재렌더 (2026-06-02): 색 배지 반영.
+    // app-handlers가 로그인 성공·레벨 설정 직후 호출 → _myLevel 무효화 + 사이드바 다시 그림.
+    window.refreshRecentReviews = function () {
+      _myLevel = null;  // 다음 getMyLevel 호출 시 재조회 (단, spiceBadgeHtml은 CURRENT_USER 우선)
+      try { renderSidebarList(); } catch (e) { console.warn('[refreshRecentReviews] 실패:', e); }
+    };
+
     // ============== 사이드바 탭 필터 (Phase 5b, 2026-05-18) ==============
     let _myLevel = null; // 로그인 사용자 매운맛 레벨 cache (lazy fetch)
 
@@ -468,6 +480,29 @@
     const PAGE_SIZE = 10;
     let _currentPage = 0;
     let _currentFilterName = 'all'; // 현재 활성 필터 (페이지 이동 시 필요)
+
+    // 현재 내 매운맛 레벨 (2026-06-02 fix): app-handlers의 CURRENT_USER를 우선 참조.
+    // getMyLevel()의 supabase 재조회는 별도 auth 인스턴스/타이밍으로 null이 될 수 있어,
+    // 로그인 권위 출처(CURRENT_USER)를 먼저 보고 없으면 캐시(_myLevel) fallback.
+    function myCurrentLevel() {
+      const cu = window.__appHandlers && window.__appHandlers.getCurrentUser && window.__appHandlers.getCurrentUser();
+      if (cu && cu.spicy_level !== null && cu.spicy_level !== undefined) return cu.spicy_level;
+      return _myLevel;
+    }
+
+    // 내 레벨 대비 상대 매운맛 색 배지 HTML (2026-06-02)
+    // diff = 리뷰레벨 - 내레벨 → ≤0 safe(🟢) / =1 warning(🟠) / ≥2 danger(🔴)
+    // 내 레벨이 null(비로그인/레벨 미설정)이거나 reviewLevel이 없으면 '' (배지 없음)
+    function spiceBadgeHtml(reviewLevel) {
+      const myLevel = myCurrentLevel();
+      if (myLevel === null || myLevel === undefined) return '';
+      if (reviewLevel === null || reviewLevel === undefined) return '';
+      const diff = reviewLevel - myLevel;
+      const [cls, label] = diff <= 0 ? ['safe', '맛있게 먹을 수 있어요']
+        : diff === 1 ? ['warning', '조금 매울 수 있어요']
+        : ['danger', '도전이 필요해요'];
+      return `<span class="spice-badge ${cls}">${label}</span>`;
+    }
 
     async function getMyLevel() {
       if (_myLevel !== null) return _myLevel;
@@ -693,6 +728,7 @@
 
     async function openReviewPanel(id) {
       _currentRestaurantId = id;  // 2026-05-18: "✍ 내가 인증 남기기" 핸들러용
+      await getMyLevel();  // 2026-06-02: 색 배지용 내 레벨 캐시 보장 (리뷰 렌더 전)
       const r = RESTAURANTS.find(x => x.id === id);
       if (!r) return;
       _rpCurrentRestaurant = r;
@@ -965,7 +1001,7 @@
               <div class="date">${escapeHtml(date)}</div>
             </div>
             <div class="body">
-              <div class="rc-level" style="margin-bottom:6px">평가 Lv.${reviewLevel} 🌶</div>
+              <div class="rc-level" style="margin-bottom:6px">평가 Lv.${reviewLevel} 🌶 ${spiceBadgeHtml(reviewLevel)}</div>
               ${escapeHtml(content.length > 80 ? content.slice(0, 80) + '…' : content)}
             </div>
             ${photos}
@@ -1094,6 +1130,9 @@
       document.getElementById('rm-content').textContent = content;
       // 최신 리뷰와 동일하게 "평가 Lv.N 🌶" 텍스트로 통일 (막대 제거, 2026-06-02)
       document.getElementById('rm-level').textContent = '평가 Lv.' + reviewLevel + ' 🌶';
+      // 내 레벨 대비 색 배지 (2026-06-02)
+      const _rmBadge = document.getElementById('rm-spice-badge');
+      if (_rmBadge) _rmBadge.innerHTML = spiceBadgeHtml(reviewLevel);
 
       // 사진들 — food_image_url JSON array 펼침 + receipt 마지막. 음식 사진부터 보임 (이전에는 첫 URL이 깨져 🚫 표시됨)
       _modalPhotos = getAllPhotoUrls(rv);

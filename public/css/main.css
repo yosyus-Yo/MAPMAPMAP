@@ -881,17 +881,32 @@
       line-height: 1.55;
       color: var(--text-2);
     }
-    .rp-review .body .level-line {
-      display: inline-flex;
-      gap: 2px;
-      margin-bottom: 4px;
+    /* 내 레벨 대비 매운맛 색 배지 (2026-06-02) — safe🟢 / warning🟠 / danger🔴 */
+    .spice-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      vertical-align: middle;
+      letter-spacing: -0.2px;
     }
-    .rp-review .body .level-line span {
-      width: 4px; height: 10px;
-      background: var(--surface-2);
-      border-radius: 1px;
+    .spice-badge.safe    { background: #e6f4ea; color: #1e7e34; }
+    .spice-badge.warning { background: #fff3e0; color: #e8590c; }
+    .spice-badge.danger  { background: #fdecea; color: #c5171e; }
+    /* 비로그인/레벨 미설정 안내 (최신 리뷰 탭 상단) */
+    .spice-login-note {
+      margin: 0 0 10px;
+      padding: 9px 12px;
+      background: linear-gradient(135deg, rgba(197,23,30,0.05), rgba(255,107,53,0.05));
+      border: 1px solid rgba(197,23,30,0.15);
+      border-radius: 10px;
+      font-size: 11px;
+      color: var(--text-3);
+      line-height: 1.4;
     }
-    .rp-review .body .level-line span.fill { background: var(--spice); }
     .rp-review .photos {
       display: flex;
       gap: 4px;

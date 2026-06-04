@@ -94,6 +94,8 @@
     CURRENT_USER = user;
     console.log('[app-handlers] ✅ 로그인 사용자:', user.nickname, 'Lv.' + user.spicy_level);
     renderUserChip(user);
+    // 2026-06-02: 로그인 후 최신 리뷰 색 배지 반영
+    if (typeof window.refreshRecentReviews === 'function') window.refreshRecentReviews();
 
     // 매운맛 레벨 미설정 시 level-setup view로 강제 이동
     if (user.spicy_level === null || user.spicy_level === undefined) {
@@ -265,6 +267,8 @@
       if (res && res.success) {
         CURRENT_USER.spicy_level = _selectedLevel;
         renderUserChip(CURRENT_USER);
+        // 2026-06-02: 레벨 변경 후 최신 리뷰 색 배지 재계산
+        if (typeof window.refreshRecentReviews === 'function') window.refreshRecentReviews();
         showToast('매운맛 레벨이 변경되었습니다');
         // P2-3: 설정 탭에서 진입한 경우 mypage로 복귀, 그 외 map으로
         const returnView = _levelSetupReturnView || 'map';
