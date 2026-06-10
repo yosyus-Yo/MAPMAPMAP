@@ -94,6 +94,7 @@
     CURRENT_USER = user;
     console.log('[app-handlers] ✅ 로그인 사용자:', user.nickname, 'Lv.' + user.spicy_level);
     renderUserChip(user);
+    document.body.classList.add('logged-in');  // 2026-06-09: 문의 버튼 offset(chip 왼쪽) 조정용
     // 2026-06-02: 로그인 후 최신 리뷰 색 배지 반영
     if (typeof window.refreshRecentReviews === 'function') window.refreshRecentReviews();
 
@@ -125,6 +126,7 @@
   function onAuthFail() {
     CURRENT_USER = null;
     hideUserChip();
+    document.body.classList.remove('logged-in');  // 2026-06-09: 문의 버튼 offset(guest 옆) 복귀
     // 미로그인 시 onboarding view로 (단, map view 보기는 허용 — 비로그인 read-only)
     // 강제 onboarding redirect 안 함 — 사용자가 지도 둘러보기 가능
   }
@@ -1273,6 +1275,169 @@
     overlay.style.display = 'flex';
   }
 
+  // 사용자 문의 목록 렌더 (2026-06-09) — admin 대시보드
+  // ============== 전체 리뷰 (2026-06-09) — 승인/반려/대기 모두 + 페이지네이션 + 재수정 ==============
+  let _adminAllReviews = [];
+  let _adminAllPage = 0;
+  const ADMIN_ALL_PAGE_SIZE = 10;
+
+  async function renderAllReviews() {
+    const list = $('#admin-allreviews-list');
+    if (!list) return;
+    if (!CURRENT_USER || !CURRENT_USER.is_admin) return;
+    try {
+      const res = await window.API.admin.getReviews('');  // status='' → 전체
+      _adminAllReviews = res?.reviews || [];
+      _adminAllPage = 0;
+      renderAllReviewsPage();
+    } catch (e) {
+      console.error('[admin] 전체 리뷰 로드 실패:', e);
+      list.innerHTML = `<div style="padding:18px; color:#c5171e; font-size:12px">❌ 전체 리뷰 로드 실패: ${escapeHtml(e.message || String(e))}</div>`;
+    }
+  }
+
+  function renderAllReviewsPage() {
+    const list = $('#admin-allreviews-list');
+    const pag = $('#admin-allreviews-pagination');
+    if (!list) return;
+    const all = _adminAllReviews;
+    $('#admin-allreviews-count') && ($('#admin-allreviews-count').textContent = `${all.length} 건`);
+    if (all.length === 0) {
+      list.innerHTML = `<div style="padding:24px 18px; text-align:center; color:var(--text-3); font-size:13px">리뷰가 없어요</div>`;
+      if (pag) pag.innerHTML = '';
+      return;
+    }
+    const totalPages = Math.ceil(all.length / ADMIN_ALL_PAGE_SIZE);
+    if (_adminAllPage >= totalPages) _adminAllPage = totalPages - 1;
+    if (_adminAllPage < 0) _adminAllPage = 0;
+    const start = _adminAllPage * ADMIN_ALL_PAGE_SIZE;
+    const pageItems = all.slice(start, start + ADMIN_ALL_PAGE_SIZE);
+
+    const statusLabel = {
+      pending: '<span style="color:#e8590c">⏳ 대기</span>',
+      approved: '<span style="color:#1e7e34">✅ 승인</span>',
+      rejected: '<span style="color:#c5171e">❌ 반려</span>',
+    };
+    const stBtn = (curr, target, label, color, id) => curr === target ? '' :
+      `<button type="button" class="ar-status-btn" data-ar-id="${escapeHtml(String(id))}" data-ar-status="${target}"
+        style="font-size:11px; padding:3px 9px; border:1px solid var(--border); border-radius:6px; cursor:pointer; background:var(--panel); color:${color}">${label}</button>`;
+
+    list.innerHTML = pageItems.map((r, i) => {
+      const globalIdx = start + i;
+      const nick = r.user_nickname || '익명';
+      const rest = r.restaurant_name || '알 수 없음';
+      const lvl = r.spicy_level ?? '?';
+      const content = r.content || r.review_text || r.comment || '';
+      const date = r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '';
+      const st = r.status || 'pending';
+      return `
+        <div class="ar-detail-row" data-ar-detail-idx="${globalIdx}" style="padding:12px 14px; border-bottom:1px solid var(--border); cursor:pointer">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:4px">
+            <span style="font-size:13px; font-weight:700">${escapeHtml(rest)} <span style="font-size:11px; color:var(--text-3); font-weight:500">· ${escapeHtml(nick)} · Lv.${lvl}</span></span>
+            <span style="font-size:11px; white-space:nowrap">${statusLabel[st] || escapeHtml(st)} <span style="color:var(--text-4)">${escapeHtml(date)}</span></span>
+          </div>
+          <div style="font-size:12px; color:var(--text-2); line-height:1.4; margin-bottom:6px; white-space:pre-wrap; word-break:break-word">${escapeHtml(content.length > 100 ? content.slice(0, 100) + '…' : content)}</div>
+          <div style="display:flex; gap:6px">
+            ${stBtn(st, 'approved', '✅ 승인', '#1e7e34', r.id)}
+            ${stBtn(st, 'rejected', '❌ 반려', '#c5171e', r.id)}
+            ${stBtn(st, 'pending', '⏳ 대기로', '#e8590c', r.id)}
+          </div>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.ar-status-btn').forEach(b => {
+      b.addEventListener('click', async (ev) => {
+        ev.stopPropagation();  // 카드 클릭(상세 열기)과 분리
+        const id = b.dataset.arId, target = b.dataset.arStatus;
+        b.disabled = true;
+        try {
+          await window.API.admin.setReviewStatus(id, target);
+          const item = _adminAllReviews.find(x => String(x.id) === String(id));
+          if (item) item.status = target;
+          renderAllReviewsPage();
+          showToast('상태 변경 완료');
+        } catch (e) { showToast('변경 실패: ' + (e.message || e)); b.disabled = false; }
+      });
+    });
+
+    // 카드 클릭 → 리뷰 상세 모달 (2026-06-09)
+    list.querySelectorAll('.ar-detail-row').forEach(card => {
+      card.addEventListener('click', () => {
+        const idx = parseInt(card.dataset.arDetailIdx, 10);
+        const rv = _adminAllReviews[idx];
+        if (rv && typeof window.openReviewModalData === 'function') {
+          window.openReviewModalData(rv);
+        }
+      });
+    });
+
+    if (pag) {
+      if (totalPages <= 1) { pag.innerHTML = ''; }
+      else {
+        pag.innerHTML = `
+          <button type="button" class="ar-page" data-ar-page="prev" ${_adminAllPage === 0 ? 'disabled' : ''} style="padding:5px 10px; border:1px solid var(--border); border-radius:6px; cursor:pointer; background:var(--panel)">‹ 이전</button>
+          <span style="color:var(--text-3)">${_adminAllPage + 1} / ${totalPages}</span>
+          <button type="button" class="ar-page" data-ar-page="next" ${_adminAllPage >= totalPages - 1 ? 'disabled' : ''} style="padding:5px 10px; border:1px solid var(--border); border-radius:6px; cursor:pointer; background:var(--panel)">다음 ›</button>`;
+        pag.querySelectorAll('.ar-page').forEach(pb => {
+          pb.addEventListener('click', () => {
+            if (pb.dataset.arPage === 'prev' && _adminAllPage > 0) _adminAllPage--;
+            else if (pb.dataset.arPage === 'next' && _adminAllPage < totalPages - 1) _adminAllPage++;
+            renderAllReviewsPage();
+          });
+        });
+      }
+    }
+  }
+
+  async function renderFeedbackList() {
+    const list = $('#admin-feedback-list');
+    if (!list) return;
+    if (!CURRENT_USER || !CURRENT_USER.is_admin) return;
+    try {
+      const res = await window.API.feedback.list();
+      const items = res?.items || [];
+      $('#admin-feedback-count') && ($('#admin-feedback-count').textContent = `${items.length} 건`);
+      $('#admin-feedback-tab-count') && ($('#admin-feedback-tab-count').textContent = items.length ? `(${items.length})` : '');
+      if (items.length === 0) {
+        list.innerHTML = `<div style="padding:24px 18px; text-align:center; color:var(--text-3); font-size:13px">아직 문의가 없어요</div>`;
+        return;
+      }
+      const catLabel = { suggestion: '💡 제안', bug: '🐞 버그', etc: '💬 기타' };
+      list.innerHTML = items.map(f => {
+        const cat = catLabel[f.category] || '💬 기타';
+        const who = f.users?.nickname || (f.email ? f.email : '비회원');
+        const date = f.created_at ? new Date(f.created_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        const resolved = f.status === 'resolved';
+        return `
+          <div style="padding:12px 14px; border-bottom:1px solid var(--border); ${resolved ? 'opacity:0.55' : ''}">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px">
+              <span style="font-size:12px; font-weight:700">${cat} <span style="color:var(--text-3); font-weight:500">· ${escapeHtml(who)}</span></span>
+              <span style="font-size:10px; color:var(--text-4); white-space:nowrap">${escapeHtml(date)}</span>
+            </div>
+            <div style="font-size:13px; color:var(--text); line-height:1.5; white-space:pre-wrap; word-break:break-word">${escapeHtml(f.content || '')}</div>
+            ${f.email ? `<div style="font-size:11px; color:var(--text-3); margin-top:4px">📧 ${escapeHtml(f.email)}</div>` : ''}
+            <div style="margin-top:8px">
+              <button type="button" class="fb-status-btn" data-fb-id="${escapeHtml(String(f.id))}" data-fb-status="${resolved ? 'new' : 'resolved'}"
+                style="font-size:11px; padding:3px 10px; border:1px solid var(--border); border-radius:6px; cursor:pointer; background:${resolved ? 'var(--surface)' : 'var(--panel)'}; color:var(--text)">
+                ${resolved ? '↩ 미처리로' : '✓ 처리완료'}
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+      list.querySelectorAll('.fb-status-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await window.API.feedback.setStatus(btn.dataset.fbId, btn.dataset.fbStatus);
+            renderFeedbackList();
+          } catch (e) { showToast('상태 변경 실패: ' + (e.message || e)); }
+        });
+      });
+    } catch (e) {
+      console.error('[admin] 피드백 로드 실패:', e);
+      list.innerHTML = `<div style="padding:18px; color:#c5171e; font-size:12px; line-height:1.6">❌ 피드백 로드 실패: ${escapeHtml(e.message || String(e))}<br><span style="font-size:10px; color:var(--text-4)">feedback 테이블이 없을 수 있습니다 — SQL 실행 필요</span></div>`;
+    }
+  }
+
   async function renderAdminView() {
     const list = $('#admin-pending-list');
     if (!list) return;
@@ -1293,6 +1458,8 @@
 
     // 공지사항 폼 로드 (Phase B, 2026-05-19) — pending list와 병렬
     loadAnnouncementForm();
+    renderFeedbackList();  // 2026-06-09: 사용자 문의 목록
+    renderAllReviews();    // 2026-06-09: 전체 리뷰(승인/반려/대기) + 재수정
 
     try {
       const [pendingRes, statsRes] = await Promise.all([
@@ -1738,6 +1905,60 @@
   }
 
   // ============== 초기화 ==============
+  // ============== 문의 / 피드백 (2026-06-09) ==============
+  function openFeedback() {
+    const overlay = $('#feedbackOverlay');
+    if (!overlay) return;
+    const c = $('#feedbackContent'); if (c) c.value = '';
+    const em = $('#feedbackEmail'); if (em) em.value = (CURRENT_USER?.email || '');
+    const st = $('#feedbackStatus'); if (st) { st.textContent = ''; st.style.color = ''; }
+    overlay.classList.add('active');
+    setTimeout(() => c?.focus(), 50);
+  }
+
+  async function submitFeedback() {
+    const content = $('#feedbackContent')?.value.trim();
+    const email = $('#feedbackEmail')?.value.trim();
+    const category = $('#feedbackCategory')?.value || 'etc';
+    const status = $('#feedbackStatus');
+    const btn = $('#feedbackSubmit');
+    if (!content) {
+      if (status) { status.textContent = '내용을 입력해주세요'; status.style.color = '#c5171e'; }
+      return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = '보내는 중...'; }
+    try {
+      await window.API.feedback.submit({ content, email, category });
+      if (status) { status.textContent = '✅ 소중한 의견 감사합니다!'; status.style.color = '#1e7e34'; }
+      setTimeout(() => $('#feedbackOverlay')?.classList.remove('active'), 1200);
+    } catch (e) {
+      console.error('[feedback] 제출 실패:', e);
+      if (status) { status.textContent = '❌ ' + (e.message || '제출 실패 — 잠시 후 다시 시도해주세요'); status.style.color = '#c5171e'; }
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '보내기'; }
+    }
+  }
+
+  function wireFeedback() {
+    $('#inquiryBtn')?.addEventListener('click', openFeedback);
+    $('#feedbackClose')?.addEventListener('click', () => $('#feedbackOverlay')?.classList.remove('active'));
+    $('#feedbackSubmit')?.addEventListener('click', submitFeedback);
+  }
+
+  // 관리자 대시보드 탭 전환 (2026-06-09) — 리뷰·설정 / 문의
+  function wireAdminTabs() {
+    document.querySelectorAll('.admin-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.adminTab;
+        document.querySelectorAll('.admin-tab').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.admin-panel').forEach(p => {
+          p.style.display = (p.dataset.adminPanel === tab) ? '' : 'none';
+        });
+        if (tab === 'feedback') renderFeedbackList();  // 진입 시 최신 갱신
+      });
+    });
+  }
+
   async function init() {
     if (!window.API) {
       // api.js 아직 로드 안 됨 — 100ms 후 재시도 (defer 순서 보호)
@@ -1745,6 +1966,8 @@
       return;
     }
     bindHandlers();
+    wireFeedback();
+    wireAdminTabs();
     // Supabase SDK 로드 대기 후 인증 시도
     setTimeout(() => initAuth(), 700);
   }

@@ -19,6 +19,13 @@ os.chdir(ROOT)
 
 
 class SPAHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        # 캐시 비활성화 — 파일 수정 후 일반 새로고침만으로 최신 코드 반영 (2026-06-09)
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        super().end_headers()
+
     def do_GET(self):
         clean = self.path.split('?')[0]
         local = self.translate_path(clean)

@@ -52,18 +52,18 @@
        모든 자산이 public/css/, public/js/, public/img/에 위치하여
        /map, /onboarding 등 SPA rewrite 시 상대 경로가 자연스럽게 /css/...로 해석됨. -->
 
-  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/tokens.css?v=20260609">
   <!-- 환영/공지 팝업 (Phase 6 추가, 2026-05-18) -->
-  <link rel="stylesheet" href="/css/announce.css">
+  <link rel="stylesheet" href="/css/announce.css?v=20260609">
   <!-- 사이드바 최신 리뷰 카드 (Phase 5 추가, 2026-05-18) -->
-  <link rel="stylesheet" href="/css/sidebar-reviews.css">
+  <link rel="stylesheet" href="/css/sidebar-reviews.css?v=20260609">
   <!-- 이미지 viewer (후속2 추가, 2026-05-18) -->
-  <link rel="stylesheet" href="/css/image-viewer.css">
+  <link rel="stylesheet" href="/css/image-viewer.css?v=20260609">
   <!-- 버전 토글 (Stage B, 2026-05-18) -->
   <!-- version-toggle.css 제거 2026-05-20: v1 deprecated, v2가 메인 -->
   <!-- <link rel="stylesheet" href="/css/version-toggle.css"> -->
   <!-- 메인 CSS (2026-05-19: 인라인 <style> 분리) -->
-  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/main.css?v=20260610i">
   <!-- 카카오 지도 SDK 사전 로드 (2026-05-18, P2-4 final fix)
        페이지 protocol이 http://이면 protocol-relative `//`가 http로 해석되어 카카오 SDK 거부됨.
        https 명시로 항상 안전한 https 요청. (http page → https resource는 차단 안 됨) -->
@@ -189,18 +189,24 @@
       </div>
     </div>
   </div>
-  <!-- user-chip: 로그인 시 표시. Phase 7에서 동적 렌더 (avatar / lvl). 2026-05-20: 크기 확대 + "마이페이지" 라벨 추가 -->
-  <div class="user-chip-floating" data-view="mypage" id="userChip" style="display:none">
-    <div class="avatar" id="userChipAvatar">?</div>
-    <div class="lvl-mini" id="userChipLevel">Lv.—</div>
-    <div class="chip-label">마이페이지</div>
-  </div>
+  <!-- 우상단 액션 영역 (2026-06-09 flex 통합) — 문의 + 로그인/마이페이지를 flex로 묶어 자동 정렬.
+       이전 고정 offset(px) 방식은 버튼 너비와 안 맞아 간격이 벌어지는 문제로 컨테이너 방식으로 교체 -->
+  <div class="top-actions">
+    <!-- 문의 버튼: 회원/비회원 모두 항상 표시 -->
+    <button class="inquiry-btn" id="inquiryBtn" type="button" title="문의 / 피드백">💬 문의</button>
 
-  <!-- guest-login-btn: 비회원 시 표시. onAuthFail에서 show, onAuthSuccess에서 hide (2026-05-20)
-       기본 display:none — initAuth→onAuthFail이 hideUserChip()으로 inline 제거하면 CSS inline-block 복귀로 표시 -->
-  <button class="guest-login-btn" id="guestLoginBtn" data-view="onboarding" type="button" style="display:none">
-    🌶 로그인
-  </button>
+    <!-- guest-login-btn: 비회원 시 표시. onAuthFail에서 show, onAuthSuccess에서 hide -->
+    <button class="guest-login-btn" id="guestLoginBtn" data-view="onboarding" type="button" style="display:none">
+      🌶 로그인
+    </button>
+
+    <!-- user-chip: 로그인 시 표시. Phase 7에서 동적 렌더 (avatar / lvl) -->
+    <div class="user-chip-floating" data-view="mypage" id="userChip" style="display:none">
+      <div class="avatar" id="userChipAvatar">?</div>
+      <div class="lvl-mini" id="userChipLevel">Lv.—</div>
+      <div class="chip-label">마이페이지</div>
+    </div>
+  </div>
 
   <!-- 하단 중앙 Floating Pill Nav (07 패턴, 5개 핵심 view) -->
   <nav class="pill-nav">
@@ -304,6 +310,23 @@
             <!-- 카카오 지도 컨테이너 (SDK 로드 후 채워짐) -->
             <div id="kakao-map"></div>
 
+            <!-- 맵기 레벨 필터: 상단 드롭다운 버튼 (2026-06-10) — 평소 버튼 1개, 탭하면 색상 칩 펼침 -->
+            <div class="level-filter-dd" id="level-filter-dd">
+              <button type="button" class="lvdd-toggle" id="lvdd-toggle" aria-expanded="false">
+                <span class="lvdd-label">맵기 레벨</span>
+                <span class="lvdd-caret">▾</span>
+              </button>
+              <div class="lvdd-panel" id="level-filter-list" hidden>
+                <button type="button" class="lvfilter-chip lvfilter-all active" data-lvfilter="all">전체</button>
+                <button type="button" class="lvfilter-chip" data-lvfilter="0" aria-label="맵기 레벨 0">0</button>
+                <button type="button" class="lvfilter-chip" data-lvfilter="1" aria-label="맵기 레벨 1">1</button>
+                <button type="button" class="lvfilter-chip" data-lvfilter="2" aria-label="맵기 레벨 2">2</button>
+                <button type="button" class="lvfilter-chip" data-lvfilter="3" aria-label="맵기 레벨 3">3</button>
+                <button type="button" class="lvfilter-chip" data-lvfilter="4" aria-label="맵기 레벨 4">4</button>
+                <button type="button" class="lvfilter-chip" data-lvfilter="5" aria-label="맵기 레벨 5">5</button>
+              </div>
+            </div>
+
             <!-- 내 위치로 이동 버튼 (v1 이식 Phase B, 2026-05-19) -->
             <button type="button" class="map-my-location-btn" id="map-my-location-btn" title="내 위치로 이동">
               📍 내 위치로
@@ -315,12 +338,13 @@
                 <h4>🔥 매운맛 레벨</h4>
                 <button class="map-legend-toggle" type="button">▲</button>
               </div>
+              <!-- 범례: 설명 전용 복구 (2026-06-10) — 마커 색상 의미만, 필터는 상단 드롭다운 분리 -->
               <div class="map-legend-content">
-                <div class="legend-item"><img src="/img/marker-lv0.png" alt="Lv.0" class="legend-marker"><span>Lv.0~1</span></div>
-                <div class="legend-item"><img src="/img/marker-lv1.png" alt="Lv.2" class="legend-marker"><span>Lv.2</span></div>
-                <div class="legend-item"><img src="/img/marker-lv2.png" alt="Lv.3" class="legend-marker"><span>Lv.3</span></div>
-                <div class="legend-item"><img src="/img/marker-lv3.png" alt="Lv.4" class="legend-marker"><span>Lv.4</span></div>
-                <div class="legend-item"><img src="/img/marker-lv4.png" alt="Lv.5" class="legend-marker"><span>Lv.5</span></div>
+                <div class="legend-item"><img src="/img/marker-lv0.png" alt="Lv.0~1" class="legend-marker"><span>Lv.0~1 순함</span></div>
+                <div class="legend-item"><img src="/img/marker-lv1.png" alt="Lv.2" class="legend-marker"><span>Lv.2 보통</span></div>
+                <div class="legend-item"><img src="/img/marker-lv2.png" alt="Lv.3" class="legend-marker"><span>Lv.3 매운맛</span></div>
+                <div class="legend-item"><img src="/img/marker-lv3.png" alt="Lv.4" class="legend-marker"><span>Lv.4 아주매움</span></div>
+                <div class="legend-item"><img src="/img/marker-lv4.png" alt="Lv.5" class="legend-marker"><span>Lv.5 맵친자</span></div>
               </div>
             </div>
 
@@ -796,6 +820,13 @@
         </div>
 
         <div class="admin-body">
+          <!-- 관리자 탭 (2026-06-09) — 리뷰·설정 / 문의 분리 -->
+          <div class="admin-tabs">
+            <button type="button" class="admin-tab active" data-admin-tab="main">📋 리뷰·설정</button>
+            <button type="button" class="admin-tab" data-admin-tab="feedback">💬 문의 <span class="admin-tab-badge" id="admin-feedback-tab-count"></span></button>
+          </div>
+
+          <div class="admin-panel" data-admin-panel="main">
           <div class="ad-section">
             <div class="head">
               <h3>⏳ 승인 대기 리뷰</h3>
@@ -806,6 +837,20 @@
                 ⏳ 로딩 중...
               </div>
             </div>
+          </div>
+
+          <!-- 전체 리뷰 (2026-06-09) — 승인/반려/대기 모두, 10개 페이지네이션 + 관리자 재수정 -->
+          <div class="ad-section" style="grid-column: 1 / -1">
+            <div class="head">
+              <h3>📝 전체 리뷰 (관리자 재수정)</h3>
+              <span class="badge" id="admin-allreviews-count">— 건</span>
+            </div>
+            <div id="admin-allreviews-list">
+              <div style="padding: 24px 18px; text-align:center; color:var(--text-3); font-size:13px">
+                ⏳ 로딩 중...
+              </div>
+            </div>
+            <div id="admin-allreviews-pagination" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 4px; font-size:12px"></div>
           </div>
 
           <!-- 공지사항 편집 (Phase B, 2026-05-19) -->
@@ -860,6 +905,22 @@
               <div>• 관리자 권한이 없으면 본 뷰는 자동 차단됩니다.</div>
             </div>
           </div>
+          </div><!-- /admin-panel main -->
+
+          <!-- 문의 탭 패널 (2026-06-09) -->
+          <div class="admin-panel" data-admin-panel="feedback" style="display:none">
+            <div class="ad-section">
+              <div class="head">
+                <h3>💬 사용자 문의</h3>
+                <span class="badge" id="admin-feedback-count">— 건</span>
+              </div>
+              <div id="admin-feedback-list">
+                <div style="padding: 24px 18px; text-align:center; color:var(--text-3); font-size:13px">
+                  ⏳ 로딩 중...
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -881,20 +942,41 @@
       </ul>
     </div>
   </div>
-  
+
+  <!-- 문의/피드백 모달 (2026-06-09) — 비회원도 제출 가능, 제출 시 관리자 대시보드에 표시 -->
+  <div class="feedback-overlay" id="feedbackOverlay" role="dialog" aria-modal="true" aria-label="문의하기"
+       onclick="if(event.target.id==='feedbackOverlay')document.getElementById('feedbackOverlay').classList.remove('active')">
+    <div class="feedback-popup" onclick="event.stopPropagation()">
+      <button type="button" class="feedback-close" id="feedbackClose" title="닫기">&times;</button>
+      <h3>💬 문의 / 피드백</h3>
+      <p class="feedback-sub">불편한 점·제안·버그를 알려주세요. 큰 힘이 됩니다 🙏</p>
+      <label class="feedback-label" for="feedbackCategory">분류</label>
+      <select class="feedback-input" id="feedbackCategory">
+        <option value="suggestion">💡 제안 / 개선</option>
+        <option value="bug">🐞 버그 / 오류</option>
+        <option value="etc">💬 기타</option>
+      </select>
+      <label class="feedback-label" for="feedbackContent">내용 *</label>
+      <textarea class="feedback-input" id="feedbackContent" rows="5" placeholder="문의 내용을 입력해주세요"></textarea>
+      <label class="feedback-label" for="feedbackEmail">이메일 (선택 — 답변 받을 주소)</label>
+      <input type="email" class="feedback-input" id="feedbackEmail" placeholder="example@email.com" autocomplete="email">
+      <button type="button" class="feedback-submit" id="feedbackSubmit">보내기</button>
+      <div class="feedback-status" id="feedbackStatus" role="status"></div>
+    </div>
+  </div>
 
   <!-- 환영/공지 팝업 로직 (Phase 6, 2026-05-18) — 다른 init과 독립 -->
-  <script src="/js/announce.js" defer></script>
-  <script src="/js/slime-physics.js" defer></script>
+  <script src="/js/announce.js?v=20260609" defer></script>
+  <script src="/js/slime-physics.js?v=20260610g" defer></script>
   <!-- Fullscreen 이미지 viewer (후속2, 2026-05-18) -->
-  <script src="/js/image-viewer.js" defer></script>
+  <script src="/js/image-viewer.js?v=20260609" defer></script>
   <!-- 버전 토글 (Stage B, 2026-05-18) -->
   <!-- version-toggle.js 제거 2026-05-20: 버튼 없으니 JS도 불필요 -->
   <!-- <script src="/js/version-toggle.js" defer></script> -->
   <!-- API 모듈 (Phase 7, 2026-05-18) — IIFE로 wrap, window.API 노출 -->
-  <script src="/js/api.js" defer></script>
+  <script src="/js/api.js?v=20260609" defer></script>
   <!-- 인증/마이페이지/레벨 핸들러 (Phase 7, 2026-05-18) — api.js 이후 로드 -->
-  <script src="/js/app-handlers.js" defer></script>
-  <script src="/js/app.js" defer></script>
+  <script src="/js/app-handlers.js?v=20260609" defer></script>
+  <script src="/js/app.js?v=20260610g" defer></script>
 </body>
 </html>

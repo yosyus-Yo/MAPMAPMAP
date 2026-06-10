@@ -678,6 +678,21 @@ const API = {
       };
     },
 
+    // 리뷰 상태 직접 변경 (2026-06-09) — 이미 처리된(승인/반려) 리뷰도 관리자가 재수정 가능.
+    // approve/reject와 달리 pending 제약 없음 (포인트 재계산은 범위 외 — status만 변경).
+    async setReviewStatus(id, status) {
+      const sb = initSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+      if (!authUser) throw new Error('로그인이 필요합니다');
+      const { data: userData } = await sb
+        .from('users').select('is_admin').eq('id', authUser.id).single();
+      if (!userData?.is_admin) throw new Error('관리자 권한이 필요합니다');
+      if (!['pending', 'approved', 'rejected'].includes(status)) throw new Error('잘못된 상태값');
+      const { error } = await sb.from('reviews').update({ status }).eq('id', id);
+      if (error) throw error;
+      return { success: true };
+    },
+
     async approve(id) {
       const sb = initSupabase();
 
@@ -1071,6 +1086,55 @@ const API = {
 
       if (error) throw error;
       return { success: true, announcement: data };
+    }
+  },
+
+  // 사용자 문의/피드백 (2026-06-09) — 비회원도 제출 가능(anon insert), admin만 조회
+  feedback: {
+    // 피드백 제출. 로그인 사용자는 user_id 자동 첨부, 비회원은 null.
+    async submit({ content, email, category }) {
+      const sb = initSupabase();
+      const trimmed = (content || '').trim();
+      if (!trimmed) throw new Error('문의 내용을 입력해주세요');
+      const { data: { user: authUser } } = await sb.auth.getUser();
+      // ⚠️ .select() 미사용 — insert 후 RETURNING(되읽기)은 SELECT 정책(admin only)이 필요해
+      //    비회원/일반회원 제출 시 "new row violates RLS" 에러가 발생함 (2026-06-09 fix).
+      //    제출은 성공 여부만 필요하므로 insert만 수행.
+      const { error } = await sb
+        .from('feedback')
+        .insert({
+          content: trimmed,
+          email: (email || '').trim() || null,
+          category: category || 'etc',
+          user_id: authUser?.id || null,
+          status: 'new',
+        });
+      if (error) throw error;
+      return { success: true };
+    },
+
+    // 피드백 목록 (admin gate가 클라이언트 1차 차단, RLS는 admin SELECT만 허용)
+    // user_id가 있으면 users(nickname) FK join으로 작성자 표시
+    async list() {
+      const sb = initSupabase();
+      const { data, error } = await sb
+        .from('feedback')
+        .select('*, users (nickname)')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return { success: true, items: data || [] };
+    },
+
+    // 처리 상태 변경 (new → resolved)
+    async setStatus(id, status) {
+      const sb = initSupabase();
+      const { error } = await sb
+        .from('feedback')
+        .update({ status })
+        .eq('id', id);
+      if (error) throw error;
+      return { success: true };
     }
   }
 };

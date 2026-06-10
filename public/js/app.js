@@ -134,6 +134,7 @@
     let detailMap = null;     // (변수명 유지) Kakao Map 인스턴스
     let supabaseClient = null;
     let mainMarkers = [];     // 가게 마커 + CustomOverlay 추적 (재렌더링용)
+    const _levelFilter = new Set();  // 맵기 레벨 필터 (빈 Set = 전체, 2026-06-09)
 
     // Kakao 지도 타입 매핑 (UI #tileToggle의 dataset.tile 값과 매칭)
     let currentTileName = 'voyager';  // 기본 = ROADMAP
@@ -1154,6 +1155,7 @@
       // 공감 버튼 상태 렌더 + 클릭 핸들러 (2026-05-20)
       // rpToggleLike(reviewId, btnEl) 재사용 — btnEl은 .heart/.count 자식이 있는 button이면 OK
       const likeBtn = document.getElementById('rm-like-btn');
+      if (likeBtn) likeBtn.style.display = '';  // 관리자 상세에서 숨겼을 수 있어 복원
       if (likeBtn && rv.id) {
         const isLiked = (_rpMyLikedSet && _rpMyLikedSet.has(rv.id)) || false;
         const count = (_rpLikeCounts && _rpLikeCounts[rv.id]) || 0;
@@ -1254,6 +1256,52 @@
       _modalPhotoIdx = idx;
       renderModalPhoto();
       document.querySelectorAll('.rm-photo-thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
+    };
+
+    // 전체 리뷰(관리자) 상세 — 객체로 reviewModal 열기 (2026-06-09)
+    // openReviewModal(idx)는 _currentReviews 기반이라, admin 전체리뷰 데이터용으로 별도 진입점 제공.
+    window.openReviewModalData = function(rv) {
+      if (!rv) return;
+      const _modal = document.getElementById('reviewModal');
+      const key = 'admin-' + (rv.id || '');
+      if (_modal && _modal.classList.contains('open') && _modal.dataset.currentIdx === key) {
+        window.closeReviewModal();
+        return;
+      }
+      if (_modal) _modal.dataset.currentIdx = key;
+
+      const nickname = rv.user_nickname || rv.users?.nickname || '익명';
+      const userLevel = rv.user_level ?? rv.users?.spicy_level ?? 0;
+      const reviewLevel = rv.spicy_level ?? rv.level ?? 0;
+      const date = rv.created_at ? new Date(rv.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }) : '';
+      const content = rv.content || rv.review_text || rv.comment || '(내용 없음)';
+      const rest = rv.restaurant_name || rv.restaurants?.name || '';
+
+      document.getElementById('rm-avatar').textContent = nickname.charAt(0) || '?';
+      document.getElementById('rm-nickname').innerHTML = `${escapeHtml(nickname)} <span class="badge">Lv.${userLevel}</span>${rest ? ` · ${escapeHtml(rest)}` : ''}`;
+      document.getElementById('rm-date').textContent = date;
+      document.getElementById('rm-content').textContent = content;
+      document.getElementById('rm-level').textContent = '평가 Lv.' + reviewLevel + ' 🌶';
+      const _rmBadge = document.getElementById('rm-spice-badge');
+      if (_rmBadge) _rmBadge.innerHTML = '';  // 관리자 상세엔 내 레벨 배지 불필요
+
+      _modalPhotos = getAllPhotoUrls(rv);
+      _modalPhotoIdx = 0;
+      renderModalPhoto();
+      const thumbsSection = document.getElementById('rm-thumbs-section');
+      const thumbs = document.getElementById('rm-thumbs');
+      if (_modalPhotos.length > 1) {
+        thumbsSection.style.display = '';
+        thumbs.innerHTML = _modalPhotos.map((u, i) =>
+          `<img class="rm-photo-thumb${i === 0 ? ' active' : ''}" src="${escapeHtml(u)}" onclick="setModalPhoto(${i})" onerror="this.style.display='none'">`).join('');
+      } else {
+        thumbsSection.style.display = 'none';
+      }
+      // 관리자 상세에선 공감 버튼 숨김
+      const likeBtn = document.getElementById('rm-like-btn');
+      if (likeBtn) likeBtn.style.display = 'none';
+
+      _modal.classList.add('open');
     };
 
     window.closeReviewModal = function() {
@@ -1368,6 +1416,7 @@
       }
       document.body.classList.add('kakao-loaded');
       addMainMarkers();
+      wireLevelFilter();
       tryUserLocation(leafMap);
       setTimeout(() => leafMap.relayout(), 200);
     }
@@ -1401,6 +1450,62 @@
       </div>`;
     }
 
+    // 맵기 레벨 필터 (2026-06-10: 상단 드롭다운 버튼) — 전체 ↔ Lv.0~5 토글
+    function updateLevelFilterUI() {
+      const list = document.getElementById('level-filter-list');
+      if (!list) return;
+      list.querySelectorAll('.lvfilter-chip').forEach(c => {
+        const v = c.dataset.lvfilter;
+        if (v === 'all') c.classList.toggle('active', _levelFilter.size === 0);
+        else c.classList.toggle('active', _levelFilter.has(parseInt(v, 10)));
+      });
+      // 드롭다운 버튼 라벨에 현재 선택 반영
+      const lbl = document.querySelector('#lvdd-toggle .lvdd-label');
+      if (lbl) {
+        lbl.textContent = _levelFilter.size === 0
+          ? '맵기 레벨'
+          : '맵기 Lv.' + [..._levelFilter].sort((a, b) => a - b).join(',');
+      }
+      // 선택 시 버튼 active 표시 (필터 적용 중 강조)
+      const toggle = document.getElementById('lvdd-toggle');
+      if (toggle) toggle.classList.toggle('filtering', _levelFilter.size > 0);
+    }
+    function wireLevelFilter() {
+      const list = document.getElementById('level-filter-list');
+      const toggle = document.getElementById('lvdd-toggle');
+      if (!list || list.dataset.wired) return;
+      list.dataset.wired = '1';
+      // 드롭다운 펼침/접힘
+      if (toggle) {
+        toggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const closed = list.hasAttribute('hidden');
+          if (closed) { list.removeAttribute('hidden'); toggle.setAttribute('aria-expanded', 'true'); }
+          else { list.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); }
+        });
+        // 바깥 클릭 시 패널 닫기
+        document.addEventListener('click', (e) => {
+          const dd = document.getElementById('level-filter-dd');
+          if (dd && !dd.contains(e.target)) { list.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); }
+        });
+      }
+      // 레벨 칩 클릭 (단일 레벨 토글, 다중 선택 가능)
+      list.addEventListener('click', (e) => {
+        const chip = e.target.closest('.lvfilter-chip');
+        if (!chip) return;
+        const v = chip.dataset.lvfilter;
+        if (v === 'all') {
+          _levelFilter.clear();                 // 전체 → 모든 레벨 표시
+        } else {
+          const lvl = parseInt(v, 10);
+          if (_levelFilter.has(lvl)) _levelFilter.delete(lvl);
+          else _levelFilter.add(lvl);           // 레벨 토글 → 전체 자동 해제
+        }
+        updateLevelFilterUI();
+        addMainMarkers();                         // 마커 재렌더 (필터 반영, 지도 위치는 유지)
+      });
+    }
+
     function addMainMarkers() {
       if (!leafMap || !window.kakao) return;
       // 기존 마커 정리
@@ -1410,6 +1515,7 @@
       RESTAURANTS.forEach(r => {
         if (!r.lat || !r.lng) return;
         const lvl = Math.round(r.avg_level || 0);
+        if (_levelFilter.size > 0 && !_levelFilter.has(lvl)) return;  // 맵기 레벨 필터 (2026-06-09)
         const pos = new window.kakao.maps.LatLng(r.lat, r.lng);
 
         // 커스텀 불꽃 마커 (CustomOverlay)
@@ -1467,8 +1573,11 @@
       });
       const mapType = kakaoMapTypeFor(currentTileName);
       if (mapType) detailMap.setMapTypeId(mapType);
-      const zoomControl = new window.kakao.maps.ZoomControl();
-      detailMap.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+      // 줌 컨트롤 — 모바일에선 제거 (핀치 줌으로 충분, 화면 정리) — 2026-06-10
+      if (!window.matchMedia('(max-width: 768px)').matches) {
+        const zoomControl = new window.kakao.maps.ZoomControl();
+        detailMap.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+      }
       if (r && r.lat && r.lng) {
         const lvl = Math.round(r.avg_level || 0);
         const overlay = new window.kakao.maps.CustomOverlay({
