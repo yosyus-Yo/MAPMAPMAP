@@ -2353,11 +2353,11 @@
     .spicy-guide-list li:last-child { border-bottom: none; }
     .spicy-guide-level { font-weight: 700; color: #c5171e; min-width: 50px; }
 
-    /* 내 위치 버튼 (v1 이식 Phase B, 2026-05-19 / 2026-05-20 fix2: position fixed + bottom 100px) */
-    /* 직전 absolute는 leafmap 컨테이너 기준이라 88px가 viewport 기준 아니어서 미흡.
-       fixed로 viewport 기준 + .pill-nav(fixed bottom 24px + 높이 ~52px = 76px) 위 24px 마진 → 100px */
+    /* 내 위치 버튼 (v1 이식 Phase B, 2026-05-19 / 2026-06-11 fix3: 최신리뷰 사이드바 밑으로) */
+    /* 사이드바(.map-sidebar right:16, bottom:96)의 sb-footer(베타 리워드 배너)와 겹쳐서
+       bottom:24로 내림 → 사이드바 하단 아래 + pill-nav(중앙) 베이스라인 정렬 (우측이라 가로 비겹침) */
     .map-my-location-btn {
-      position: fixed; bottom: 100px; right: 16px; z-index: 9999;
+      position: fixed; bottom: 24px; right: 16px; z-index: 9999;
       padding: 10px 16px; font-size: 13px; font-weight: 700;
       background: linear-gradient(135deg, #c5171e, #ff6b35); color: white;
       border: 2px solid white;
@@ -2371,7 +2371,7 @@
     .map-my-location-btn:active { transform: translateY(0); }
 
     /* 맵기 레벨 필터 — 상단 드롭다운 버튼 (2026-06-10): 평소 버튼 1개, 탭하면 색상 칩 펼침 */
-    .level-filter-dd { position: fixed; top: 16px; left: 16px; z-index: 35; }
+    .level-filter-dd { position: fixed; top: 16px; left: 16px; z-index: 55; }  /* review-panel(50) 위 — 리뷰 패널에 가려지지 않게 (2026-06-11) */
     .lvdd-toggle {
       display: flex; align-items: center; gap: 6px;
       padding: 9px 14px;
