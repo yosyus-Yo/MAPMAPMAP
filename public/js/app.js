@@ -114,8 +114,29 @@
     // alias 해소 후 실제 view 존재 여부 확인
     if ([...views].some(v => v.dataset.view === resolveViewName(initial))) showView(initial);
 
-    // popstate 리스너 (2026-05-20, 기존 hashchange 대체) — 사용자가 뒤로/앞으로 가거나 URL 직접 입력 시 view 전환
+    // 오버레이 history 통합 (2026-06-11) — 패널/모달/문의 열림 시 뒤로가기 = 닫기
+    function _anyOverlayOpen() {
+      return document.getElementById('reviewModal')?.classList.contains('open')
+        || document.getElementById('reviewPanel')?.classList.contains('open')
+        || document.getElementById('feedbackOverlay')?.classList.contains('active');
+    }
+    function _closeTopOverlay() {  // 가장 위 오버레이 1개만 닫기 (순수 DOM, 기존 close 재사용)
+      const modal = document.getElementById('reviewModal');
+      if (modal?.classList.contains('open')) { window.closeReviewModal?.(); return; }
+      const panel = document.getElementById('reviewPanel');
+      if (panel?.classList.contains('open')) { window.closeReviewPanel?.(); return; }
+      const fb = document.getElementById('feedbackOverlay');
+      if (fb?.classList.contains('active')) { fb.classList.remove('active'); return; }
+    }
+    // 오버레이 열 때 호출 → history 엔트리 추가 (뒤로가기 1단계 확보). app-handlers도 사용.
+    window.__overlayHistoryPush = function() {
+      history.pushState({ overlay: true }, '', location.pathname);
+    };
+
+    // popstate 리스너 (2026-05-20, 기존 hashchange 대체) — 사용자가 뒤로/앞으로 가거나 URL 직접 입력 시
     window.addEventListener('popstate', () => {
+      // 오버레이가 열려 있으면 view 전환 대신 오버레이부터 닫는다 (2026-06-11)
+      if (_anyOverlayOpen()) { _closeTopOverlay(); return; }
       const name = pathToView();
       const resolved = resolveViewName(name);
       if ([...views].some(v => v.dataset.view === resolved)) showView(name, { history: 'none' });
@@ -763,6 +784,7 @@
       // 패널 슬라이드 인
       const panel = document.getElementById('reviewPanel');
       panel.classList.add('open');
+      window.__overlayHistoryPush?.();  // 뒤로가기로 패널 닫기 (2026-06-11)
       panel.setAttribute('aria-hidden', 'false');
       // 범례를 패널 오른쪽으로 밀어냄 (2026-05-19, CSS에서 처리)
       document.body.classList.add('review-panel-open');
@@ -1045,6 +1067,8 @@
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) {
           showToast('로그인 후 공감할 수 있어요');
+          // 다른 기능(레벨 설정·리뷰 작성)과 동일하게 로그인 화면으로 유도
+          if (typeof window.showView === 'function') window.showView('onboarding');
           return;
         }
       } catch (e) {
@@ -1177,6 +1201,7 @@
 
       // 열기
       document.getElementById('reviewModal').classList.add('open');
+      window.__overlayHistoryPush?.();  // 뒤로가기로 모달 닫기 (2026-06-11)
       // 🟢 슬라임 충돌: reviewModal slide-in 동안 매 프레임 wake up + 우측 push impulse (2026-05-19)
       if (window.__slime && typeof window.__slime.wakeUp === 'function') {
         const SLIDE_DURATION = 600;
@@ -1302,6 +1327,7 @@
       if (likeBtn) likeBtn.style.display = 'none';
 
       _modal.classList.add('open');
+      window.__overlayHistoryPush?.();  // 뒤로가기로 모달 닫기 (2026-06-11)
     };
 
     window.closeReviewModal = function() {
@@ -1371,13 +1397,8 @@
 
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
-        // 모달이 열려 있으면 모달만 닫음
-        const modal = document.getElementById('reviewModal');
-        if (modal && modal.classList.contains('open')) {
-          closeReviewModal();
-        } else {
-          closeReviewPanel();
-        }
+        // 오버레이(모달/패널/문의) 열림 → 닫기 = history.back() (뒤로가기와 통일, 2026-06-11)
+        if (_anyOverlayOpen()) history.back();
       }
       // 모달 사진 좌우 화살표
       if (document.getElementById('reviewModal')?.classList.contains('open')) {

@@ -121,7 +121,7 @@
         <h3 id="rp-name">가게 선택</h3>
         <div class="meta" id="rp-meta">—</div>
       </div>
-      <button class="rp-close" onclick="closeReviewPanel()" title="닫기">✕</button>
+      <button class="rp-close" onclick="history.back()" title="닫기">✕</button>
     </div>
     <!-- 음식점 사진 캐러셀 (2026-05-19) — 첫 리뷰의 음식 사진들 가로 슬라이드 -->
     <div class="rp-photos-carousel" id="rp-photos-carousel" style="display:none">
@@ -156,7 +156,7 @@
   <div class="review-modal-backdrop" id="reviewModal">
     <div class="review-modal">
       <div class="rm-hero" id="rm-hero">
-        <button class="rm-close" onclick="closeReviewModal()" title="닫기 (Esc)">✕</button>
+        <button class="rm-close" onclick="history.back()" title="닫기 (Esc)">✕</button>
         <button class="rm-photo-nav prev" id="rm-prev" onclick="changePhoto(-1)">‹</button>
         <button class="rm-photo-nav next" id="rm-next" onclick="changePhoto(1)">›</button>
         <div class="rm-photo-counter" id="rm-counter" style="display:none">1 / 1</div>
@@ -945,7 +945,7 @@
 
   <!-- 문의/피드백 모달 (2026-06-09) — 비회원도 제출 가능, 제출 시 관리자 대시보드에 표시 -->
   <div class="feedback-overlay" id="feedbackOverlay" role="dialog" aria-modal="true" aria-label="문의하기"
-       onclick="if(event.target.id==='feedbackOverlay')document.getElementById('feedbackOverlay').classList.remove('active')">
+       onclick="if(event.target.id==='feedbackOverlay')history.back()">
     <div class="feedback-popup" onclick="event.stopPropagation()">
       <button type="button" class="feedback-close" id="feedbackClose" title="닫기">&times;</button>
       <h3>💬 문의 / 피드백</h3>
@@ -976,7 +976,7 @@
   <!-- API 모듈 (Phase 7, 2026-05-18) — IIFE로 wrap, window.API 노출 -->
   <script src="/js/api.js?v=20260609" defer></script>
   <!-- 인증/마이페이지/레벨 핸들러 (Phase 7, 2026-05-18) — api.js 이후 로드 -->
-  <script src="/js/app-handlers.js?v=20260609" defer></script>
-  <script src="/js/app.js?v=20260610g" defer></script>
+  <script src="/js/app-handlers.js?v=20260611a" defer></script>
+  <script src="/js/app.js?v=20260611a" defer></script>
 </body>
 </html>

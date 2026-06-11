@@ -1913,6 +1913,7 @@
     const em = $('#feedbackEmail'); if (em) em.value = (CURRENT_USER?.email || '');
     const st = $('#feedbackStatus'); if (st) { st.textContent = ''; st.style.color = ''; }
     overlay.classList.add('active');
+    window.__overlayHistoryPush?.();  // 뒤로가기로 문의 닫기 (2026-06-11)
     setTimeout(() => c?.focus(), 50);
   }
 
@@ -1930,7 +1931,7 @@
     try {
       await window.API.feedback.submit({ content, email, category });
       if (status) { status.textContent = '✅ 소중한 의견 감사합니다!'; status.style.color = '#1e7e34'; }
-      setTimeout(() => $('#feedbackOverlay')?.classList.remove('active'), 1200);
+      setTimeout(() => { if ($('#feedbackOverlay')?.classList.contains('active')) history.back(); }, 1200);  // 닫기=back (history 정리)
     } catch (e) {
       console.error('[feedback] 제출 실패:', e);
       if (status) { status.textContent = '❌ ' + (e.message || '제출 실패 — 잠시 후 다시 시도해주세요'); status.style.color = '#c5171e'; }
@@ -1941,7 +1942,7 @@
 
   function wireFeedback() {
     $('#inquiryBtn')?.addEventListener('click', openFeedback);
-    $('#feedbackClose')?.addEventListener('click', () => $('#feedbackOverlay')?.classList.remove('active'));
+    $('#feedbackClose')?.addEventListener('click', () => history.back());  // 닫기=back (뒤로가기와 통일)
     $('#feedbackSubmit')?.addEventListener('click', submitFeedback);
   }
 
