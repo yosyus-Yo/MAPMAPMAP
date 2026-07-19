@@ -53,9 +53,9 @@ serve(async (req) => {
       );
     }
 
-    // 네이버 지역검색 API 호출 (이름 + 주소로 정확도 ↑)
+    // 네이버 지역검색 API 호출 (이름 + 주소로 정확도 ↑). display=5: 검색 후보 최대 5건.
     const query = address ? `${name} ${address.split(" ").slice(0, 2).join(" ")}` : name;
-    const apiUrl = `https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent(query)}&display=1`;
+    const apiUrl = `https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent(query)}&display=5`;
 
     const naverRes = await fetch(apiUrl, {
       headers: {
@@ -72,29 +72,19 @@ serve(async (req) => {
     }
 
     const data = await naverRes.json();
-    const item: any = data?.items?.[0];
+    const rawItems: any[] = Array.isArray(data?.items) ? data.items : [];
 
-    if (!item) {
-      return new Response(
-        JSON.stringify({ error: "검색 결과 없음", fallback: true }),
-        { status: 404, headers: { ...corsHeaders, "content-type": "application/json" } }
-      );
-    }
-
-    // 네이버 지역 검색 응답: link (네이버 플레이스 URL), title (가게명), address, mapx, mapy 등
-    // link가 있으면 그것 우선, 없으면 mapx/mapy로 지도 URL 생성
-    let link = item.link;
-    if (!link && item.mapx && item.mapy) {
-      // mapx/mapy는 KATEC 좌표 (네이버 자체). 사용자 친화 URL은 검색 URL이 더 나음
-      link = `https://map.naver.com/p/search/${encodeURIComponent(query)}`;
-    }
+    // 네이버 지역 검색 응답 정규화: title(가게명, <b> 태그 제거), address(도로명 우선), link.
+    // 좌표(mapx/mapy)는 KATECH라 그대로 못 쓰므로 클라이언트가 주소→카카오 지오코딩으로 변환한다.
+    const items = rawItems.map((item: any) => ({
+      title: (item.title || "").replace(/<[^>]+>/g, ""),
+      address: item.roadAddress || item.address || "",
+      category: (item.category || "").replace(/<[^>]+>/g, ""),
+      link: item.link || `https://map.naver.com/p/search/${encodeURIComponent(query)}`,
+    })).filter((it: any) => it.title && it.address);
 
     return new Response(
-      JSON.stringify({
-        link,
-        title: (item.title || "").replace(/<[^>]+>/g, ""), // <b> 태그 제거
-        address: item.roadAddress || item.address,
-      }),
+      JSON.stringify({ items, fallback: items.length === 0 }),
       { headers: { ...corsHeaders, "content-type": "application/json" } }
     );
   } catch (e) {

@@ -964,6 +964,13 @@
       line-height: 1.55;
       color: var(--text-2);
     }
+    /* 주문 메뉴명 (2026-07-02) — 매장 상세 패널 리뷰 카드 */
+    .rp-review .rc-menu {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-2);
+      margin-bottom: 4px;
+    }
     /* 내 레벨 대비 매운맛 색 배지 (2026-06-02) — safe🟢 / warning🟠 / danger🔴 */
     .spice-badge {
       display: inline-block;
@@ -1311,6 +1318,13 @@
       font-family: 'Berkeley Mono', ui-monospace, monospace;
     }
 
+    /* 주문 메뉴명 (2026-07-02) — 상세 모달 */
+    .rm-menu {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-2);
+      margin: 8px 0 4px;
+    }
     .rm-content {
       font-size: 14px;
       line-height: 1.65;

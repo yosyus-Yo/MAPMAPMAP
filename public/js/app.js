@@ -997,6 +997,7 @@
         const nickname = rv.users?.nickname || rv.user_nickname || '익명';
         const date = rv.created_at ? new Date(rv.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '';
         const content = rv.content || rv.review_text || rv.comment || '';
+        const menuName = rv.menu_name ? escapeHtml(rv.menu_name) : '';
         let photos = '';
         const photoUrls = getAllPhotoUrls(rv);
         if (photoUrls.length) {
@@ -1025,6 +1026,7 @@
             </div>
             <div class="body">
               <div class="rc-level" style="margin-bottom:6px">평가 Lv.${reviewLevel} 🌶 ${spiceBadgeHtml(reviewLevel)}</div>
+              ${menuName ? `<div class="rc-menu">🍜 ${menuName}</div>` : ''}
               ${escapeHtml(content.length > 80 ? content.slice(0, 80) + '…' : content)}
             </div>
             ${photos}
@@ -1152,6 +1154,18 @@
       document.getElementById('rm-avatar').textContent = nickname.charAt(0) || '?';
       document.getElementById('rm-nickname').innerHTML = `${escapeHtml(nickname)} <span class="badge">Lv.${userLevel}</span>`;
       document.getElementById('rm-date').textContent = date;
+      // 주문 메뉴명 (2026-07-02: 제보 시 필수 입력이나 상세에 미표시되던 누락 수정)
+      const _rmMenu = document.getElementById('rm-menu');
+      const _menuName = rv.menu_name || '';
+      if (_rmMenu) {
+        if (_menuName) {
+          _rmMenu.textContent = '🍜 ' + _menuName;
+          _rmMenu.style.display = '';
+        } else {
+          _rmMenu.textContent = '';
+          _rmMenu.style.display = 'none';
+        }
+      }
       document.getElementById('rm-content').textContent = content;
       // 최신 리뷰와 동일하게 "평가 Lv.N 🌶" 텍스트로 통일 (막대 제거, 2026-06-02)
       document.getElementById('rm-level').textContent = '평가 Lv.' + reviewLevel + ' 🌶';
@@ -1305,6 +1319,18 @@
       document.getElementById('rm-avatar').textContent = nickname.charAt(0) || '?';
       document.getElementById('rm-nickname').innerHTML = `${escapeHtml(nickname)} <span class="badge">Lv.${userLevel}</span>${rest ? ` · ${escapeHtml(rest)}` : ''}`;
       document.getElementById('rm-date').textContent = date;
+      // 주문 메뉴명 (2026-07-02: 제보 시 필수 입력이나 상세에 미표시되던 누락 수정)
+      const _rmMenu = document.getElementById('rm-menu');
+      const _menuName = rv.menu_name || '';
+      if (_rmMenu) {
+        if (_menuName) {
+          _rmMenu.textContent = '🍜 ' + _menuName;
+          _rmMenu.style.display = '';
+        } else {
+          _rmMenu.textContent = '';
+          _rmMenu.style.display = 'none';
+        }
+      }
       document.getElementById('rm-content').textContent = content;
       document.getElementById('rm-level').textContent = '평가 Lv.' + reviewLevel + ' 🌶';
       const _rmBadge = document.getElementById('rm-spice-badge');

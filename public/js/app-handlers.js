@@ -968,28 +968,107 @@
     }
 
     // 사용자 위치 받아서 거리순 정렬 (2026-05-19)
-    // window.getUserPosition은 index.html에서 노출. 위치 거부/실패 시 null → 기본 정확도순 정렬
+    // window.getUserPosition은 index.html에서 노출. 위치 거부/실패 시 null → 정렬 생략
     const userPos = typeof window.getUserPosition === 'function'
       ? await window.getUserPosition()
       : null;
 
-    const searchOptions = userPos
-      ? {
-          location: new window.kakao.maps.LatLng(userPos.lat, userPos.lng),
-          radius: 20000,  // 20km 반경 (Kakao API 최대값)
-          sort: window.kakao.maps.services.SortBy.DISTANCE,
-        }
-      : undefined;
-
+    // ⚠️ 검색 자체에는 location/radius를 넘기지 않는다.
+    // Kakao Local API의 radius는 랭킹 힌트가 아니라 하드 필터라, 반경 밖 가게는
+    // 이름이 정확히 일치해도 결과에서 제외된다. 1회차(위치 미획득)와 2회차(캐시됨)의
+    // 결과가 달라지던 버그의 원인. 거리 정렬은 받은 결과에 대해 클라이언트에서 수행.
     placesService.keywordSearch(keyword, (result, status) => {
       if (status === window.kakao.maps.services.Status.OK) {
-        displaySearchResults(result);
+        displaySearchResults(sortByDistance(result, userPos));
       } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
-        resultsDiv.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-3); font-size:12px">검색 결과가 없습니다</div>';
+        // 카카오 0건 → 네이버 지역검색으로 보완 (카카오가 못 찾는 가게 fallback)
+        searchNaverFallback(keyword, resultsDiv);
       } else {
         resultsDiv.innerHTML = '<div style="padding:14px; text-align:center; color:#c5171e; font-size:12px">검색 중 오류가 발생했습니다</div>';
       }
-    }, searchOptions);
+    });
+  }
+
+  // 검색 결과를 사용자 위치 기준 거리순으로 재정렬. userPos 없으면 원본(정확도순) 유지.
+  // 좌표 없는 항목(네이버 fallback 등)은 뒤로 밀되 상대 순서는 보존.
+  function sortByDistance(places, userPos) {
+    if (!userPos || !Array.isArray(places)) return places;
+    return places
+      .map((p, i) => ({ p, i, d: distanceKm(userPos.lat, userPos.lng, toNum(p.y), toNum(p.x)) }))
+      .sort((a, b) => {
+        if (a.d === null && b.d === null) return a.i - b.i;
+        if (a.d === null) return 1;
+        if (b.d === null) return -1;
+        return a.d - b.d;
+      })
+      .map(e => e.p);
+  }
+
+  // '' / null / undefined → NaN (Number()는 이 셋을 0으로 바꿔 좌표 없는 항목을 (0,0)으로 오인)
+  function toNum(v) {
+    if (v === null || v === undefined || v === '') return NaN;
+    return Number(v);
+  }
+
+  function distanceKm(lat1, lng1, lat2, lng2) {
+    if (!Number.isFinite(lat2) || !Number.isFinite(lng2)) return null;
+    const R = 6371;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2
+      + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
+  // 카카오 0건 시 네이버 지역검색으로 보완. naver-place Edge Function(CORS 프록시) 호출.
+  // 네이버 결과를 카카오 place 구조({place_name, road_address_name, _source})로 정규화해
+  // displaySearchResults/selectPlace를 그대로 재사용한다. 좌표는 선택 시 지오코딩으로 확보.
+  async function searchNaverFallback(keyword, resultsDiv) {
+    resultsDiv.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-3); font-size:12px">🔍 네이버에서 검색 중...</div>';
+    try {
+      const sb = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+      if (!sb || !sb.functions) throw new Error('supabase client 미준비');
+      const { data, error } = await sb.functions.invoke('naver-place', { body: { name: keyword } });
+      if (error) throw error;
+      const items = (data && Array.isArray(data.items)) ? data.items : [];
+      if (items.length === 0) {
+        resultsDiv.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-3); font-size:12px">검색 결과가 없습니다</div>';
+        return;
+      }
+      // 네이버 결과 → 카카오 place 구조 정규화 (좌표 x/y는 선택 시 지오코딩으로 채움)
+      const places = items.map((it) => ({
+        place_name: it.title,
+        road_address_name: it.address,
+        address_name: it.address,
+        category_name: it.category || '',
+        _source: 'naver',
+        x: null,
+        y: null,
+      }));
+      displaySearchResults(places);
+    } catch (e) {
+      console.error('[naver fallback] 실패:', e);
+      resultsDiv.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-3); font-size:12px">검색 결과가 없습니다</div>';
+    }
+  }
+
+  // 주소 → WGS84 좌표 (카카오 Geocoder). 네이버 결과엔 호환 좌표(KATECH)뿐이라 변환 필요.
+  function geocodeAddress(address) {
+    return new Promise((resolve) => {
+      if (!address || !window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+        resolve(null);
+        return;
+      }
+      const geocoder = new window.kakao.maps.services.Geocoder();
+      geocoder.addressSearch(address, (result, status) => {
+        if (status === window.kakao.maps.services.Status.OK && result && result[0]) {
+          resolve({ x: result[0].x, y: result[0].y });  // x=lng, y=lat (WGS84)
+        } else {
+          resolve(null);
+        }
+      });
+    });
   }
 
   function displaySearchResults(places) {
@@ -1002,7 +1081,7 @@
       item.onmouseenter = () => { item.style.background = 'rgba(197,23,30,0.06)'; };
       item.onmouseleave = () => { item.style.background = ''; };
       item.innerHTML = `
-        <div style="font-weight:600; font-size:13px; color:var(--text)">${escapeHtmlHelper(place.place_name)}</div>
+        <div style="font-weight:600; font-size:13px; color:var(--text)">${escapeHtmlHelper(place.place_name)}${place._source === 'naver' ? ' <span style="font-size:9px; color:#03c75a; border:1px solid #03c75a; border-radius:3px; padding:0 3px; vertical-align:middle">N</span>' : ''}</div>
         <div style="font-size:11px; color:var(--text-3); margin-top:2px">${escapeHtmlHelper(place.road_address_name || place.address_name || '')}</div>
         ${place.category_name ? `<div style="font-size:10px; color:var(--text-4); margin-top:2px">${escapeHtmlHelper(place.category_name)}</div>` : ''}
       `;
@@ -1016,11 +1095,17 @@
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  function selectPlace(place) {
+  async function selectPlace(place) {
+    let lat = place.y, lng = place.x;
+    // 네이버 결과는 호환 좌표가 없음 → 주소를 카카오 지오코딩해 WGS84 좌표 확보 (선택한 1건만)
+    if (place._source === 'naver' && (!lat || !lng)) {
+      const coords = await geocodeAddress(place.road_address_name || place.address_name || '');
+      if (coords) { lat = coords.y; lng = coords.x; }
+    }
     $('#rv-restaurant-name').value = place.place_name;
     $('#rv-restaurant-address').value = place.road_address_name || place.address_name || '';
-    $('#rv-restaurant-lat').value = place.y;
-    $('#rv-restaurant-lng').value = place.x;
+    $('#rv-restaurant-lat').value = lat || '';
+    $('#rv-restaurant-lng').value = lng || '';
 
     $('#rv-selected-name').textContent = place.place_name;
     $('#rv-selected-address').textContent = place.road_address_name || place.address_name || '';
