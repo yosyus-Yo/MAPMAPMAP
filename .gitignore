@@ -10,3 +10,7 @@ server-archive/node_modules/
 # 내부 전략 문서 — 저장소가 public이라 커밋 금지
 # (사업 전략, 인프라 설정 상태, DB 스키마 설계 등 포함)
 docs/v2-review.html
+
+# 원본 수집 CSV — public/ 아래라 커밋하면 웹에 그대로 공개된다.
+# 네이버 CDN 썸네일 직링크 + place_id/bookmark_id 포함. DB 적재는 이미 끝났으므로 버전 관리 불필요.
+public/naver_places.csv

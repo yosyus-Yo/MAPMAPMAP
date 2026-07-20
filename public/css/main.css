@@ -642,6 +642,47 @@
       user-select: none;
       -webkit-user-drag: none;
     }
+    /* ── 리뷰 없는 매장 = 회색 원 마커 (2026-07-20) ────────────────────────
+       흑백 불꽃 마커(48×60)는 700개가 화면을 뒤덮어서 원으로 낮췄다.
+       10px 점은 카카오 기본 POI에 묻혀서 22px 원으로 키웠다. */
+    .fm-circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #9aa0a6;
+      border: 2.5px solid #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.12s, background 0.12s;
+    }
+    /* 호버 시 커지고 붉게 — "제보하면 맛집 마커가 된다"는 힌트 */
+    .fm-circle:hover {
+      transform: scale(1.35);
+      background: var(--spice, #c5171e);
+    }
+
+    /* ── 클러스터 원 (2026-07-20) ──────────────────────────────────────────
+       축소 상태에서 화면 픽셀 격자로 묶어 지역별 개수를 보여준다.
+       개수에 따라 3단계 크기 — 밀집도가 한눈에 들어오도록. */
+    .fm-cluster {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: #fff;
+      font-weight: 800;
+      font-family: 'Berkeley Mono', ui-monospace, monospace;
+      background: rgba(197, 23, 30, 0.88);
+      border: 2px solid rgba(255,255,255,0.9);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.12s;
+      user-select: none;
+    }
+    .fm-cluster:hover { transform: scale(1.12); }
+    .fm-cluster-sm { width: 34px; height: 34px; font-size: 12px; }
+    .fm-cluster-md { width: 44px; height: 44px; font-size: 14px; }
+    .fm-cluster-lg { width: 56px; height: 56px; font-size: 15px; }
     .km-user-loc {
       width: 18px; height: 18px;
       background: #4285F4;

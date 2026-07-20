@@ -155,6 +155,13 @@
     let detailMap = null;     // (변수명 유지) Kakao Map 인스턴스
     let supabaseClient = null;
     let mainMarkers = [];     // 가게 마커 + CustomOverlay 추적 (재렌더링용)
+
+    // ── 클러스터링 (2026-07-20) ───────────────────────────────────────────
+    // 748개를 전부 개별 마커로 그리면 수도권이 뒤덮인다. 축소 상태에서는
+    // 화면 픽셀 격자로 묶어 "지역별 개수 원"으로 보여주고, 확대하면 풀린다.
+    const CLUSTER_MIN_LEVEL = 6;    // Kakao level은 숫자가 클수록 축소 (기본 진입 7)
+    const CLUSTER_CELL_PX   = 88;   // 격자 한 칸(px) — 가장 큰 원(56px)보다 넉넉하게
+    let _clusters = [];             // 현재 화면의 클러스터 [{key, ids, count}]
     const _levelFilter = new Set();  // 맵기 레벨 필터 (빈 Set = 전체, 2026-06-09)
 
     // Kakao 지도 타입 매핑 (UI #tileToggle의 dataset.tile 값과 매칭)
@@ -219,33 +226,21 @@
         return [];
       }
       try {
-        // 1차: review_count > 0
-        let { data, error, status, statusText } = await supabaseClient
+        // 리뷰 없는 매장(review_count=0)도 함께 가져온다 — 지도에 흑백 마커로 표시된다.
+        // 예전에는 .gt('review_count', 0)으로 걸렀는데, 그러면 제보 전 매장이 지도에
+        // 아예 뜨지 않는다. 리뷰 유무 구분은 마커 렌더 단계(isEmpty)가 담당한다.
+        // ⚠️ PostgREST는 응답 행 수 상한이 있다(기본 1000). 매장이 그 이상 늘어나면
+        //    range() 페이지네이션 또는 지도 뷰포트 기준 조회로 바꿔야 한다.
+        const { data, error, status, statusText } = await supabaseClient
           .from('restaurants')
           .select('*')
-          .gt('review_count', 0)
-          .order('review_count', { ascending: false });
+          .order('review_count', { ascending: false })
+          .range(0, 4999);
 
-        console.log('1차 페치:', { status, statusText, count: data?.length, error });
+        console.log('페치:', { status, statusText, count: data?.length, error });
 
         if (error) {
-          console.error('❌ Supabase 1차 에러:', error);
-          // 에러여도 fallback 시도
-        }
-
-        // 1차 실패 또는 0건 → 전체 페치
-        if (!data || data.length === 0) {
-          console.log('⚠️ 1차 0건 → 전체 페치 시도');
-          const fallback = await supabaseClient
-            .from('restaurants')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(100);
-          console.log('2차 페치:', { count: fallback.data?.length, error: fallback.error });
-          if (fallback.error) {
-            throw new Error(`${fallback.error.code || ''}: ${fallback.error.message}`);
-          }
-          data = fallback.data;
+          throw new Error(`${error.code || ''}: ${error.message}`);
         }
 
         RESTAURANTS = data || [];
@@ -375,6 +370,140 @@
     function getAllPhotoUrls(rv) {
       return parseAllFoodImages(rv.food_image_url);
     }
+
+    // ── 카테고리 목업 썸네일 (2026-07-20) ─────────────────────────────────
+    // 리뷰 없는 매장은 사진이 없어서 목록이 텅 비어 보인다. 실사진은 라이선스
+    // 문제로 쓸 수 없으므로 카테고리별 SVG를 즉석에서 만들어 채운다.
+    // 외부 파일/요청이 없어 로딩 실패가 원리적으로 불가능하다.
+    // DB 카테고리는 67종이라 10개 그룹으로 묶는다 (위에서부터 first-match).
+    const CATEGORY_THEMES = [
+      { re: /닭|치킨/,                        label: '닭·치킨',   bg: '#fbead9', fg: '#b4671f', icon: 'chicken' },
+      { re: /주꾸미|낙지|아귀|해물|생선|오징어|조개|새우|문어|장어|회/, label: '해물',   bg: '#dfeef2', fg: '#2c6b7d', icon: 'fish' },
+      { re: /육류|고기|곱창|막창|양|족발|보쌈|갈비|삼겹|구이|스테이크/, label: '고기·구이', bg: '#f7e0de', fg: '#a8443c', icon: 'meat' },
+      { re: /중식|마라|짜장|짬뽕|탕수/,        label: '중식',      bg: '#f6e2e2', fg: '#9c3a3a', icon: 'wok' },
+      { re: /일식|일본|초밥|스시|돈까스|우동|라멘/, label: '일식',  bg: '#e8e6f2', fg: '#4f4a7a', icon: 'sushi' },
+      { re: /냉면|칼국수|국수|라면|면/,        label: '면류',      bg: '#e6eee2', fg: '#41663a', icon: 'noodle' },
+      { re: /분식|떡볶이|김밥|튀김|순대/,      label: '분식',      bg: '#fae3e8', fg: '#a83f57', icon: 'tteok' },
+      { re: /탕|찌개|전골|국밥|해장|찜/,       label: '탕·찌개',   bg: '#f3ecdc', fg: '#8a6516', icon: 'soup' },
+      { re: /주점|포장마차|야식|호프|술/,      label: '주점·야식', bg: '#e4e8ee', fg: '#495a70', icon: 'glass' },
+    ];
+    const CATEGORY_DEFAULT = { label: '음식점', bg: '#eeeae2', fg: '#6b6357', icon: 'plate' };
+
+    // 아이콘은 원/사각형 같은 기본 도형 조합으로 그린다.
+    // 이모지는 OS마다 모양이 달라 디자인이 흔들리므로 쓰지 않는다.
+    function categoryIconPaths(icon) {
+      switch (icon) {
+        case 'chicken':  // 닭다리 — 살(원) + 뼈(막대)
+          return `<circle cx="22" cy="18" r="11"/><rect x="26" y="24" width="18" height="6" rx="3" transform="rotate(38 26 24)"/>`;
+        case 'fish':     // 생선 — 몸통(타원) + 꼬리(삼각)
+          return `<ellipse cx="24" cy="20" rx="16" ry="10"/><path d="M40 20 L52 12 L52 28 Z"/>`;
+        case 'meat':     // 고기 — 살(둥근사각) + 뼈(원)
+          return `<rect x="10" y="10" width="30" height="22" rx="9"/><circle cx="44" cy="21" r="6"/>`;
+        case 'wok':      // 웍 — 반원 팬 + 손잡이
+          return `<path d="M8 16 A18 18 0 0 0 44 16 Z"/><rect x="42" y="13" width="14" height="5" rx="2.5"/>`;
+        case 'sushi':    // 초밥 — 밥(둥근사각) + 네타(위 덮개)
+          return `<rect x="12" y="20" width="34" height="14" rx="6"/><path d="M12 22 A17 9 0 0 1 46 22 Z"/>`;
+        case 'noodle':   // 면 — 그릇 + 젓가락
+          return `<path d="M8 18 A18 18 0 0 0 44 18 Z"/><rect x="30" y="2" width="4" height="20" rx="2" transform="rotate(18 30 2)"/><rect x="38" y="2" width="4" height="20" rx="2" transform="rotate(28 38 2)"/>`;
+        case 'tteok':    // 떡꼬치 — 떡 3개 + 꼬치
+          return `<rect x="6" y="18" width="46" height="4" rx="2"/><rect x="12" y="12" width="10" height="16" rx="5"/><rect x="26" y="12" width="10" height="16" rx="5"/><rect x="40" y="12" width="10" height="16" rx="5"/>`;
+        case 'soup':     // 탕 — 그릇 + 김
+          return `<path d="M6 20 A20 20 0 0 0 46 20 Z"/><rect x="14" y="2" width="4" height="12" rx="2"/><rect x="24" y="0" width="4" height="14" rx="2"/><rect x="34" y="2" width="4" height="12" rx="2"/>`;
+        case 'glass':    // 잔 — 컵 + 받침
+          return `<path d="M12 6 L40 6 L32 24 L20 24 Z"/><rect x="24" y="24" width="4" height="10" rx="2"/><rect x="16" y="32" width="20" height="4" rx="2"/>`;
+        default:         // 접시 — 큰 원 + 안쪽 원
+          return `<circle cx="26" cy="20" r="18"/><circle cx="26" cy="20" r="9" fill="#fff"/>`;
+      }
+    }
+
+    function categoryTheme(category) {
+      const c = String(category || '');
+      return CATEGORY_THEMES.find(t => t.re.test(c)) || CATEGORY_DEFAULT;
+    }
+
+    // .rc-thumb(가로 100% / 세로 80px, object-fit:cover)에 맞춰 320×80으로 그린다.
+    function categoryThumbSrc(category) {
+      const t = categoryTheme(category);
+      // 카테고리 원문이 있으면 그걸 쓰고, 없으면 그룹 이름으로 대체
+      const text = (String(category || '').trim() || t.label).slice(0, 12);
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">` +
+        `<rect width="320" height="80" fill="${t.bg}"/>` +
+        `<g transform="translate(112 18)" fill="${t.fg}" opacity="0.9">${categoryIconPaths(t.icon)}</g>` +
+        `<text x="160" y="70" text-anchor="middle" fill="${t.fg}" opacity="0.75" ` +
+        `font-size="12" font-weight="700" ` +
+        `font-family="-apple-system,BlinkMacSystemFont,Apple SD Gothic Neo,Malgun Gothic,sans-serif">` +
+        `${escapeHtml(text)}</text></svg>`;
+      // encodeURIComponent가 " 를 %22로 바꿔주므로 src="..." 안에 그대로 넣어도 안전하다
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+    // 목록용 썸네일 — 실제 리뷰 사진이 있으면 그걸, 없으면 카테고리 목업을 쓴다
+    function thumbHtmlFor(r) {
+      const rv = RECENT_REVIEWS.find(x =>
+        String(x.restaurant_id) === String(r.id) && parseFirstImage(x.food_image_url));
+      const real = rv ? parseFirstImage(rv.food_image_url) : null;
+      const fallback = categoryThumbSrc(r.category);
+      // 실사진이 깨지면 목업으로 교체 (onerror 안에 따옴표가 없도록 인코딩됨)
+      return real
+        ? `<img class="rc-thumb" src="${escapeHtml(real)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'">`
+        : `<img class="rc-thumb" src="${fallback}" alt="" loading="lazy">`;
+    }
+
+    // ── 클러스터 원 클릭 → 오른쪽 패널을 그 지역 매장 목록으로 교체 (2026-07-20) ──
+    // 원 안에 몇 곳인지만 보여주고 끝내면 "그래서 어디?"가 남는다.
+    // 이미 있는 최신 리뷰 패널을 재사용해 목록을 띄운다.
+    function showClusterInSidebar(key) {
+      const cluster = _clusters.find(c => c.key === key);
+      const list = document.getElementById('sb-list');
+      if (!cluster || !list) return;
+
+      const byId = new Map(RESTAURANTS.map(r => [String(r.id), r]));
+      const items = cluster.ids
+        .map(id => byId.get(String(id)))
+        .filter(Boolean)
+        // 리뷰 있는 곳 먼저 (인증된 정보가 위로), 같으면 이름순
+        .sort((a, b) => (b.review_count || 0) - (a.review_count || 0)
+                     || String(a.name || '').localeCompare(String(b.name || '')));
+
+      const count = document.getElementById('sb-count');
+      if (count) count.textContent = `${items.length}곳 · 이 지역`;
+
+      // 카드는 최신 리뷰 목록과 같은 .sb-review-card 를 재사용한다.
+      // 전용 클래스를 새로 만들면 CSS가 캐시에 걸렸을 때 스타일 없이 나온다.
+      list.innerHTML = `
+        <div class="sb-review-card" onclick="exitClusterView()"
+             style="text-align:center; cursor:pointer; font-weight:700">← 최신 리뷰로 돌아가기</div>
+        ` + items.map(r => {
+          const reviewed = (r.review_count || 0) > 0;
+          const lvl = Math.round(r.avg_level || 0);
+          const meta = reviewed
+            ? `<span class="rc-level">평가 Lv.${lvl} 🌶 · 리뷰 ${r.review_count}건</span>${spiceBadgeHtml(lvl)}`
+            : `<span class="rc-date" style="opacity:0.7">아직 리뷰 없음</span>`;
+          return `
+            <div class="sb-review-card" data-restaurant-id="${escapeHtml(String(r.id))}"
+                 style="${reviewed ? '' : 'opacity:0.72'}"
+                 onclick="focusReview('${escapeHtml(String(r.id))}', ${r.lat ?? 'null'}, ${r.lng ?? 'null'})">
+              <div class="rc-restaurant">${escapeHtml(r.name || '이름 없음')}</div>
+              <div class="rc-comment">${escapeHtml(r.address || '')}</div>
+              ${meta}
+              ${thumbHtmlFor(r)}
+            </div>`;
+        }).join('');
+
+      // 모바일은 지도와 리뷰 패널이 별도 탭이라 전환해줘야 목록이 보인다
+      if (window.matchMedia('(max-width: 768px)').matches && typeof showView === 'function') {
+        showView('reviews');
+      }
+    }
+
+    // 클러스터 목록 → 원래 최신 리뷰 목록으로 복귀
+    function exitClusterView() {
+      const count = document.getElementById('sb-count');
+      if (count) count.textContent = `${RECENT_REVIEWS.length}건 · 최신순`;
+      renderSidebarList();
+    }
+    window.exitClusterView = exitClusterView;
 
     // 기존 호출자 호환을 위해 함수명 유지 (renderSidebarList).
     // 본문은 RECENT_REVIEWS 렌더링으로 교체.
@@ -860,7 +989,7 @@
           }
         }
 
-        renderPhotosCarousel(_rpAllReviews);
+        renderPhotosCarousel(_rpAllReviews, r);
         renderReviews(_rpAllReviews, r);
       } catch (e) {
         console.error('리뷰 페치 실패:', e);
@@ -921,7 +1050,7 @@
     }
 
     // 사진 캐러셀 — 모든 리뷰의 음식 사진을 가로 슬라이드로 (2026-05-19)
-    function renderPhotosCarousel(reviews) {
+    function renderPhotosCarousel(reviews, restaurant) {
       const carousel = document.getElementById('rp-photos-carousel');
       const track = document.getElementById('rp-photos-track');
       const dots = document.getElementById('rp-photos-dots');
@@ -934,10 +1063,15 @@
         urls.forEach(u => { if (u && allPhotos.length < 20) allPhotos.push(u); });
       });
 
+      // 사진이 없으면 카테고리 목업으로 채운다 (2026-07-20).
+      // 리뷰가 하나라도 달리면 위 allPhotos가 채워져 실사진으로 자동 교체된다.
       if (allPhotos.length === 0) {
-        carousel.style.display = 'none';
-        track.innerHTML = '';
-        dots.innerHTML = '';
+        carousel.style.display = '';
+        // data-photo-idx를 주지 않아 클릭해도 뷰어가 열리지 않는다 (실사진이 아니므로)
+        track.innerHTML = `<img src="${categoryThumbSrc(restaurant?.category)}" alt="" draggable="false">`;
+        dots.innerHTML = '';           // 슬라이드가 1장뿐이라 점 표시 불필요
+        track.onclick = null;
+        track.onscroll = null;
         return;
       }
 
@@ -974,6 +1108,8 @@
       _currentReviews = reviews || [];
       const body = document.getElementById('rp-body');
       if (!reviews || reviews.length === 0) {
+        // 카테고리 목업 이미지는 상단 캐러셀(renderPhotosCarousel)이 담당한다.
+        // 여기까지 넣으면 같은 화면에 같은 그림이 두 번 나온다.
         body.innerHTML = `
           <div class="rp-empty">
             아직 등록된 리뷰가 없어요<br>
@@ -1463,6 +1599,9 @@
       }
       document.body.classList.add('kakao-loaded');
       addMainMarkers();
+      // 줌/이동이 끝날 때마다 다시 묶는다 — 클러스터는 화면 픽셀 기준이라
+      // 배율이 바뀌면 격자도 다시 계산해야 한다. (idle = 조작 종료 시점)
+      window.kakao.maps.event.addListener(leafMap, 'idle', addMainMarkers);
       wireLevelFilter();
       tryUserLocation(leafMap);
       setTimeout(() => leafMap.relayout(), 200);
@@ -1486,15 +1625,37 @@
     // 불꽃 마커 HTML 생성 (2026-05-18 v4, 디자인 PNG 사용)
     // 사용자 제공 SVG file.svg에서 5개 마커 영역을 PNG로 추출하여 사용.
     // Lv.0 → lv0(순한), Lv.1 → lv1, ..., Lv.5 → lv4(클램프)
-    function buildFlameMarkerHtml(lvl, title = '', restaurantId = '') {
+    // isEmpty=true → 리뷰가 아직 없는 매장. Lv.0 마커를 흑백(.fm-empty)으로 렌더한다.
+    // 별도 PNG 대신 CSS filter로 파생 (main.css .fm-marker.fm-empty .fm-img)
+    function buildFlameMarkerHtml(lvl, title = '', restaurantId = '', isEmpty = false) {
       const safeLvl = Math.max(0, Math.min(5, lvl));
       // 6단계(0~5) → 5개 PNG(0~4) 매핑: Lv.0과 Lv.1을 lv0로 동일 매핑
       const imgIdx = Math.max(0, Math.min(4, safeLvl - 1));
       const idAttr = restaurantId ? ` data-restaurant-id="${escapeHtml(String(restaurantId))}"` : '';
-      const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-      return `<div class="fm-marker"${idAttr}${titleAttr} style="cursor:pointer">
-        <img class="fm-img" src="img/marker-lv${imgIdx}.png" alt="Lv.${safeLvl}" draggable="false"/>
+      const label = isEmpty ? '리뷰 없음' : `Lv.${safeLvl}`;
+      const titleText = isEmpty && title ? `${title} — 아직 리뷰가 없어요` : title;
+      const titleAttr = titleText ? ` title="${escapeHtml(titleText)}"` : '';
+      const emptyClass = isEmpty ? ' fm-empty' : '';
+      // 리뷰 없는 매장은 항상 Lv.0 아트워크(marker-lv0.png)를 쓴다
+      const src = isEmpty ? 'img/marker-lv0.png' : `img/marker-lv${imgIdx}.png`;
+      return `<div class="fm-marker${emptyClass}"${idAttr}${titleAttr} style="cursor:pointer">
+        <img class="fm-img" src="${src}" alt="${escapeHtml(label)}" draggable="false"/>
       </div>`;
+    }
+
+    // ── 회색 원 마커 (리뷰 없는 매장) ─────────────────────────────────────
+    // 흑백 불꽃 마커는 700개가 화면을 뒤덮어서 원으로 낮췄다 (2026-07-20).
+    function buildEmptyMarkerHtml(title = '', restaurantId = '') {
+      const idAttr = restaurantId ? ` data-restaurant-id="${escapeHtml(String(restaurantId))}"` : '';
+      const titleAttr = title ? ` title="${escapeHtml(title)} — 아직 리뷰가 없어요"` : '';
+      return `<div class="fm-circle"${idAttr}${titleAttr}></div>`;
+    }
+
+    // ── 클러스터 원 ───────────────────────────────────────────────────────
+    function buildClusterHtml(count, key) {
+      const size = count < 10 ? 'sm' : count < 100 ? 'md' : 'lg';
+      return `<div class="fm-cluster fm-cluster-${size}" data-cluster-key="${escapeHtml(key)}"
+        title="이 지역 ${count}곳 — 눌러서 목록 보기">${count}</div>`;
     }
 
     // 맵기 레벨 필터 (2026-06-10: 상단 드롭다운 버튼) — 전체 ↔ Lv.0~5 토글
@@ -1558,50 +1719,94 @@
       // 기존 마커 정리
       mainMarkers.forEach(m => { try { m.setMap(null); } catch (e) {} });
       mainMarkers = [];
+      _clusters = [];
 
-      RESTAURANTS.forEach(r => {
-        if (!r.lat || !r.lng) return;
-        const lvl = Math.round(r.avg_level || 0);
-        if (_levelFilter.size > 0 && !_levelFilter.has(lvl)) return;  // 맵기 레벨 필터 (2026-06-09)
-        const pos = new window.kakao.maps.LatLng(r.lat, r.lng);
+      // 화면에 그릴 대상만 추린다 (좌표 有 + 레벨 필터 통과)
+      const visible = RESTAURANTS.filter(r => {
+        if (!r.lat || !r.lng) return false;
+        // review_count가 없거나 0이면 맵기 값을 신뢰할 수 없으므로 '미평가'
+        const isEmpty = !r.review_count;
+        // 맵기 레벨 필터 (2026-06-09) — 리뷰 없는 매장은 레벨이 없으므로
+        // 특정 레벨을 고른 상태에서는 숨긴다 (전체 보기일 때만 노출).
+        if (_levelFilter.size > 0 && (isEmpty || !_levelFilter.has(Math.round(r.avg_level || 0)))) return false;
+        return true;
+      });
 
-        // 커스텀 불꽃 마커 (CustomOverlay)
+      // 축소 상태면 묶어서 개수 원으로, 확대 상태면 개별 마커로
+      if (leafMap.getLevel() >= CLUSTER_MIN_LEVEL) renderClusters(visible);
+      else visible.forEach(renderSingleMarker);
+
+      wireMarkerDelegation();
+    }
+
+    // 개별 마커 1개 — 리뷰 있으면 불꽃, 없으면 회색 점
+    function renderSingleMarker(r) {
+      const isEmpty = !r.review_count;
+      const lvl = Math.round(r.avg_level || 0);
+      const overlay = new window.kakao.maps.CustomOverlay({
+        position: new window.kakao.maps.LatLng(r.lat, r.lng),
+        content: isEmpty ? buildEmptyMarkerHtml(r.name, r.id) : buildFlameMarkerHtml(lvl, r.name, r.id, false),
+        // 원은 좌표가 중심, 불꽃 핀은 끝점이 좌표를 가리킨다
+        yAnchor: isEmpty ? 0.5 : 0.9,
+        xAnchor: 0.5,
+        clickable: true,
+        zIndex: isEmpty ? 1 : 3,
+      });
+      overlay.setMap(leafMap);
+      mainMarkers.push(overlay);
+    }
+
+    // 화면 픽셀 격자로 묶는다. 위경도 격자가 아니라 픽셀 기준이라
+    // 어느 배율에서든 원 사이 간격이 일정하게 유지된다.
+    function renderClusters(list) {
+      const proj = leafMap.getProjection();
+      const cells = new Map();
+
+      list.forEach(r => {
+        const pt = proj.containerPointFromCoords(new window.kakao.maps.LatLng(r.lat, r.lng));
+        const key = `${Math.floor(pt.x / CLUSTER_CELL_PX)}|${Math.floor(pt.y / CLUSTER_CELL_PX)}`;
+        let cell = cells.get(key);
+        if (!cell) { cell = { key, items: [], sumLat: 0, sumLng: 0 }; cells.set(key, cell); }
+        cell.items.push(r);
+        cell.sumLat += r.lat;
+        cell.sumLng += r.lng;
+      });
+
+      cells.forEach(cell => {
+        // 축소 상태에서는 리뷰 유무와 무관하게 전부 원으로 묶는다.
+        // 1곳뿐인 칸도 예외 없이 원("1")으로 — 축소 화면에 마커와 원이
+        // 섞여 나오면 기준을 알 수 없어 오히려 어지럽다.
+        _clusters.push({ key: cell.key, ids: cell.items.map(r => r.id), count: cell.items.length });
         const overlay = new window.kakao.maps.CustomOverlay({
-          position: pos,
-          content: buildFlameMarkerHtml(lvl, r.name, r.id),
-          yAnchor: 0.9,  // 핀 끝점이 좌표를 가리키도록 (iconAnchor [24,54] / iconSize [48,60] = y 0.9)
-          xAnchor: 0.5,
+          position: new window.kakao.maps.LatLng(cell.sumLat / cell.items.length, cell.sumLng / cell.items.length),
+          content: buildClusterHtml(cell.items.length, cell.key),
+          yAnchor: 0.5, xAnchor: 0.5,
           clickable: true,
+          zIndex: 5,   // 개별 마커보다 위
         });
         overlay.setMap(leafMap);
         mainMarkers.push(overlay);
-
-        // CustomOverlay는 직접 click 이벤트 안 됨 → content HTML이 div이므로 DOM listener 부착
-        // (마운트 후 querySelector로 찾아 listener — 본 timing 문제로 inline onclick으로 처리)
-        // 대신 content HTML 안에 inline onclick 부착 (escape XSS 주의)
-        // buildFlameMarkerHtml은 img를 감싸는 div이므로 wrapper div 자체에 onclick 부여
-        // → buildFlameMarkerHtml을 수정하지 않고 content를 별도 wrapper로 감싼다:
-        // (이미 위에서 setMap 했으므로 content가 DOM에 들어감 — 비동기 부착)
-        setTimeout(() => {
-          // CustomOverlay content는 직접 DOM 추출 어려움 → 좌표 hash로 querySelector
-          // 가장 안전: content HTML에 data-restaurant-id 부여 + delegated listener
-        }, 0);
       });
+    }
 
-      // 마커 클릭은 delegated listener로 처리 (한 번만 등록)
-      if (!leafMap._mp_marker_delegated) {
-        const mapContainer = document.getElementById('kakao-map');
-        if (mapContainer) {
-          mapContainer.addEventListener('click', (e) => {
-            const wrapper = e.target.closest('.fm-marker[data-restaurant-id]');
-            if (wrapper) {
-              const id = wrapper.dataset.restaurantId;
-              if (id && typeof openReviewPanel === 'function') openReviewPanel(id);
-            }
-          });
-          leafMap._mp_marker_delegated = true;
+    // 마커/점/클러스터 클릭은 delegated listener로 처리 (한 번만 등록).
+    // CustomOverlay는 자체 click 이벤트가 없어서 컨테이너에서 위임받는다.
+    function wireMarkerDelegation() {
+      if (leafMap._mp_marker_delegated) return;
+      const mapContainer = document.getElementById('kakao-map');
+      if (!mapContainer) return;
+
+      mapContainer.addEventListener('click', (e) => {
+        const cluster = e.target.closest('.fm-cluster[data-cluster-key]');
+        if (cluster) { showClusterInSidebar(cluster.dataset.clusterKey); return; }
+
+        const wrapper = e.target.closest('[data-restaurant-id]');
+        if (wrapper) {
+          const id = wrapper.dataset.restaurantId;
+          if (id && typeof openReviewPanel === 'function') openReviewPanel(id);
         }
-      }
+      });
+      leafMap._mp_marker_delegated = true;
     }
 
     function initDetailMap() {
@@ -1629,7 +1834,7 @@
         const lvl = Math.round(r.avg_level || 0);
         const overlay = new window.kakao.maps.CustomOverlay({
           position: new window.kakao.maps.LatLng(r.lat, r.lng),
-          content: buildFlameMarkerHtml(lvl),
+          content: buildFlameMarkerHtml(lvl, '', '', !r.review_count),  // 상세 지도도 동일 규칙
           yAnchor: 0.9, xAnchor: 0.5,
         });
         overlay.setMap(detailMap);

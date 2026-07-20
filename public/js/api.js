@@ -255,12 +255,15 @@ const API = {
         userLevel = userData?.spicy_level || 0;
       }
 
-      // 승인된 리뷰가 1개 이상 있는 맛집만 조회
+      // 리뷰 없는 매장(review_count=0)도 함께 조회한다.
+      // 지도에서 흑백 마커(.fm-empty)로 표시되며, 제보가 들어오면 컬러로 전환된다.
+      // ⚠️ Supabase는 응답 행 수 기본 상한이 1000이다. 매장이 그 이상으로 늘어나면
+      //    range() 페이지네이션 또는 지도 뷰포트 기준 조회로 바꿔야 한다.
       const { data: restaurants, error } = await sb
         .from('restaurants')
         .select('*')
-        .gt('review_count', 0)
-        .order('review_count', { ascending: false });
+        .order('review_count', { ascending: false })
+        .limit(2000);
 
       if (error) throw error;
 
