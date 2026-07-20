@@ -6,3 +6,7 @@ server-archive/node_modules/
 .env
 .DS_Store
 .vercel
+
+# 내부 전략 문서 — 저장소가 public이라 커밋 금지
+# (사업 전략, 인프라 설정 상태, DB 스키마 설계 등 포함)
+docs/v2-review.html
