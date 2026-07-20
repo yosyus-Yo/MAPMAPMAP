@@ -156,12 +156,56 @@
     let supabaseClient = null;
     let mainMarkers = [];     // 가게 마커 + CustomOverlay 추적 (재렌더링용)
 
-    // ── 클러스터링 (2026-07-20) ───────────────────────────────────────────
+    // ── 행정구역 클러스터링 (2026-07-20) ──────────────────────────────────
     // 748개를 전부 개별 마커로 그리면 수도권이 뒤덮인다. 축소 상태에서는
-    // 화면 픽셀 격자로 묶어 "지역별 개수 원"으로 보여주고, 확대하면 풀린다.
-    const CLUSTER_MIN_LEVEL = 6;    // Kakao level은 숫자가 클수록 축소 (기본 진입 7)
-    const CLUSTER_CELL_PX   = 88;   // 격자 한 칸(px) — 가장 큰 원(56px)보다 넉넉하게
-    let _clusters = [];             // 현재 화면의 클러스터 [{key, ids, count}]
+    // 주소를 파싱해 행정구역 단위로 묶는다. 화면 픽셀 격자로 묶던 초기 버전은
+    // "이 지역"의 경계가 행정구역과 무관해서 사용자가 의미를 읽을 수 없었다.
+    //
+    // Kakao level은 숫자가 클수록 축소. 축소할수록 상위 행정구역으로 묶는다.
+    const CLUSTER_MIN_LEVEL = 6;    // 이 미만(확대)이면 개별 마커
+    let _clusters = [];             // 현재 화면의 클러스터 [{key, label, ids, count}]
+
+    // 시도 표기가 섞여 있어(서울특별시/서울, 충청북도/충북) 짧은 이름으로 정규화한다.
+    const SIDO_ALIASES = [
+      [/^서울/, '서울'], [/^부산/, '부산'], [/^대구/, '대구'], [/^인천/, '인천'],
+      [/^(전남)?광주/, '광주'], [/^대전/, '대전'], [/^울산/, '울산'], [/^세종/, '세종'],
+      [/^경기/, '경기'], [/^강원/, '강원'], [/^충청?북/, '충북'], [/^충청?남/, '충남'],
+      [/^전(라)?북/, '전북'], [/^전(라)?남/, '전남'],
+      [/^경상?북/, '경북'], [/^경상?남/, '경남'], [/^제주/, '제주'],
+    ];
+
+    // 주소 → { sido, sigungu, dong }. 실제 748건으로 검증한 파서.
+    function parseRegion(address) {
+      const p = String(address || '').trim().split(/\s+/);
+      if (!p[0]) return { sido: '기타', sigungu: '기타', dong: null };
+
+      const hit = SIDO_ALIASES.find(([re]) => re.test(p[0]));
+      const sido = hit ? hit[1]
+                       : p[0].replace(/(특별자치도|특별자치시|특별시|광역시|도)$/, '');
+
+      let sigungu = null, i = 1;
+      if (p[1] && /(시|군|구)$/.test(p[1])) { sigungu = p[1]; i = 2; }
+      // 성남시 분당구처럼 시 아래 구가 또 있으면 합친다
+      if (sigungu && /시$/.test(sigungu) && p[2] && /구$/.test(p[2])) {
+        sigungu += ' ' + p[2];
+        i = 3;
+      }
+      // 세종시는 시·군·구 없이 바로 읍면동인 단층 행정구역 → 시도명으로 대체
+      if (!sigungu) { sigungu = sido; i = 1; }
+
+      let dong = null;
+      for (let k = i; k < Math.min(i + 2, p.length); k++) {
+        if (/(동|읍|면|가|리)\d*$/.test(p[k])) { dong = p[k]; break; }
+      }
+      return { sido, sigungu, dong };
+    }
+
+    // 축소 정도에 따라 묶을 행정구역 단계를 고른다
+    function regionTierFor(level) {
+      if (level >= 10) return 'sido';      // 전국이 보이는 수준 → 시·도
+      if (level >= 8)  return 'sigungu';   // 광역시 전체 → 시·군·구
+      return 'dong';                        // 그 아래 → 읍·면·동
+    }
     const _levelFilter = new Set();  // 맵기 레벨 필터 (빈 Set = 전체, 2026-06-09)
 
     // Kakao 지도 타입 매핑 (UI #tileToggle의 dataset.tile 값과 매칭)
@@ -314,6 +358,7 @@
           restaurant_lng: r.restaurants?.lng ?? null
         }));
         console.log(`[sidebar] ✅ ${RECENT_REVIEWS.length}건 최신 리뷰 로드`);
+        // 지도 위 사이드 패널의 '최신 리뷰' 탭도 같은 데이터로 채운다
         return RECENT_REVIEWS;
       } catch (e) {
         console.error('[sidebar] fetchRecentReviews 실패:', e);
@@ -450,13 +495,33 @@
         : `<img class="rc-thumb" src="${fallback}" alt="" loading="lazy">`;
     }
 
-    // ── 클러스터 원 클릭 → 오른쪽 패널을 그 지역 매장 목록으로 교체 (2026-07-20) ──
+    // ── 클러스터 원 클릭 → 최신 리뷰 사이드바의 '지역' 탭에 목록 표시 ────
     // 원 안에 몇 곳인지만 보여주고 끝내면 "그래서 어디?"가 남는다.
-    // 이미 있는 최신 리뷰 패널을 재사용해 목록을 띄운다.
+    // 사이드바는 900px 이상에서 지도 옆에 상시 노출된다 (main.css @media).
+    let _lastCluster = null;   // '지역' 탭 재클릭 시 다시 그리기 위해 보관
+
     function showClusterInSidebar(key) {
       const cluster = _clusters.find(c => c.key === key);
+      if (!cluster) return;
+      _lastCluster = cluster;
+      renderRegionTab();
+    }
+
+    // '지역' 탭 활성화 + 마지막으로 고른 지역의 매장 목록 렌더
+    function renderRegionTab() {
+      const cluster = _lastCluster;
       const list = document.getElementById('sb-list');
-      if (!cluster || !list) return;
+      if (!list) return;
+
+      // 탭 active 상태를 '지역'으로 이동
+      document.querySelectorAll('.map-sidebar .sb-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.filter === 'region'));
+
+      if (!cluster) {
+        list.innerHTML = `<div class="sb-review-card empty" style="text-align:center">
+          지도의 <strong>개수 원</strong>을 누르면<br>그 지역 맛집 목록이 여기 나옵니다</div>`;
+        return;
+      }
 
       const byId = new Map(RESTAURANTS.map(r => [String(r.id), r]));
       const items = cluster.ids
@@ -466,15 +531,14 @@
         .sort((a, b) => (b.review_count || 0) - (a.review_count || 0)
                      || String(a.name || '').localeCompare(String(b.name || '')));
 
+      const tabLabel = document.getElementById('sb-region-label');
+      if (tabLabel) tabLabel.textContent = cluster.label || '지역';
       const count = document.getElementById('sb-count');
-      if (count) count.textContent = `${items.length}곳 · 이 지역`;
+      if (count) count.textContent = `${items.length}곳 · ${cluster.label || '이 지역'}`;
 
       // 카드는 최신 리뷰 목록과 같은 .sb-review-card 를 재사용한다.
       // 전용 클래스를 새로 만들면 CSS가 캐시에 걸렸을 때 스타일 없이 나온다.
-      list.innerHTML = `
-        <div class="sb-review-card" onclick="exitClusterView()"
-             style="text-align:center; cursor:pointer; font-weight:700">← 최신 리뷰로 돌아가기</div>
-        ` + items.map(r => {
+      list.innerHTML = items.map(r => {
           const reviewed = (r.review_count || 0) > 0;
           const lvl = Math.round(r.avg_level || 0);
           const meta = reviewed
@@ -491,19 +555,12 @@
             </div>`;
         }).join('');
 
-      // 모바일은 지도와 리뷰 패널이 별도 탭이라 전환해줘야 목록이 보인다
-      if (window.matchMedia('(max-width: 768px)').matches && typeof showView === 'function') {
+      list.scrollTop = 0;
+      // 모바일(<900px)은 사이드바가 별도 탭이라 전환해줘야 목록이 보인다
+      if (!window.matchMedia('(min-width: 900px)').matches && typeof showView === 'function') {
         showView('reviews');
       }
     }
-
-    // 클러스터 목록 → 원래 최신 리뷰 목록으로 복귀
-    function exitClusterView() {
-      const count = document.getElementById('sb-count');
-      if (count) count.textContent = `${RECENT_REVIEWS.length}건 · 최신순`;
-      renderSidebarList();
-    }
-    window.exitClusterView = exitClusterView;
 
     // 기존 호출자 호환을 위해 함수명 유지 (renderSidebarList).
     // 본문은 RECENT_REVIEWS 렌더링으로 교체.
@@ -849,6 +906,8 @@
     document.querySelectorAll('.map-sidebar .sb-tab[data-filter]').forEach(tab => {
       tab.addEventListener('click', () => {
         const filter = tab.dataset.filter || 'all';
+        // '지역' 탭은 리뷰 필터가 아니라 클러스터 목록 전용 — 마지막에 본 지역을 다시 그린다
+        if (filter === 'region') { renderRegionTab(); return; }
         applySidebarFilter(filter);
       });
     });
@@ -1651,11 +1710,15 @@
       return `<div class="fm-circle"${idAttr}${titleAttr}></div>`;
     }
 
-    // ── 클러스터 원 ───────────────────────────────────────────────────────
-    function buildClusterHtml(count, key) {
+    // ── 클러스터 원 (개수) + 지역 이름 ────────────────────────────────────
+    // 숫자만 있으면 어느 지역인지 알 수 없어 이름을 아래 붙인다.
+    function buildClusterHtml(count, key, label) {
       const size = count < 10 ? 'sm' : count < 100 ? 'md' : 'lg';
-      return `<div class="fm-cluster fm-cluster-${size}" data-cluster-key="${escapeHtml(key)}"
-        title="이 지역 ${count}곳 — 눌러서 목록 보기">${count}</div>`;
+      return `<div class="fm-cluster-wrap" data-cluster-key="${escapeHtml(key)}"
+        title="${escapeHtml(label)} ${count}곳 — 눌러서 목록 보기">
+        <div class="fm-cluster fm-cluster-${size}">${count}</div>
+        <div class="fm-cluster-label">${escapeHtml(label)}</div>
+      </div>`;
     }
 
     // 맵기 레벨 필터 (2026-06-10: 상단 드롭다운 버튼) — 전체 ↔ Lv.0~5 토글
@@ -1732,8 +1795,9 @@
         return true;
       });
 
-      // 축소 상태면 묶어서 개수 원으로, 확대 상태면 개별 마커로
-      if (leafMap.getLevel() >= CLUSTER_MIN_LEVEL) renderClusters(visible);
+      // 축소 상태면 행정구역으로 묶고, 확대 상태면 개별 마커로
+      const level = leafMap.getLevel();
+      if (level >= CLUSTER_MIN_LEVEL) renderClusters(visible, regionTierFor(level));
       else visible.forEach(renderSingleMarker);
 
       wireMarkerDelegation();
@@ -1756,30 +1820,38 @@
       mainMarkers.push(overlay);
     }
 
-    // 화면 픽셀 격자로 묶는다. 위경도 격자가 아니라 픽셀 기준이라
-    // 어느 배율에서든 원 사이 간격이 일정하게 유지된다.
-    function renderClusters(list) {
-      const proj = leafMap.getProjection();
-      const cells = new Map();
+    // 주소를 파싱해 행정구역 단위로 묶는다. 원의 위치는 소속 매장들의 중심점.
+    function renderClusters(list, tier) {
+      const groups = new Map();
 
       list.forEach(r => {
-        const pt = proj.containerPointFromCoords(new window.kakao.maps.LatLng(r.lat, r.lng));
-        const key = `${Math.floor(pt.x / CLUSTER_CELL_PX)}|${Math.floor(pt.y / CLUSTER_CELL_PX)}`;
-        let cell = cells.get(key);
-        if (!cell) { cell = { key, items: [], sumLat: 0, sumLng: 0 }; cells.set(key, cell); }
-        cell.items.push(r);
-        cell.sumLat += r.lat;
-        cell.sumLng += r.lng;
+        const g = parseRegion(r.address);
+        // 동 단위인데 주소가 도로명이라 동이 없으면 시군구로 폴백 (약 8%).
+        // 이때 '마포구'라고만 쓰면 옆의 '신당동'과 같은 축척으로 오해되므로
+        // '마포구 일대'로 표기해 동 단위가 아님을 드러낸다.
+        const label = tier === 'sido'    ? g.sido
+                    : tier === 'sigungu' ? g.sigungu
+                    : (g.dong || `${g.sigungu} 일대`);
+        // 키에는 현재 단계까지만 넣는다. 하위 구역을 넣으면 같은 시도가 여러 원으로 쪼개진다.
+        // 단, 다른 시도에 같은 이름의 구가 있으므로(중구 등) 상위 구역은 포함해야 한다.
+        const key = tier === 'sido'    ? `sido|${g.sido}`
+                  : tier === 'sigungu' ? `sigungu|${g.sido}|${g.sigungu}`
+                  :                      `dong|${g.sido}|${g.sigungu}|${label}`;
+        let grp = groups.get(key);
+        if (!grp) { grp = { key, label, items: [], sumLat: 0, sumLng: 0 }; groups.set(key, grp); }
+        grp.items.push(r);
+        grp.sumLat += r.lat;
+        grp.sumLng += r.lng;
       });
 
-      cells.forEach(cell => {
+      groups.forEach(grp => {
         // 축소 상태에서는 리뷰 유무와 무관하게 전부 원으로 묶는다.
-        // 1곳뿐인 칸도 예외 없이 원("1")으로 — 축소 화면에 마커와 원이
-        // 섞여 나오면 기준을 알 수 없어 오히려 어지럽다.
-        _clusters.push({ key: cell.key, ids: cell.items.map(r => r.id), count: cell.items.length });
+        // 1곳뿐인 지역도 예외 없이 원("1")으로 — 마커와 원이 섞여 나오면
+        // 무슨 기준으로 나뉜 건지 알 수 없어 오히려 어지럽다.
+        _clusters.push({ key: grp.key, label: grp.label, ids: grp.items.map(r => r.id), count: grp.items.length });
         const overlay = new window.kakao.maps.CustomOverlay({
-          position: new window.kakao.maps.LatLng(cell.sumLat / cell.items.length, cell.sumLng / cell.items.length),
-          content: buildClusterHtml(cell.items.length, cell.key),
+          position: new window.kakao.maps.LatLng(grp.sumLat / grp.items.length, grp.sumLng / grp.items.length),
+          content: buildClusterHtml(grp.items.length, grp.key, grp.label),
           yAnchor: 0.5, xAnchor: 0.5,
           clickable: true,
           zIndex: 5,   // 개별 마커보다 위
@@ -1797,7 +1869,7 @@
       if (!mapContainer) return;
 
       mapContainer.addEventListener('click', (e) => {
-        const cluster = e.target.closest('.fm-cluster[data-cluster-key]');
+        const cluster = e.target.closest('.fm-cluster-wrap[data-cluster-key]');
         if (cluster) { showClusterInSidebar(cluster.dataset.clusterKey); return; }
 
         const wrapper = e.target.closest('[data-restaurant-id]');
