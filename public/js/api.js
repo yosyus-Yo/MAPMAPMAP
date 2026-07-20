@@ -27,6 +27,46 @@ function initSupabase() {
 // 포인트 설정 (현재 0원 - 추후 변경 가능)
 const POINTS_REWARD = 0;
 
+// 업로드 파일의 확장자 + contentType을 안전하게 결정한다.
+//
+// 기존 `file.name.split('.').pop()` 방식은 점 없는 파일명에서 깨졌다:
+//   "KakaoTalk_20260720"        → ext="kakaotalk_20260720"
+//   "스크린샷 2026-07-20 오후 3.24.15" → ext="15"
+// 카카오톡 전송 사진·스크린샷·일부 안드로이드 갤러리 파일이 여기 걸려
+// 업로드가 거부되거나 이미지로 렌더링되지 않았다.
+//
+// 우선순위: MIME type(신뢰도 높음) → 파일명 확장자 → jpg 폴백.
+const MIME_TO_EXT = {
+  'image/jpeg': 'jpg',
+  'image/jpg':  'jpg',
+  'image/png':  'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+};
+const EXT_TO_MIME = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+  webp: 'image/webp', heic: 'image/heic', heif: 'image/heif',
+};
+
+function resolveImageType(file) {
+  const mime = (file?.type || '').toLowerCase();
+  if (MIME_TO_EXT[mime]) {
+    return { ext: MIME_TO_EXT[mime], contentType: mime === 'image/jpg' ? 'image/jpeg' : mime };
+  }
+  // MIME이 비어있거나 알 수 없으면 파일명에서 시도 (점이 실제로 있을 때만).
+  // 갤럭시 파일 관리자·다운로드 폴더 경유 선택 시 file.type이 빈 문자열로 오는 케이스 대응.
+  const name = file?.name || '';
+  const dot = name.lastIndexOf('.');
+  if (dot > 0 && dot < name.length - 1) {
+    const ext = name.slice(dot + 1).toLowerCase();
+    if (EXT_TO_MIME[ext]) return { ext, contentType: EXT_TO_MIME[ext] };
+  }
+  // 폴백이 jpg인 이유: app-handlers.js의 prepareImage()가 업로드 전에
+  // HEIC/미지원 포맷을 전부 JPEG로 정규화하므로, 여기 도달하는 파일은 사실상 JPEG다.
+  return { ext: 'jpg', contentType: 'image/jpeg' };
+}
+
 // API 객체 - Supabase 직접 연동
 const API = {
   // Auth APIs
@@ -327,6 +367,7 @@ const API = {
   // Review APIs
   reviews: {
     async create(formData) {
+      // (resolveImageType은 파일 하단 헬퍼 — 확장자/contentType 안전 결정)
       const sb = initSupabase();
       const { data: { user: authUser } } = await sb.auth.getUser();
 
@@ -364,12 +405,12 @@ const API = {
       const foodImageUrls = [];
       for (const file of food_images) {
         if (!file.size) continue;
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const { ext, contentType } = resolveImageType(file);
         const filename = `${crypto.randomUUID()}.${ext}`;
 
         const { error: uploadError } = await sb.storage
           .from('food-images')
-          .upload(filename, file);
+          .upload(filename, file, { contentType });
 
         if (uploadError) {
           throw new Error(`음식 사진 업로드 실패: ${uploadError.message}`);
@@ -384,12 +425,12 @@ const API = {
       }
 
       // 영수증 이미지 업로드
-      const receiptExt = receipt_image.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const receiptFilename = `${crypto.randomUUID()}.${receiptExt}`;
+      const receiptType = resolveImageType(receipt_image);
+      const receiptFilename = `${crypto.randomUUID()}.${receiptType.ext}`;
 
       const { error: receiptUploadError } = await sb.storage
         .from('receipt-images')
-        .upload(receiptFilename, receipt_image);
+        .upload(receiptFilename, receipt_image, { contentType: receiptType.contentType });
 
       if (receiptUploadError) {
         throw new Error(`영수증 사진 업로드 실패: ${receiptUploadError.message}`);

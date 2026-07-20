@@ -717,27 +717,167 @@
     wrap.innerHTML = slots + addBtn;
   }
 
+  // ===== 이미지 업로드 제약 (UI 안내 문구와 동일하게 유지할 것) =====
+  const IMG_MAX_BYTES = 5 * 1024 * 1024;   // 최종 업로드 허용 크기
+  const IMG_MAX_EDGE  = 1920;              // 리사이즈 목표 최대 변(px)
+  const IMG_MAX_FOOD  = 5;                 // 음식 사진 최대 장수
+
+  // 5MB 초과 이미지를 캔버스로 리사이즈+재압축해서 통과시킨다.
+  // 배경: HEIC→JPEG 변환 시 원본보다 커지는 경우가 흔해(3MB HEIC → 7MB JPEG)
+  // "아이폰에서 고른 평범한 사진인데 5MB 초과"가 주요 실패 원인이었다.
+  // 실패하면 원본을 그대로 반환 — 호출부의 크기 검사가 최종 판단을 한다.
+  async function compressImageIfNeeded(file) {
+    if (!file || file.size <= IMG_MAX_BYTES) return file;
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, IMG_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+      const w = Math.round(bitmap.width * scale);
+      const h = Math.round(bitmap.height * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+      if (bitmap.close) bitmap.close();
+
+      // 품질을 낮춰가며 목표 크기 이하로. 0.5에서도 안 되면 포기하고 원본 반환.
+      for (const quality of [0.85, 0.7, 0.55]) {
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+        if (blob && blob.size <= IMG_MAX_BYTES) {
+          const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+          return new File([blob], name, { type: 'image/jpeg' });
+        }
+      }
+      return file;
+    } catch (e) {
+      console.warn('[image] 압축 실패, 원본 사용:', e);
+      return file;
+    }
+  }
+
+  // 파일 하나를 업로드 가능한 상태로 정규화한다.
+  //   포맷 판별 → (HEIC면) JPEG 변환 → (필요시) 리사이즈·재압축 → 크기 검사
+  // 아이폰(HEIC/JPEG)과 갤럭시(JPEG/HEIF/PNG)를 동일 경로로 처리한다.
+  // 반환: { file } 또는 { error } — 호출부에서 분기.
+  async function prepareImage(original, label) {
+    if (!original || !original.size) return { error: `${label}: 빈 파일입니다` };
+
+    const fmt = await sniffImageFormat(original);
+
+    // 브라우저가 디코딩할 수 없는 포맷은 여기서 명확히 안내하고 끊는다.
+    // (그냥 올리면 업로드는 되지만 이미지로 표시되지 않아 원인 파악이 어려움)
+    if (fmt === 'raw') {
+      return { error: `${label}: RAW/DNG 파일은 지원하지 않습니다. 일반 사진으로 다시 촬영하거나 갤러리에서 JPG로 저장해주세요` };
+    }
+
+    // HEIC/HEIF → JPEG (아이폰 기본 + 갤럭시 '고효율 이미지' 설정 양쪽)
+    let file = original;
+    if (fmt === 'heic') {
+      const converted = await convertHeicIfNeeded(original);
+      if (!converted) return { error: `${label}: 사진 변환에 실패했습니다. 다른 사진을 선택해주세요` };
+      file = converted;
+    }
+
+    // 브라우저가 못 읽는 포맷(unknown/avif 일부)은 캔버스 정규화로 마지막 시도
+    if (fmt === 'unknown' || fmt === 'avif' || fmt === 'bmp' || fmt === 'gif') {
+      const normalized = await normalizeToJpeg(file);
+      if (!normalized) {
+        return { error: `${label}: 지원하지 않는 이미지 형식입니다. JPG 또는 PNG로 저장 후 다시 시도해주세요` };
+      }
+      file = normalized;
+    }
+
+    const finalFile = await compressImageIfNeeded(file);
+    if (finalFile.size > IMG_MAX_BYTES) {
+      const mb = (finalFile.size / 1024 / 1024).toFixed(1);
+      return { error: `${label}: 용량이 너무 큽니다 (${mb}MB / 최대 5MB). 다른 사진을 선택해주세요` };
+    }
+    return { file: finalFile };
+  }
+
+  // 브라우저가 디코딩 가능한 이미지를 무조건 JPEG로 바꾼다.
+  // 디코딩 자체가 안 되면 null → 호출부에서 사용자에게 안내.
+  async function normalizeToJpeg(file) {
+    try {
+      const bitmap = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0);
+      if (bitmap.close) bitmap.close();
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+      if (!blob) return null;
+      const name = (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
+      return new File([blob], name, { type: 'image/jpeg' });
+    } catch (e) {
+      console.warn('[image] JPEG 정규화 실패:', e);
+      return null;
+    }
+  }
+
   // HEIC → JPEG 변환 (iPhone 사진 호환, v1 이식 2026-05-19)
   // heic2any CDN이 index.html head에서 로드됨. typeof 체크로 안전 호출.
   async function convertHeicIfNeeded(file) {
-    const isHeic = file.type === 'image/heic' ||
-      file.type === 'image/heif' ||
-      file.name.toLowerCase().endsWith('.heic') ||
-      file.name.toLowerCase().endsWith('.heif');
-    if (!isHeic) return file;
+    const fmt = await sniffImageFormat(file);
+    if (fmt !== 'heic') return file;
+
     if (typeof heic2any === 'undefined') {
       showToast('HEIC 변환 라이브러리 미로드 — 새로고침 후 다시 시도', 'error');
       return null;
     }
     try {
-      showToast('아이폰 사진 변환 중...', 'info');
+      showToast('사진 변환 중...', 'info');
       const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
-      const newFileName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
-      return new File([blob], newFileName, { type: 'image/jpeg' });
+      // heic2any는 다중 이미지 HEIC에서 배열을 반환할 수 있음 (갤럭시 버스트샷 등)
+      const single = Array.isArray(blob) ? blob[0] : blob;
+      const newFileName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+      return new File([single], newFileName, { type: 'image/jpeg' });
     } catch (error) {
       console.error('HEIC 변환 오류:', error);
       showToast('이미지 변환 실패', 'error');
       return null;
+    }
+  }
+
+  // 파일 앞부분 바이트(magic number)로 실제 이미지 포맷을 판별한다.
+  //
+  // file.type과 확장자에만 의존하면 안드로이드에서 자주 깨진다:
+  //  - 갤럭시 파일 관리자·다운로드 폴더 경유로 고르면 file.type이 빈 문자열
+  //  - 삼성 "고효율 이미지" 설정 사진이 .heic가 아닌 이름으로 넘어오는 경우
+  // 아이폰은 대체로 type이 정확하지만, 양쪽을 동일 경로로 처리하려면 바이트 판별이 확실하다.
+  //
+  // 반환: 'jpeg' | 'png' | 'webp' | 'gif' | 'bmp' | 'heic' | 'avif' | 'raw' | 'unknown'
+  async function sniffImageFormat(file) {
+    try {
+      const buf = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+      const hex = (i, n) => Array.from(buf.slice(i, i + n))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      const ascii = (i, n) => String.fromCharCode(...buf.slice(i, i + n));
+
+      if (hex(0, 3) === 'ffd8ff') return 'jpeg';
+      if (hex(0, 8) === '89504e470d0a1a0a') return 'png';
+      if (ascii(0, 4) === 'RIFF' && ascii(8, 4) === 'WEBP') return 'webp';
+      if (ascii(0, 3) === 'GIF') return 'gif';
+      if (hex(0, 2) === '424d') return 'bmp';
+      // TIFF 계열 = 삼성 전문가 모드 DNG(RAW) 포함. 브라우저가 디코딩 못 함.
+      if (hex(0, 4) === '49492a00' || hex(0, 4) === '4d4d002a') return 'raw';
+
+      // ISO-BMFF 계열: bytes 4-8이 'ftyp', 8-12가 브랜드
+      if (ascii(4, 4) === 'ftyp') {
+        const brand = ascii(8, 4).toLowerCase();
+        if (['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1'].includes(brand)) return 'heic';
+        if (brand === 'avif' || brand === 'avis') return 'avif';
+      }
+      return 'unknown';
+    } catch (e) {
+      console.warn('[image] 포맷 판별 실패, MIME으로 폴백:', e);
+      // 바이트를 못 읽으면 기존 방식으로 폴백
+      const t = (file.type || '').toLowerCase();
+      const n = (file.name || '').toLowerCase();
+      if (t.includes('heic') || t.includes('heif') || n.endsWith('.heic') || n.endsWith('.heif')) return 'heic';
+      if (t.includes('jpeg') || t.includes('jpg')) return 'jpeg';
+      if (t.includes('png')) return 'png';
+      return 'unknown';
     }
   }
 
@@ -759,14 +899,13 @@
     input.addEventListener('change', async (e) => {
       const files = Array.from(e.target.files || []);
       for (const original of files) {
-        if (_foodImages.length >= 5) break;
-        // HEIC → JPEG 자동 변환 (iPhone 호환)
-        const f = await convertHeicIfNeeded(original);
-        if (!f) continue; // 변환 실패
-        if (f.size > 5 * 1024 * 1024) {
-          showErrorInReview(`${f.name}: 5MB 초과`);
-          continue;
+        if (_foodImages.length >= IMG_MAX_FOOD) {
+          showErrorInReview(`음식 사진은 최대 ${IMG_MAX_FOOD}장까지 등록할 수 있습니다`);
+          break;
         }
+        // HEIC 변환 → 5MB 초과 시 자동 압축 → 크기 검사
+        const { file: f, error } = await prepareImage(original, original.name);
+        if (error) { showErrorInReview(error); continue; }
         _foodImages.push(f);
       }
       renderFoodPhotoUploader();
@@ -782,14 +921,9 @@
     input.addEventListener('change', async (e) => {
       const original = e.target.files?.[0];
       if (!original) return;
-      // HEIC → JPEG 자동 변환 (iPhone 호환)
-      const f = await convertHeicIfNeeded(original);
-      if (!f) { input.value = ''; return; }
-      if (f.size > 5 * 1024 * 1024) {
-        showErrorInReview('영수증: 5MB 초과');
-        input.value = '';
-        return;
-      }
+      // HEIC 변환 → 5MB 초과 시 자동 압축 → 크기 검사
+      const { file: f, error } = await prepareImage(original, '영수증');
+      if (error) { showErrorInReview(error); input.value = ''; return; }
       _receiptImage = f;
       const url = URL.createObjectURL(f);
       zone.innerHTML = `
@@ -1117,6 +1251,104 @@
     if (selected) selected.style.display = 'block';
     const results = $('#rv-place-results');
     if (results) results.style.display = 'none';
+  }
+
+  // ===== 지도 직접 선택 (2026-07-20) =====
+  // 카카오 검색에 안 잡히는 신규·소규모 매장을 위한 대체 경로.
+  // 지도 중앙에 고정된 핀 아래로 지도를 움직이는 방식(핀 드래그보다 모바일에서 정확).
+  let _pickerMap = null;
+  let _pickerGeocoder = null;
+  let _pickerIdleTimer = null;
+
+  async function openMapPicker() {
+    const overlay = $('#rv-map-picker');
+    if (!overlay) return;
+
+    const ok = await loadKakaoSdk();
+    if (!ok) { showToast('카카오맵 SDK 로드 실패', 'error'); return; }
+
+    overlay.style.display = 'block';
+
+    // 최초 1회만 지도 생성. 이후엔 relayout만 (display:none 상태에서 생성하면 크기가 0이 됨)
+    if (!_pickerMap) {
+      // 사용자 위치가 있으면 그곳을, 없으면 검색창 키워드와 무관하게 서울시청 기준
+      const userPos = typeof window.getUserPosition === 'function'
+        ? await window.getUserPosition()
+        : null;
+      const center = new window.kakao.maps.LatLng(
+        userPos ? userPos.lat : 37.5665,
+        userPos ? userPos.lng : 126.9780
+      );
+      _pickerMap = new window.kakao.maps.Map($('#rv-picker-map'), { center, level: 3 });
+      _pickerGeocoder = new window.kakao.maps.services.Geocoder();
+
+      // 지도 이동이 멈추면 중심 좌표를 역지오코딩해 주소 표시
+      window.kakao.maps.event.addListener(_pickerMap, 'idle', () => {
+        clearTimeout(_pickerIdleTimer);
+        _pickerIdleTimer = setTimeout(updatePickerAddress, 250);
+      });
+    } else {
+      _pickerMap.relayout();
+    }
+    updatePickerAddress();
+
+    // 검색창에 입력한 이름이 있으면 미리 채워둠
+    const typed = $('#rv-place-search')?.value.trim();
+    const nameInput = $('#rv-picker-name');
+    if (nameInput && typed && !nameInput.value) nameInput.value = typed;
+  }
+
+  function updatePickerAddress() {
+    if (!_pickerMap || !_pickerGeocoder) return;
+    const c = _pickerMap.getCenter();
+    _pickerGeocoder.coord2Address(c.getLng(), c.getLat(), (result, status) => {
+      const el = $('#rv-picker-address');
+      if (!el) return;
+      if (status === window.kakao.maps.services.Status.OK && result?.[0]) {
+        const road = result[0].road_address?.address_name;
+        const jibun = result[0].address?.address_name;
+        el.textContent = road || jibun || '주소를 찾을 수 없습니다';
+      } else {
+        el.textContent = '주소를 찾을 수 없습니다';
+      }
+    });
+  }
+
+  function closeMapPicker() {
+    const overlay = $('#rv-map-picker');
+    if (overlay) overlay.style.display = 'none';
+  }
+
+  function confirmMapPicker() {
+    const name = $('#rv-picker-name')?.value.trim();
+    if (!name) { showToast('가게 이름을 입력해주세요'); return; }
+    if (!_pickerMap) return;
+
+    const c = _pickerMap.getCenter();
+    const address = $('#rv-picker-address')?.textContent || '';
+    const validAddress = address.includes('찾을 수 없') || address.includes('움직여') ? '' : address;
+
+    // selectPlace와 동일한 place 구조로 넘겨 UI 전환 로직을 재사용
+    selectPlace({
+      place_name: name,
+      road_address_name: validAddress,
+      address_name: validAddress,
+      x: String(c.getLng()),   // selectPlace가 x=lng, y=lat로 읽음
+      y: String(c.getLat()),
+      _source: 'map_picker',
+    });
+    closeMapPicker();
+    showToast('지도에서 위치를 선택했습니다', 'info');
+  }
+
+  function bindMapPicker() {
+    $('#btn-pick-on-map')?.addEventListener('click', openMapPicker);
+    $('#btn-map-picker-close')?.addEventListener('click', closeMapPicker);
+    $('#btn-map-picker-confirm')?.addEventListener('click', confirmMapPicker);
+    // 배경(오버레이) 클릭 시 닫기 — 내부 카드 클릭은 무시
+    $('#rv-map-picker')?.addEventListener('click', (e) => {
+      if (e.target.id === 'rv-map-picker') closeMapPicker();
+    });
   }
 
   function clearSelectedPlace() {
@@ -1934,6 +2166,7 @@
     bindReviewRatingSelector();  // 2026-05-20: 자체 별점 시스템
     bindReviewPhotoUploader();
     bindReviewReceipt();
+    bindMapPicker();  // 지도 직접 선택 (2026-07-20)
     bindReviewCommentCounter();
 
     // 맵기 평가 가이드 버튼 (v1 이식 2026-05-19)
